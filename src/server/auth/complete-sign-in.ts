@@ -35,7 +35,7 @@ export async function completeSignIn(identity: ProviderIdentity): Promise<SignIn
   const email = identity.email.trim().toLowerCase();
 
   const result = await asSystem(async (tx) => {
-    const [college] = await tx<{ college_id: string }[]>`
+    const [college] = await tx<{ collegeId: string }[]>`
       select college_id from restix.college_email_domains where domain = ${domain}`;
     if (!college) return { ok: false as const, reason: "college_not_configured" as const };
 
@@ -43,7 +43,7 @@ export async function completeSignIn(identity: ProviderIdentity): Promise<SignIn
       select email_verified_at, onboarded_at from restix.profiles where id = ${identity.id} for update`;
     if (!existing) {
       await tx`insert into restix.profiles (id, college_id, display_name, email_verified_at)
-               values (${identity.id}, ${college.college_id}, ${defaultDisplayName(identity)}, now())`;
+               values (${identity.id}, ${college.collegeId},${defaultDisplayName(identity)}, now())`;
       await tx`insert into restix.profile_private (user_id, email) values (${identity.id}, ${email})`;
       return { ok: true as const, isNew: true, newlyVerified: true, onboarded: false };
     }

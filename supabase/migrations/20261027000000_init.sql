@@ -124,6 +124,22 @@ language sql stable security definer set search_path = restix, pg_temp as $$
   );
 $$;
 
+-- Restricted accounts may still browse; suspended ones may not.
+create or replace function restix.can_browse() returns boolean
+language sql stable security definer set search_path = restix, pg_temp as $$
+  select exists (
+    select 1 from restix.profiles
+    where id = auth.uid() and email_verified_at is not null and status in ('active', 'restricted')
+  );
+$$;
+
+-- Why an account is restricted is private: the owner and moderators may read it, nobody else.
+create or replace function restix.profile_status_reason(p_user uuid) returns text
+language sql stable security definer set search_path = restix, pg_temp as $$
+  select status_reason from restix.profiles
+  where id = p_user and (p_user = auth.uid() or exists (select 1 from restix.admin_roles where user_id = auth.uid()));
+$$;
+
 create or replace function restix.my_college_id() returns uuid
 language sql stable security definer set search_path = restix, pg_temp as $$
   select college_id from restix.profiles where id = auth.uid();
@@ -518,7 +534,7 @@ create policy listings_read on restix.ticket_listings for select to authenticate
   using (
     seller_id = auth.uid()
     or restix.is_moderator()
-    or (restix.is_eligible()
+    or (restix.can_browse()
         and status in ('active', 'paused', 'sold', 'unavailable', 'expired')
         and exists (select 1 from restix.events e where e.id = event_id and e.college_id = restix.my_college_id()))
   );
@@ -544,6 +560,9 @@ create policy inquiries_insert on restix.inquiries for insert to authenticated
 create policy inquiries_update_parties on restix.inquiries for update to authenticated
   using (buyer_id = auth.uid() or seller_id = auth.uid())
   with check (buyer_id = auth.uid() or seller_id = auth.uid());
+-- Moderators close conversations on listings they take down.
+create policy inquiries_update_mod on restix.inquiries for update to authenticated
+  using (restix.is_moderator()) with check (restix.is_moderator());
 
 create policy confirmations_read on restix.transaction_confirmations for select to authenticated
   using (
@@ -628,5 +647,6 @@ grant update (status, decision_note, decided_by, decided_at) on restix.appeals t
 
 grant select on restix.analytics_events to authenticated;
 
-grant execute on function restix.is_moderator(), restix.is_admin(), restix.is_eligible(), restix.my_college_id()
+grant execute on function restix.is_moderator(), restix.is_admin(), restix.is_eligible(), restix.can_browse(), restix.my_college_id(),
+  restix.profile_status_reason(uuid)
   to authenticated;

@@ -59,7 +59,7 @@ describe("listings", () => {
     expect(updated).toHaveLength(0);
     expect(deleted).toHaveLength(0);
     const [row] = await asSystem((tx) => tx`select asking_price_paise from restix.ticket_listings where id = ${listingId}`);
-    expect(row.asking_price_paise).toBe(50000);
+    expect(row.askingPricePaise).toBe(50000);
   });
 
   it("blocks sellers from moderator-only statuses and from transferring ownership", async () => {

@@ -16,6 +16,8 @@ function client(): Sql {
       idle_timeout: 20,
       connect_timeout: 10,
       onnotice: () => {},
+      // Result columns arrive as camelCase (asking_price_paise -> askingPricePaise).
+      transform: { column: { from: postgres.toCamel } },
     });
   }
   return globalForDb.restixSql;
