@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local database and tooling output
+/.data
+/.taste-skill/inspect
+/.taste-skill/app/inspect
+/test-results
+/playwright-report
+/playwright/.cache
