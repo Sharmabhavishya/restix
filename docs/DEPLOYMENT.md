@@ -101,7 +101,7 @@ Set the environment variables, deploy, then open `https://your-domain/sign-in` a
 an institutional account. Expected: Google account chooser (pre-filtered to the domain when one
 domain is configured) -> back to ResTix -> "you're in. one sec." welcome page.
 
-Verify the rejection path too: a personal Gmail must land on "That's not a snu.edu.in account".
+Verify the rejection path too: a personal Gmail must land on "That college isn't on ResTix yet".
 
 ## 6. First admin
 
@@ -132,7 +132,7 @@ If the project is paused for inactivity, restore it from the Supabase dashboard;
 - [ ] `ALLOWED_EMAIL_DOMAINS` confirmed with the institution
 - [ ] `restix` not in exposed schemas; `pg_has_role` check true
 - [ ] Google sign-in works for an institutional account; Gmail is rejected
-- [ ] First admin granted; a test event created with a confirmed policy source
+- [ ] First admin granted; a test event created (resale is open by default; restrictions are optional)
 - [ ] No sample events in production (`select count(*) from restix.events where is_fixture` = 0)
 - [ ] Cron returns 200 with the secret, 401 without
 - [ ] Privacy and terms reviewed by the institution
