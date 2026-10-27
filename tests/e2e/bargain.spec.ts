@@ -42,7 +42,7 @@ test("offer, counter, deal, then WhatsApp with the message already written", asy
   await expect(card.getByText("Bargaining")).toBeVisible();
   await card.getByLabel(/Or counter with/).fill("720");
   await card.getByRole("button", { name: "Counter" }).click();
-  await expect(card.getByText(/waiting on Rohan/)).toBeVisible();
+  await expect(card.getByText("waiting on Rohan to reply")).toBeVisible();
 
   // The buyer takes the counter.
   await buyer.page.goto("/inquiries?tab=sent");

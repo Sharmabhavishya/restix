@@ -42,7 +42,7 @@ export default async function ReportPage({ params }: PageProps<"/admin/reports/[
       />
       {isOwn && <Notice tone="warning" className="mb-6" title="This report is about you">Ask another moderator to handle it.</Notice>}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex flex-col gap-6">
           <Panel>
             <PanelHeader title="What was reported" />

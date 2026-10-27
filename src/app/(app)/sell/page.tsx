@@ -29,7 +29,7 @@ export default async function SellPage({ searchParams }: PageProps<"/sell">) {
   return (
     <>
       <PageTitle title="Sell a ticket" sub="takes about a minute. you'll share contact details only with buyers you say yes to." />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <Panel className="p-5 sm:p-7">
           {blocked ? (
             <Notice tone="warning" title="You can't list right now">{blocked}</Notice>

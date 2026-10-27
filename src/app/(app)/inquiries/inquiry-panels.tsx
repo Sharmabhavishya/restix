@@ -56,7 +56,7 @@ export function RespondForm({ inquiryId, hasWhatsapp }: { inquiryId: string; has
       ) : (
         <form action={action} className="flex flex-wrap gap-2">
           <input type="hidden" name="inquiryId" value={inquiryId} />
-          <button type="button" className={buttonClass("primary")} onClick={() => setMode("accept")}>Accept</button>
+          <button type="button" className={buttonClass("primary")} onClick={() => setMode("accept")}>Accept &amp; share contact</button>
           <SubmitButton name="decision" value="decline" variant="secondary" pendingLabel="Declining…">Decline</SubmitButton>
         </form>
       )}
@@ -177,7 +177,7 @@ export function Bargain({
               <input type="hidden" name="offerId" value={open.id} />
               {theirs ? (
                 <>
-                  <SubmitButton name="decision" value="accept" size="sm" pendingLabel="Locking it in…">
+                  <SubmitButton name="decision" value="accept" variant="dark" size="sm" pendingLabel="Locking it in…">
                     Take {formatPaise(open.amountPaise)}
                   </SubmitButton>
                   <SubmitButton name="decision" value="decline" variant="secondary" size="sm" pendingLabel="…">
@@ -186,7 +186,7 @@ export function Bargain({
                 </>
               ) : (
                 <>
-                  <span className="text-[13px] text-muted">waiting on {otherName}…</span>
+                  <span className="text-[13px] text-muted">waiting on {otherName} to reply</span>
                   <SubmitButton name="decision" value="withdraw" variant="ghost" size="sm" pendingLabel="…">
                     Withdraw offer
                   </SubmitButton>

@@ -31,6 +31,7 @@ export function Wristband({
   href,
   aside,
   showEvent = true,
+  pricePending = false,
 }: {
   listing: WristbandData;
   /** Shown on the tab when the listing is not simply available. */
@@ -38,6 +39,8 @@ export function Wristband({
   href?: string;
   aside?: ReactNode;
   showEvent?: boolean;
+  /** Preview with no price typed yet: shows a dash on the tab. */
+  pricePending?: boolean;
 }) {
   const style = bandStyle(listing.eventId) as CSSProperties;
   const meta = [
@@ -64,7 +67,7 @@ export function Wristband({
           <StatusPill status={status} />
         ) : (
           <>
-            <span className="num text-lg leading-none font-semibold text-ink">{formatPaise(listing.askingPricePaise)}</span>
+            <span className="num text-lg leading-none font-semibold text-ink">{pricePending ? "₹ —" : formatPaise(listing.askingPricePaise)}</span>
             <span className="text-[12px] text-[var(--band-ink)]">
               {listing.quantity > 1 ? "each" : listing.priceNegotiable ? "negotiable" : "asking"}
             </span>

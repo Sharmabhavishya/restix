@@ -74,7 +74,7 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
         </Notice>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <section aria-labelledby="listings-heading">
           <div className="mb-3 flex items-baseline justify-between gap-4">
             <h2 id="listings-heading" className="text-lg font-semibold">

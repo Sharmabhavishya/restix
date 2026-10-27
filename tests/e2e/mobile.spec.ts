@@ -29,7 +29,7 @@ test("phone: nothing runs off the screen, and the app menu folds into a sheet", 
   await page.goto("/sign-in");
   await page.getByRole("button", { name: /^Rohan M/ }).click();
   await expect(page).toHaveURL(/\/tickets/);
-  for (const path of ["/tickets", "/sell", "/inquiries", "/account", "/events"]) {
+  for (const path of ["/tickets", "/sell", "/inquiries", "/account", "/events", "/events/spring-fest-night-2", "/selling"]) {
     await page.goto(path);
     const overflowApp = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflowApp, path).toBeLessThanOrEqual(1);

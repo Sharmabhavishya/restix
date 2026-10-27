@@ -102,7 +102,7 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex flex-col gap-6">
           <Panel className="p-5 sm:p-6">
             <h2 className="mb-2 text-[17px] font-semibold">Handover</h2>

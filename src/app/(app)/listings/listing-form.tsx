@@ -3,12 +3,31 @@
 import { useActionState, useMemo, useState } from "react";
 import { initialState } from "@/lib/action-state";
 import { FORMAT_LABEL, HANDOVER_LABEL, POLICY_LABEL, type HandoverMethod, type TicketFormat, type TransferPolicy } from "@/lib/listing-rules";
-import { formatPaise, paiseToInput } from "@/lib/money";
+import { formatPaise, paiseToInput, parseRupees } from "@/lib/money";
 import { formatDateTime, toLocalInput } from "@/lib/format";
 import { saveListing } from "./actions";
 import { Field, Input, Select, Textarea, Checkbox, describedBy } from "@/components/ui/field";
 import { Notice } from "@/components/ui/bits";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { Wristband } from "@/components/wristband";
+
+interface Draft {
+  quantity: number;
+  askingPricePaise: number | null;
+  priceNegotiable: boolean;
+  meetupArea: string;
+}
+
+function readDraft(form: HTMLFormElement): Draft {
+  const data = new FormData(form);
+  const q = Number(data.get("quantity"));
+  return {
+    quantity: Number.isInteger(q) && q >= 1 && q <= 10 ? q : 1,
+    askingPricePaise: parseRupees(String(data.get("askingPrice") ?? "")),
+    priceNegotiable: data.get("priceNegotiable") === "on",
+    meetupArea: String(data.get("meetupArea") ?? "").trim(),
+  };
+}
 
 export interface FormEvent {
   id: string;
@@ -56,11 +75,40 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
   const [ticketTypeId, setTicketTypeId] = useState(v?.ticketTypeId ?? defaults.ticketTypeId ?? "");
   const ticketType = event?.ticketTypes.find((t) => t.id === ticketTypeId);
 
+  const [draft, setDraft] = useState<Draft>(() => ({
+    quantity: Number(v?.quantity ?? defaults.quantity ?? 1) || 1,
+    askingPricePaise: v?.askingPrice ? parseRupees(v.askingPrice) : defaults.askingPricePaise ?? null,
+    priceNegotiable: v ? v.priceNegotiable === "on" : Boolean(defaults.priceNegotiable),
+    meetupArea: v?.meetupArea ?? defaults.meetupArea ?? "",
+  }));
+
   const blocked = event?.transferPolicy === "prohibited" || event?.status === "cancelled";
   const handoverOptions = (Object.keys(HANDOVER_LABEL) as HandoverMethod[]).filter((h) => format !== "wristband" || h === "in_person");
 
   return (
-    <form action={action} className="flex flex-col gap-8" noValidate>
+    <form action={action} onChange={(e) => setDraft(readDraft(e.currentTarget))} className="flex flex-col gap-8" noValidate>
+      {/* Live preview: the band people will see in search, updating as you type. */}
+      <section aria-label="Preview" className="z-10 -mx-1 flex flex-col gap-2 rounded-[var(--radius-card)] bg-surface/95 px-1 pt-1 pb-3 backdrop-blur-sm md:sticky md:top-4">
+        <p className="text-[13px] text-muted">{event ? "preview · this is how it shows up in search" : "preview · pick an event to see your band"}</p>
+        <div aria-hidden>
+          <Wristband
+            listing={{
+              id: "preview",
+              eventId: event?.id ?? "preview",
+              eventName: event?.name ?? "Your event",
+              eventStartsAt: new Date(event?.startsAt ?? Date.parse("2026-11-05T13:30:00Z")),
+              eventIsFixture: event?.isFixture,
+              ticketTypeName: ticketType?.name ?? "Ticket type",
+              format,
+              quantity: draft.quantity,
+              askingPricePaise: draft.askingPricePaise ?? 0,
+              priceNegotiable: draft.priceNegotiable,
+              meetupArea: draft.meetupArea || null,
+            }}
+            pricePending={draft.askingPricePaise === null}
+          />
+        </div>
+      </section>
       {defaults.listingId && <input type="hidden" name="listingId" value={defaults.listingId} />}
       {defaults.version !== undefined && <input type="hidden" name="version" value={defaults.version} />}
       {state.error && <Notice tone="error" title="Not saved">{state.error}</Notice>}
