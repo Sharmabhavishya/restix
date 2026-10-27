@@ -81,12 +81,16 @@ Lighthouse 12.8.2, mobile emulation, headless Chrome, against `next start` on th
 
 | Page | Performance | Accessibility | Best practices | SEO | LCP | CLS | TBT |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `/` landing | 94 | 100 | 100 | 100 | 2.6 s | 0 | 170 ms |
-| `/sign-in` | 98 | 100 | 100 | 63* | 2.3 s | 0 | 40 ms |
+| `/` landing (with photos + video) | 93-94 | 100 | 100 | 100 | 3.0-3.1 s | 0 | 50-80 ms |
+| `/sign-in` (with video) | 97-98 | 100 | 100 | 63* | 2.3-2.6 s | 0 | 50 ms |
 | `/tickets` (signed in) | 97 | 100 | 100 | 63* | 2.5 s | 0 | 50 ms |
 | `/events` (signed in) | 98 | 100 | 100 | 63* | 2.4 s | 0 | 40 ms |
 
 \* Private pages send `noindex` on purpose; that is the only SEO deduction.
+
+The landing LCP is now the hero clip's poster image (simulated slow 4G); before the media it was
+the headline text at 2.6 s. The clips themselves load after the page's load event and only when
+in view, so they don't hold up first paint.
 
 ## Not tested (and why)
 

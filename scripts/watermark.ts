@@ -11,6 +11,10 @@ import sharp from "sharp";
 export interface StampOptions {
   maxWidth?: number;
   quality?: number;
+  /** Crop to this width/height ratio before stamping, so the page never has to crop the mark off. */
+  aspect?: number;
+  /** Where to centre that crop vertically, 0 (top) to 1 (bottom). */
+  focusY?: number;
 }
 
 /** The watermark as SVG, sized for an image `width` x `height`. Pure, so it's testable. */
@@ -47,7 +51,16 @@ export function watermarkSvg(width: number, height: number): string {
 export async function stampPhoto(input: string | Buffer, output: string, opts: StampOptions = {}) {
   const maxWidth = opts.maxWidth ?? 1600;
   // rotate() with no argument applies the EXIF orientation before the metadata is dropped.
-  const upright = await sharp(input).rotate().resize({ width: maxWidth, withoutEnlargement: true }).toBuffer({ resolveWithObject: true });
+  let base = await sharp(input).rotate().toBuffer({ resolveWithObject: true });
+  if (opts.aspect) {
+    const { width: w0, height: h0 } = base.info;
+    const h = Math.min(h0, Math.round(w0 / opts.aspect));
+    const w = Math.min(w0, Math.round(h * opts.aspect));
+    const top = Math.round(Math.min(Math.max((opts.focusY ?? 0.5) * h0 - h / 2, 0), h0 - h));
+    const left = Math.round((w0 - w) / 2);
+    base = await sharp(base.data).extract({ left, top, width: w, height: h }).toBuffer({ resolveWithObject: true });
+  }
+  const upright = await sharp(base.data).resize({ width: maxWidth, withoutEnlargement: true }).toBuffer({ resolveWithObject: true });
   const { width, height } = upright.info;
   const info = await sharp(upright.data)
     .composite([{ input: Buffer.from(watermarkSvg(width, height)), top: 0, left: 0 }])

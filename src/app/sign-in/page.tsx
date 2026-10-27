@@ -11,6 +11,8 @@ import { GoogleG } from "@/components/google-g";
 import { Notice, Panel } from "@/components/ui/bits";
 import { Field, Input, Checkbox } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { LoopVideo } from "@/components/loop-video";
+import { CLIPS } from "@/components/landing-photos";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -74,6 +76,8 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
             <li className="flex gap-3"><span className="mt-2 size-1.5 flex-none rounded-full bg-accent" />We only see your name and college email. Your email is never shown to other students.</li>
             <li className="flex gap-3"><span className="mt-2 size-1.5 flex-none rounded-full bg-accent" />No passwords to remember, and no payment details, ever.</li>
           </ul>
+          {/* A band-shaped window onto a real night: the reason anyone signs in. */}
+          <LoopVideo src={CLIPS.blueStage.src} poster={CLIPS.blueStage.poster} className="relative mt-10 hidden aspect-[16/7] rounded-l-[32px] rounded-r-full bg-raised md:block" />
         </div>
 
         <div className="flex flex-col gap-4">

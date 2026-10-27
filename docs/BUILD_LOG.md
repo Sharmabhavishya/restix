@@ -113,5 +113,12 @@ ResTix). Update after every milestone; newest log entries last.
   accent tile); fixed.
 - Live wristband preview on the sell form. Phone check found /sell 476px wide at 390 (grid track
   min-width); fixed there and on three other detail grids; the phone E2E covers more pages.
+- Owner's own concert photos and clips replace every borrowed picture (credits gone): hero band
+  cut from a clip, a band of four photos, a full-width moment, clips on the closing line and
+  sign-in, photos on the 404 and welcome pages. Found the baked watermark being cropped off by the
+  layout: crops now anchor bottom-right and the importer can pre-cut (`@16x9,0.4`). Found the video
+  becoming the LCP: poster is now a real priority image and clips load after the page.
+  Lighthouse briefly showed 500s and 95/96 scores: a stale `next start` from an earlier session
+  was still holding the port with an old build; re-measured on the right server (table in TESTING).
 - "Open to offers" search filter and band label; offers waiting on you count in the inbox badge
   ("Things to answer"); the agreed price pops in once.

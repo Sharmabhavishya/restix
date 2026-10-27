@@ -1,66 +1,72 @@
-// Open-licence photographs of the fest world, used on the landing page with credit in the footer.
-// They show wristbands and campus nights in general; none of them is presented as a ResTix event.
-// Files are resized only (never recoloured or combined), so the share-alike terms carry over as is.
+// Photographs used on the landing page. These are the owner's own, from a night at their college
+// fest, imported with `npm run photos` (watermarked, metadata stripped). Captions say what each
+// picture shows; none of them is presented as a specific event that's on sale.
 import type { StaticImageData } from "next/image";
-import pronite from "@/assets/photos/pronite-mood-indigo.jpg";
-import wristbands from "@/assets/photos/festival-wristbands.jpg";
-import paperBand from "@/assets/photos/paper-wristband.jpg";
-import wall from "@/assets/photos/mood-indigo-wall.jpg";
-import crowd from "@/assets/photos/fest-crowd.jpg";
+import confettiYellow from "@/assets/photos/own-confetti-yellow.jpg";
+import campusNight from "@/assets/photos/own-campus-night.jpg";
+import confettiGreen from "@/assets/photos/own-confetti-green.jpg";
+import smokeRed from "@/assets/photos/own-smoke-red.jpg";
+import stageGreen from "@/assets/photos/own-stage-green.jpg";
+import stageGreenWide from "@/assets/photos/own-stage-green-wide.jpg";
 
 export type Photo = {
   src: StaticImageData;
   alt: string;
   caption: string;
-  /** object-position for the crop */
+  /**
+   * object-position for any crop the layout makes. The watermark is baked into the bottom-right
+   * corner, so crops keep that corner ("100% 100%") and trim from the top and left instead.
+   */
   focus: string;
   /** Only for open-licence pictures; photos the ResTix team took need none. */
   credit?: { title: string; author: string; licence: string; licenceUrl: string; url: string; via: string };
 };
 
-const BY_SA_3 = { licence: "CC BY-SA 3.0", licenceUrl: "https://creativecommons.org/licenses/by-sa/3.0/" };
-const BY_SA_4 = { licence: "CC BY-SA 4.0", licenceUrl: "https://creativecommons.org/licenses/by-sa/4.0/" };
-const BY_2 = { licence: "CC BY 2.0", licenceUrl: "https://creativecommons.org/licenses/by/2.0/" };
-
 /** The band of pictures under the hero, in order. */
 export const BAND_PHOTOS: Photo[] = [
   {
-    src: pronite,
-    alt: "A packed crowd in front of a band playing under red stage lights at night",
-    caption: "Pronite, Mood Indigo, IIT Bombay",
-    focus: "50% 40%",
-    credit: { title: "Pronites at Mood Indigo 2012", author: "Parth loya", ...BY_SA_3, url: "https://commons.wikimedia.org/wiki/File:Pronites_at_Mood_Indigo_2012.JPG", via: "Wikimedia Commons" },
+    src: confettiYellow,
+    alt: "Confetti pouring over a packed crowd, lit yellow and violet by stage smoke",
+    caption: "the confetti drop",
+    focus: "100% 100%",
   },
   {
-    src: wristbands,
-    alt: "Three worn festival wristbands, paper and woven, stacked on one wrist",
-    caption: "Weekend bands, three deep",
-    focus: "55% 50%",
-    credit: { title: "Doune the Rabbit Hole festival 2022", author: "conall..", ...BY_2, url: "https://www.flickr.com/photos/16176711@N02/52223642482", via: "Flickr" },
+    src: campusNight,
+    alt: "A night crowd under falling confetti, with a lit campus building behind",
+    caption: "hostel lights behind the crowd",
+    focus: "100% 100%",
   },
   {
-    src: paperBand,
-    alt: "A lilac paper wristband printed with a festival name, close up on a wrist",
-    caption: "A paper band, the classic",
-    focus: "45% 55%",
-    credit: { title: "Wristband for press screenings of the 2022 Berlin Film Festival", author: "IgorCalzone1", ...BY_SA_4, url: "https://commons.wikimedia.org/w/index.php?curid=114388817", via: "Wikimedia Commons" },
+    src: confettiGreen,
+    alt: "Green confetti filling the air above raised hands and phones",
+    caption: "green out",
+    focus: "100% 100%",
   },
   {
-    src: wall,
-    alt: "A graffiti wall painted for a college culture festival, in red, blue and black",
-    caption: "Fest wall, Mood Indigo",
-    focus: "78% 70%",
-    credit: { title: "Graffiti Mood Indigo", author: "Trinidade", ...BY_SA_3, url: "https://commons.wikimedia.org/w/index.php?curid=20315268", via: "Wikimedia Commons" },
+    src: smokeRed,
+    alt: "Red smoke rolling off the stage over the front rows, hands in the air",
+    caption: "front row, red smoke",
+    focus: "100% 100%",
   },
 ];
 
-/** The crowd beside the closing statement. */
-export const CLOSING_PHOTO: Photo = {
-  src: crowd,
-  alt: "A festival crowd with hands and phones raised under purple and yellow stage lights",
-  caption: "A fest main stage, hands up",
-  focus: "50% 60%",
-  credit: { title: "Beach-Please-2022-crowd-stage-lights-night-performance", author: "PinkBeachPlanet", ...BY_SA_4, url: "https://commons.wikimedia.org/wiki/File:Beach-Please-2022-crowd-stage-lights-night-performance.jpg", via: "Wikimedia Commons" },
+/**
+ * The full-width moment between the safety board and the questions: a 16:9 cut (made at import,
+ * so the mark survives) for wide screens, the full portrait for phones.
+ */
+export const MOMENT_PHOTO: Photo & { wide: StaticImageData } = {
+  src: stageGreen,
+  wide: stageGreenWide,
+  alt: "A festival stage glowing green under steel truss, confetti falling on the crowd",
+  caption: "main stage, the night of",
+  focus: "100% 100%",
 };
 
-export const ALL_PHOTOS = [...BAND_PHOTOS, CLOSING_PHOTO];
+export const ALL_PHOTOS: Photo[] = [...BAND_PHOTOS, MOMENT_PHOTO];
+
+/** Short muted loops shot on the same nights (public/media), each with a stamped poster. */
+export const CLIPS = {
+  stageLights: { src: "/media/stage-lights.mp4", poster: "/media/stage-lights-poster.jpg" },
+  handsUp: { src: "/media/hands-up.mp4", poster: "/media/hands-up-poster.jpg" },
+  blueStage: { src: "/media/blue-stage.mp4", poster: "/media/blue-stage-poster.jpg" },
+} as const;

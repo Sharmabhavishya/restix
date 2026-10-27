@@ -41,11 +41,19 @@ tickets available right now and the lowest asking price, read from the database.
 invented; with no listings it says so.
 
 **Imagery:** the product's own interface fragments (`data-ui`), drawn at real size from real data,
-plus photographs of the fest world in `src/assets/photos/`, listed with captions and credits in
-`src/components/landing-photos.ts`. Under the hero they run end to end as one band (rounded start,
-pill end with its snap); one more sits beside the closing statement. Open-licence pictures are
-resized only, captioned for what they are (never as a ResTix event) and credited in the footer; the
-credit line disappears when every photo is the owner's own (entries without `credit`).
+and the owner's own photos and clips from a night at their college fest (no stock, no borrowed
+pictures). Captions say what a picture shows, never that it's an event on sale.
+- Photos: `npm run photos` imports them (watermark baked bottom-right, EXIF/GPS stripped, optional
+  crop with `name@16x9,0.4`). Every crop on the page is anchored `100% 100%` so the mark is never
+  cut; shapes that would round that corner off use a pre-cut version instead.
+- Where they live: the hero band is cut from a clip (accent wash on top so it stays ours); four
+  photos run end to end as one band under the hero; a full-width "don't watch it on someone's
+  story" moment (16:9 cut on desktop, portrait on phones); a clip beside the closing line; the
+  blue-stage clip on sign-in; the purple stage on the 404 ("this page isn't on the list"); the CO2
+  jets on the welcome page.
+- Clips (`<LoopVideo>`): muted loops in `public/media/` with stamped posters. The poster is a real
+  priority image (it is the LCP, not the video); the clip loads after the page has, only in view,
+  fades in when playing, carries an overlay mark, and never plays with reduced motion or Data Saver.
 
 **Sections (argument order):** hero (what it is + sign in) → on sale now (two-ended rows) → how it
 works (one wristband in four fields, further along each time) → what keeps it safe (close-ups

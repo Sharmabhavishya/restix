@@ -14,7 +14,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { Notice } from "@/components/ui/bits";
 import { TrackView } from "@/components/track";
 import { Reveal } from "@/components/reveal";
-import { ALL_PHOTOS, BAND_PHOTOS, CLOSING_PHOTO } from "@/components/landing-photos";
+import { ALL_PHOTOS, BAND_PHOTOS, CLIPS, MOMENT_PHOTO } from "@/components/landing-photos";
+import { LoopVideo } from "@/components/loop-video";
 import Image from "next/image";
 
 // The tape strip under the hero: the rules, said the way people say them.
@@ -113,9 +114,12 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
         </div>
 
         <div className="relative md:-mr-[max(0px,calc((100vw-1200px)/2+24px))]">
-          {/* The band: flat accent, bleeding off the right edge, with its snap. */}
+          {/* The band, bleeding off the right edge with its snap, cut from a real night on campus. */}
           <div className="relative rounded-l-[48px] bg-accent py-8 pr-6 pl-6 sm:py-10 sm:pl-10 md:rounded-r-none md:pr-[max(24px,calc((100vw-1200px)/2+24px))]">
-            <span aria-hidden className="absolute top-1/2 left-5 hidden size-5 -translate-y-1/2 rounded-full border-[3px] border-accent-soft/70 sm:block" />
+            <LoopVideo priority src={CLIPS.stageLights.src} poster={CLIPS.stageLights.poster} className="absolute inset-0 rounded-l-[48px] md:rounded-r-none" />
+            {/* A wash of the accent keeps the band ours, whatever colour the stage was. */}
+            <span aria-hidden className="absolute inset-0 rounded-l-[48px] bg-accent opacity-40 mix-blend-multiply md:rounded-r-none" />
+            <span aria-hidden className="absolute top-1/2 left-5 hidden size-5 -translate-y-1/2 rounded-full border-[3px] border-white/80 sm:block" />
             <div data-ui className="relative rounded-[var(--radius-card)] bg-surface p-5 shadow-[0_18px_40px_-24px_rgba(56,10,30,0.55)] sm:ml-6">
               <span className="absolute -top-4 -right-3 z-10 rotate-[8deg] rounded-full bg-sticker px-3.5 py-1.5 text-sm font-bold whitespace-nowrap text-sticker-ink sm:-right-5">
                 free. no cap.
@@ -192,17 +196,17 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
             const last = i === BAND_PHOTOS.length - 1;
             const shape = i === 0 ? "md:rounded-l-[48px]" : last ? "md:rounded-r-full" : "";
             return (
-              <figure key={p.caption} className={`flex min-w-0 flex-col gap-2 ${i === 0 || last ? "col-span-2" : ""} ${i === 0 ? "md:flex-[5]" : "md:flex-[3]"}`}>
-                <div className={`relative aspect-[4/3] overflow-hidden rounded-[var(--radius-card)] bg-raised md:aspect-auto md:h-[clamp(300px,32vw,440px)] md:rounded-none ${shape} ${i > 0 && !last ? "aspect-square" : ""}`}>
+              <figure key={p.caption} className={`flex min-w-0 flex-col gap-2 ${i === 0 ? "md:flex-[5]" : "md:flex-[3]"}`}>
+                <div className={`relative aspect-[3/4] overflow-hidden rounded-[var(--radius-card)] bg-raised md:aspect-auto md:h-[clamp(320px,34vw,480px)] md:rounded-none ${shape}`}>
                   <Image
                     src={p.src}
                     alt={p.alt}
                     placeholder="blur"
-                    sizes={i === 0 ? "(min-width: 768px) 36vw, 100vw" : "(min-width: 768px) 22vw, 50vw"}
+                    sizes={i === 0 ? "(min-width: 768px) 36vw, 50vw" : "(min-width: 768px) 22vw, 50vw"}
                     className="size-full object-cover"
                     style={{ objectPosition: p.focus }}
                   />
-                  {last && <span aria-hidden className="absolute top-1/2 right-[16%] hidden size-6 -translate-y-1/2 rounded-full border-[3px] border-white/80 md:block" />}
+                  {last && <span aria-hidden className="absolute top-[40%] right-[16%] hidden size-6 -translate-y-1/2 rounded-full border-[3px] border-white/80 md:block" />}
                 </div>
                 <figcaption className="text-[13px] text-muted">{p.caption}</figcaption>
               </figure>
@@ -263,8 +267,41 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
         </div>
       </section>
 
+      {/* The moment: the whole width, one night. */}
+      <section aria-labelledby="moment-heading" className="relative isolate flex min-h-[min(88vh,820px)] items-end overflow-hidden bg-primary">
+        <Image
+          src={MOMENT_PHOTO.wide}
+          alt={MOMENT_PHOTO.alt}
+          placeholder="blur"
+          sizes="100vw"
+          className="absolute inset-0 -z-10 hidden size-full object-cover md:block"
+          style={{ objectPosition: MOMENT_PHOTO.focus }}
+        />
+        <Image
+          src={MOMENT_PHOTO.src}
+          alt=""
+          placeholder="blur"
+          sizes="100vw"
+          className="absolute inset-0 -z-10 size-full object-cover md:hidden"
+          style={{ objectPosition: MOMENT_PHOTO.focus }}
+        />
+        <span aria-hidden className="absolute inset-0 -z-10 bg-black/45" />
+        <div className="mx-auto w-full max-w-[1200px] px-4 pt-40 pb-14 text-white sm:px-6 md:pb-20">
+          <h2 id="moment-heading" className="max-w-[13ch] text-[clamp(2.5rem,6.5vw,5.5rem)] leading-[0.92] font-bold tracking-[-0.045em] text-balance">
+            don&apos;t watch it on someone&apos;s story.
+          </h2>
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+            <ButtonLink href={signedIn ? "/tickets" : "/sign-in"} size="lg" variant="primary">
+              Find a band <ArrowRight className="size-4" aria-hidden />
+            </ButtonLink>
+            <p className="max-w-[36ch] text-[15px] text-white/90">If someone on campus can&apos;t make it, their band shows up here first.</p>
+          </div>
+          <p className="mt-10 text-[13px] text-white/75">{MOMENT_PHOTO.caption}</p>
+        </div>
+      </section>
+
       {/* Questions: filed like index cards. */}
-      <section aria-labelledby="faq-heading" className="mx-auto max-w-[900px] px-4 pb-24 sm:px-6 md:pb-36">
+      <section aria-labelledby="faq-heading" className="mx-auto max-w-[900px] px-4 pt-24 pb-24 sm:px-6 md:pt-36 md:pb-36">
         <h2 id="faq-heading" className={`mb-10 ${H2}`}>questions, answered</h2>
         <div className="flex flex-col">
           {FAQ.map((f, i) => (
@@ -297,10 +334,8 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
             {cta}
           </div>
           <figure className="flex flex-col gap-2">
-            <div className="relative aspect-[3/2] overflow-hidden rounded-[var(--radius-card)] bg-raised md:rounded-r-[48px]">
-              <Image src={CLOSING_PHOTO.src} alt={CLOSING_PHOTO.alt} placeholder="blur" sizes="(min-width: 768px) 56vw, 100vw" className="size-full object-cover" style={{ objectPosition: CLOSING_PHOTO.focus }} />
-            </div>
-            <figcaption className="text-[13px] text-muted">{CLOSING_PHOTO.caption}</figcaption>
+            <LoopVideo src={CLIPS.handsUp.src} poster={CLIPS.handsUp.poster} className="relative aspect-[16/9] rounded-[var(--radius-card)] bg-raised md:rounded-r-[48px]" />
+            <figcaption className="text-[13px] text-muted">hands up, last song</figcaption>
           </figure>
         </div>
       </section>

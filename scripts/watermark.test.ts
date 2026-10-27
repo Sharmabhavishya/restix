@@ -43,4 +43,11 @@ describe("photo watermark", () => {
     expect(brightness(info.width - 300, info.height - 110, 260, 80)).toBeGreaterThan(40);
     expect(brightness(20, 20, 260, 80)).toBeLessThan(30);
   });
+
+  it("can crop to the shape the page shows before stamping", async () => {
+    const tall = await sharp({ create: { width: 900, height: 1200, channels: 3, background: { r: 10, g: 60, b: 10 } } }).jpeg().toBuffer();
+    const r = await stampPhoto(tall, path.join(dir, "wide.jpg"), { aspect: 16 / 9, focusY: 0.38 });
+    expect(r.width).toBe(900);
+    expect(r.height).toBe(506);
+  });
 });

@@ -3,6 +3,8 @@
 //
 //   npm run photos              # everything in photos-incoming/
 //   npm run photos -- a.jpg     # just these files (paths relative to photos-incoming/)
+//   npm run photos -- "a.jpg=stage-green"   # ...and name the output own-stage-green.jpg
+//   npm run photos -- "a.jpg=stage-wide@16x9,0.38"   # ...cropped to 16:9 around 38% down
 //
 // Originals stay in photos-incoming/ (gitignored). Then add the new files to
 // src/components/landing-photos.ts with an alt text and caption, and no `credit` (they're yours).
@@ -26,10 +28,13 @@ async function main() {
     return;
   }
   await mkdir(OUT, { recursive: true });
-  for (const f of files) {
-    const out = path.join(OUT, `own-${slug(f)}.jpg`);
+  for (const arg of files) {
+    const [f, spec] = arg.split("=");
+    const [name, crop] = (spec ?? "").split("@");
+    const m = crop?.match(/^(\d+)x(\d+)(?:,([\d.]+))?$/);
+    const out = path.join(OUT, `own-${slug(name || f)}.jpg`);
     try {
-      const r = await stampPhoto(path.join(IN, f), out);
+      const r = await stampPhoto(path.join(IN, f), out, m ? { aspect: Number(m[1]) / Number(m[2]), focusY: m[3] ? Number(m[3]) : 0.5 } : {});
       console.log(`${f} -> ${path.relative(process.cwd(), out)}  ${r.width}x${r.height}  ${Math.round(r.bytes / 1024)} KB`);
     } catch (err) {
       console.error(`${f}: skipped (${err instanceof Error ? err.message : err})`);
