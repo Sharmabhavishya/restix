@@ -47,7 +47,9 @@ function analyticsRange(sp: Record<string, string | string[] | undefined>) {
   const days = typeof sp.days === "string" && /^\d{1,3}$/.test(sp.days) ? Math.min(365, Math.max(1, Number(sp.days))) : 30;
   const customFrom = typeof sp.from === "string" ? fromLocalInput(`${sp.from}T00:00`) : null;
   const customTo = typeof sp.to === "string" ? fromLocalInput(`${sp.to}T00:00`) : null;
-  const to = customTo ? new Date(customTo.getTime() + DAY) : new Date(Math.ceil(Date.now() / DAY) * DAY);
+  // Whole campus (IST) days: `to` is the midnight after the last day shown.
+  const todayStart = fromLocalInput(`${toLocalInput(new Date()).slice(0, 10)}T00:00`)!;
+  const to = customTo ? new Date(customTo.getTime() + DAY) : new Date(todayStart.getTime() + DAY);
   const earliest = new Date(to.getTime() - 366 * DAY);
   const from = customFrom && customFrom < to ? (customFrom < earliest ? earliest : customFrom) : new Date(to.getTime() - days * DAY);
   return { days, customFrom, from, to };
@@ -59,7 +61,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
   const { days, customFrom, from, to } = analyticsRange(sp);
   const m = await computeMetrics(admin.id, { from, to });
 
-  const daily = m.daily.map((d) => ({ label: formatDayMonth(new Date(`${d.day}T12:00:00Z`)), listings: d.listings, inquiries: d.inquiries }));
+  const daily = m.daily.map((d) => ({ label: formatDayMonth(new Date(`${d.day}T12:00:00+05:30`)), listings: d.listings, inquiries: d.inquiries }));
   const status = m.listingStatusNow;
   const views = Object.fromEntries(m.views.map((v) => [v.name, v]));
   const outcome = (party: string, o: string) => m.outcomes.find((x) => x.party === party && x.outcome === o)?.count ?? 0;
@@ -145,7 +147,8 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
         </Panel>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="flex flex-col gap-6">
         <Panel>
           <PanelHeader title="Listings by event" sub="Created in range" />
           <div className="px-5 pb-5"><BarList rows={m.listingsByEvent.map((r) => ({ label: r.name, value: r.count }))} empty="No listings in this range." /></div>
@@ -154,6 +157,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
           <PanelHeader title="Listings by format" sub="Created in range" />
           <div className="px-5 pb-5"><BarList rows={m.listingsByFormat.map((r) => ({ label: FORMAT_LABEL[r.format as TicketFormat] ?? r.format, value: r.count }))} empty="No listings in this range." /></div>
         </Panel>
+        </div>
         <Panel>
           <PanelHeader title="All listings, status now" sub="Every listing ever, by current status" />
           <ul className="divide-y divide-rule px-5 pb-3 text-sm">

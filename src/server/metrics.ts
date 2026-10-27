@@ -130,9 +130,9 @@ export async function computeMetrics(adminId: string, range: Range): Promise<Met
 
     const daily = await tx<{ day: string; listings: number; inquiries: number }[]>`
       with days as (
-        select generate_series(date_trunc('day', ${from}::timestamptz), date_trunc('day', ${to}::timestamptz - interval '1 second'), interval '1 day') as day
+        select generate_series(${from}::timestamptz, ${to}::timestamptz - interval '1 second', interval '1 day') as day
       )
-      select to_char(d.day, 'YYYY-MM-DD') as day,
+      select to_char(d.day at time zone 'Asia/Kolkata', 'YYYY-MM-DD') as day,
              (select count(*)::int from ${real} where l.published_at >= d.day and l.published_at < d.day + interval '1 day') as listings,
              (select count(*)::int from restix.inquiries i
                join restix.ticket_listings l on l.id = i.listing_id

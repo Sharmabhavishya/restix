@@ -97,8 +97,9 @@ export async function reportQueue(modId: string, status: ReportStatus | "active"
 }
 
 export async function queueCounts(modId: string) {
-  const [row] = await asUser(modId, (tx) => tx<{ open: number; inReview: number; pendingListings: number; openAppeals: number }[]>`
-    select (select count(*)::int from restix.reports where status = 'open') as open,
+  const [row] = await asUser(modId, (tx) => tx<{ open: number; inReview: number; pendingListings: number; openAppeals: number; openSuggestions: number }[]>`
+    select (select count(*)::int from restix.event_suggestions where status = 'open') as open_suggestions,
+           (select count(*)::int from restix.reports where status = 'open') as open,
            (select count(*)::int from restix.reports where status = 'in_review') as in_review,
            (select count(*)::int from restix.ticket_listings where status = 'pending_review' and expires_at > now()) as pending_listings,
            (select count(*)::int from restix.appeals where status = 'open') as open_appeals`);

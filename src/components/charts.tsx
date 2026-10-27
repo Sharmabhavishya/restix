@@ -19,7 +19,7 @@ const W = 560;
 const H = 180;
 const PAD = { top: 10, right: 8, bottom: 26, left: 32 };
 
-function Axes({ max, labels }: { max: number; labels: { x: number; text: string }[] }) {
+function Axes({ max, labels }: { max: number; labels: { x: number; text: string; anchor: "start" | "middle" | "end" }[] }) {
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * max);
   const ih = H - PAD.top - PAD.bottom;
   return (
@@ -34,7 +34,7 @@ function Axes({ max, labels }: { max: number; labels: { x: number; text: string 
         );
       })}
       {labels.map((l) => (
-        <text key={l.x} x={l.x} y={H - 8} textAnchor="middle">{l.text}</text>
+        <text key={l.x} x={l.anchor === "start" ? Math.max(l.x - 6, PAD.left) : l.x} y={H - 8} textAnchor={l.anchor}>{l.text}</text>
       ))}
     </g>
   );
@@ -43,8 +43,10 @@ function Axes({ max, labels }: { max: number; labels: { x: number; text: string 
 function xLabels(points: Point[], xAt: (i: number) => number) {
   if (points.length === 0) return [];
   const step = Math.max(1, Math.ceil(points.length / 6));
-  const out: { x: number; text: string }[] = [];
-  for (let i = 0; i < points.length; i += step) out.push({ x: xAt(i), text: points[i].label });
+  const out: { x: number; text: string; anchor: "start" | "middle" | "end" }[] = [];
+  for (let i = 0; i < points.length; i += step) {
+    out.push({ x: xAt(i), text: points[i].label, anchor: i === 0 ? "start" : i + step >= points.length && i === points.length - 1 ? "end" : "middle" });
+  }
   return out;
 }
 

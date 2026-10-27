@@ -50,9 +50,30 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin">)
       </div>
 
       {rows.length === 0 ? (
-        <EmptyState title={tab === "active" ? "nothing to review" : "nothing here yet"}>
-          {tab === "active" ? "New reports land here, highest priority first." : undefined}
-        </EmptyState>
+        <>
+          <EmptyState title={tab === "active" ? "no reports to review" : "nothing here yet"}>
+            {tab === "active" ? "New reports land here, highest priority first." : undefined}
+          </EmptyState>
+          {tab === "active" && (
+            <Panel className="mt-6">
+              <h2 className="px-5 pt-5 text-[17px] font-semibold">Other queues</h2>
+              <ul className="mt-2 divide-y divide-rule">
+                {([
+                  ["/admin/reviews", "Listings waiting for a policy check", counts.pendingListings],
+                  ["/admin/appeals", "Appeals to decide", counts.openAppeals],
+                  ["/admin/events", "Events suggested by students", counts.openSuggestions],
+                ] as const).map(([href, label, n]) => (
+                  <li key={href}>
+                    <Link href={href} className="flex items-center justify-between gap-4 px-5 py-3.5 text-sm hover:bg-raised">
+                      <span>{label}</span>
+                      <span className={`num font-semibold ${n > 0 ? "text-accent" : "text-muted"}`}>{n}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
+        </>
       ) : (
         <Panel>
           <ul className="divide-y divide-rule">
