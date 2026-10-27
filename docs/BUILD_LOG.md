@@ -1,64 +1,91 @@
 # ResTix build log
 
 Persistent progress for the build described in the master prompt (CampusTix spec, product named
-ResTix). Newest entries at the bottom of each section. Update after every milestone.
+ResTix). Update after every milestone; newest log entries last.
 
 ## Environment (2026-10-27)
 
-- Windows 11, Node 24.22, npm 11.19, git 2.55. No Docker, no local Postgres, no Supabase CLI.
+- Windows 11, Node 24.22, npm 11.19, git 2.55, Chrome stable. No Docker, no local Postgres,
+  no Supabase CLI.
 - Next.js 16.4.3 (App Router, Turbopack), React 19.3, Tailwind v4, TypeScript 5.9.
-- Local database: PGlite 0.5.10 (Postgres 18 in WASM) served over the wire protocol by
-  pglite-socket 0.2.13, so the app uses the same `postgres` driver locally and on Supabase.
-- Design skills used: taste-skill (direction dealt, see docs/DESIGN.md). Next 16 docs summarised
-  in docs/NEXT16_NOTES.md (by a Sonnet subagent reading node_modules/next/dist/docs).
+- Local database: PGlite 0.5.10 (Postgres 18 in WASM) over the wire protocol via pglite-socket
+  0.2.13: the same `postgres` driver and migrations run locally, in tests and in production.
+- Skills used: taste-skill (direction dealt, docs/DESIGN.md), impeccable craft floor (its
+  launcher was blocked by the permission classifier, so the reference was read directly),
+  model routing (Sonnet subagents for the Next 16 doc digest and the legal pages; an Opus
+  subagent for the independent security review).
 
 ## Decisions
 
 | Decision | Why |
 | --- | --- |
-| Name: ResTix | Requested by the owner (spec's working name was CampusTix). |
-| App tables in a private `restix` schema | Not exposed through Supabase's Data API, so the public anon key cannot reach them at all. |
-| Server connects to Postgres directly; user requests run as `authenticated` with `request.jwt.claims` | RLS applies as a second layer behind app checks; one driver for local, test and production. |
-| Cache Components disabled | Nearly every page is per-user; classic dynamic rendering is simpler to maintain. |
-| Contact via inquiries; seller chooses to share WhatsApp/contact on accept | No public phone numbers, no chat to maintain. |
-| No payment code of any kind | Spec: connect buyers and sellers only. |
-| Evidence uploads deferred | Not required for the workflow; avoids storing sensitive ticket images. Documented. |
-| Dev sign-in behind AUTH_MODE=dev, refused in production builds and on Vercel | Lets the full app run and be tested without Google credentials. |
+| Name ResTix | Requested by the owner (spec's working name was CampusTix) |
+| Gen Z voice, plain where it matters | Owner request; safety, money and errors stay exact |
+| App tables in private `restix` schema | Unreachable through Supabase's Data API with the public key |
+| Direct Postgres + `asUser` (role `authenticated` + claims) | RLS as a second layer; one driver everywhere |
+| Cache Components off | Nearly every page is per-user; simpler to maintain |
+| Contact via inquiries, seller shares contact on accept | No public numbers, no chat to moderate |
+| No payment code | Spec |
+| No evidence uploads | Not needed for the workflow; avoids storing ticket/receipt images |
+| Dev sign-in behind AUTH_MODE=dev; refused in production builds and on Vercel | Full local testing without Google credentials |
+| E2E against the production build with system Chrome | Tests what ships; no browser download |
+| Nonce CSP from the proxy; legal/404 pages rendered per request | No inline scripts allowed |
+| Moderation scoped per college in the DB | Multi-college ready without cross-college power |
+| Deployment guidance flags Vercel Hobby's commercial-use wording | Listings "advertise the sale" of tickets; confirm before launch |
 
-## Checklist
+## Definition of done (status)
 
-P0 Security / data
-- [x] Schema, constraints, RLS, grants, guard triggers (supabase/migrations/20261027000000_init.sql)
-- [x] Local Supabase shim + PGlite server + migration runner + dev seed
-- [x] RLS integration tests (28) passing
-- [x] Env validation, exact-domain allowlist, db access layer (asUser / asSystem)
-- [ ] Auth: Supabase Google sign-in + callback + sign-out, dev sign-in, proxy session refresh
-- [ ] Onboarding (display name), account page, deletion
+- [x] Runs locally with documented instructions (README)
+- [x] Production build succeeds
+- [x] Google OAuth implemented; exact manual configuration documented (not exercised: no credentials)
+- [x] Institutional domain enforcement on the server, every request
+- [x] Unverified/disallowed users can't bypass protected operations (app + RLS, tested)
+- [x] Sessions and permissions handled (getClaims, httpOnly cookies, sign-out, guards)
+- [x] Browse eligible events and listings
+- [x] Create, edit, pause/resume, mark sold/unavailable, delete own listings
+- [x] Wristband listings (in-person handover enforced)
+- [x] Expiry and availability states (effective status on read + daily job)
+- [x] Contact without payments
+- [x] Event transfer policies respected (app + DB triggers)
+- [x] Reporting and moderation (queue, actions, audit log, appeals)
+- [x] Admin dashboard access controls (admin-only analytics, moderator pages)
+- [x] Analytics from real recorded events; sample data excluded
+- [x] Metric definitions and limitations documented (docs/ANALYTICS.md)
+- [x] RLS and grants reviewed and tested (53 integration tests; independent review)
+- [x] Private uploads: not implemented (documented)
+- [x] Responsive layouts inspected (desktop + phone E2E, screenshots)
+- [x] Accessibility tested (axe on 22 pages, keyboard tests); manual screen reader pass pending
+- [x] Lint, typecheck, tests, build run and documented (docs/TESTING.md)
+- [x] No known unresolved critical/high security issues
+- [x] Documentation matches implementation
+- [x] Deployment instructions complete (docs/DEPLOYMENT.md)
+- [x] No fake users/metrics/verification claims; fixtures labelled "Sample data"
+- [x] Remaining defects and manual steps documented (below, SECURITY.md, DEPLOYMENT.md)
 
-P1 Core marketplace
-- [ ] Event discovery (search, filters, sort, pagination), event detail
-- [ ] Listing detail, create/edit/pause/resume/sold/unavailable/delete with version checks
-- [ ] Inquiries: send, seller accept (share contact) / decline, buyer withdraw, outcome confirmation
+## Known limitations / next actions
 
-P2 Trust
-- [ ] Reports, moderation queue, actions with reasons, audit log, restrictions, appeals
-- [ ] Event management (moderators): policy, status, ticket types
-
-P3 Analytics
-- [ ] Tracking endpoint + server events, admin dashboard, docs/ANALYTICS.md
-
-P4 Polish
-- [ ] Design system components, landing page, responsive + a11y pass, taste-skill inspector
-- [ ] E2E tests (Playwright), Lighthouse
-
-P5 Release
-- [ ] Docs: README, CLAUDE.md, ARCHITECTURE, DATABASE, SECURITY, ANALYTICS, DEPLOYMENT, TESTING
-- [ ] Lint, typecheck, unit, integration, e2e, build, npm audit
+1. Exercise real Google sign-in on a Supabase project (DEPLOYMENT.md sections 2-5).
+2. Confirm hosting terms (Vercel Hobby commercial-use question) before launch.
+3. Institutional review of privacy and terms templates.
+4. Manual screen-reader pass (NVDA/VoiceOver).
+5. Optional: email notifications for new requests (needs a provider; not built, no claims made).
+6. Optional: event requests from students (currently moderators add all events).
+7. Analytics are deployment-wide if more than one college is added (see SECURITY.md).
 
 ## Log
 
-- Scaffolded Next 16 app; installed deps (pinned PGlite pair).
-- Wrote init migration; fixed three self-review gaps (profile status self-edit, report priority
-  spoofing, seller inquiry status abuse) with guard triggers before testing.
-- Unit tests: 61 passing (email domain, money, listing rules, validation).
-- Integration (RLS) tests: 28 passing on first run.
+- Scaffolded Next 16; pinned PGlite pair. Init migration with RLS; fixed three self-review gaps
+  before testing (profile status self-edit, report priority spoofing, seller inquiry abuse).
+- Unit tests 61 -> 95; RLS integration tests 28 on first run.
+- Server modules (listings, inquiries, moderation, events, metrics) + flow tests; caught a
+  camelCase bug in sign-in completion via a new returning-user test.
+- Full UI: design tokens, wristband component, app shell, all student and moderator pages,
+  landing page (one-motif direction), legal pages (Sonnet subagent), error pages, SEO files.
+- Found in the browser: viewer fields undefined (camelCase), lost sign-in return path (fixed
+  via proxy header), IST date parsing bug (fixed + tests), tints too close (fixed).
+- Playwright E2E against the production build; found and fixed a KPI/chart inconsistency
+  (sample data counted in one, not the other).
+- axe accessibility scans: fixed one serious label mismatch; 0 violations on 22 pages.
+- Independent security review: 1 High (open redirect), 5 Medium, 7 Low, 3 Info. All fixed with
+  regression tests; hardening migration added. Then a nonce-based CSP with zero violations.
+- Lighthouse (mobile, prod build): 94-98 performance, 100 accessibility and best practices.

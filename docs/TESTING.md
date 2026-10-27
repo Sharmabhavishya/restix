@@ -1,0 +1,83 @@
+# Testing
+
+Results below are from the last full run on 27 October 2026 (Windows 11, Node 24.22,
+Chrome stable). Re-run before relying on them.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Type check | `npm run typecheck` | pass, 0 errors |
+| Lint | `npm run lint` | pass, 0 problems |
+| Unit tests | `npm run test:unit` | **95 passed** (7 files) |
+| Integration tests | `npm run test:integration` | **53 passed** (4 files) |
+| Production build | `npm run build` | pass |
+| End-to-end + accessibility | `npm run test:e2e` | **24 passed** (desktop 1440x900 + Pixel 7 phone profile) |
+| Dependency audit | `npm audit` | 0 vulnerabilities (production and dev) |
+| Accessibility (axe, WCAG 2.1 A/AA) | part of E2E | 0 violations on 22 pages |
+
+## What each layer covers
+
+**Unit** (`src/**/*.test.ts`, no I/O)
+- Email domain allowlist: exact match, lookalikes (`snu.edu.in.evil.com`, `evilsnu.edu.in`,
+  subdomains), malformed addresses, empty or wildcard allowlists rejected.
+- Listing rules: effective status (expiry, ended/cancelled events, terminal states), publish
+  decisions for every resale policy including the face-value cap, seller action matrix.
+- Validation: prices, quantities, formats, contact details in public text, control characters,
+  display-name impersonation, WhatsApp normalisation.
+- Safe redirects: absolute URLs, protocol-relative, backslash and dot-segment tricks.
+- Search filters: untrusted query strings, IST date boundaries. Campus-time parsing. Chart scales.
+
+**Integration** (`tests/integration`, real migrations on PGlite, as authenticated users)
+- `rls.test.ts`: forged sellers, unverified/restricted accounts, editing others' listings,
+  moderator-only statuses, version skipping (conflicting updates), cross-college reads,
+  self-verification, private emails, self-granted roles, inquiry privacy and immutability,
+  duplicate inquiries/reports, outcome confirmations, pre-resolved reports, append-only audit
+  log, admin-only analytics, rate limiter, expiry, data purge.
+- `hardening.test.ts`: policy/face-value enforcement in the DB, cross-event ticket types,
+  rejected/closed listings revived, restricted sellers, deleting contacted listings,
+  pre-accepted inquiries, forged report snapshots, cross-college reports and moderation,
+  pre-decided and duplicate appeals, event deletion, self role changes.
+- `flows.test.ts` / `review-fixes.test.ts`: sign-in completion (allowed, lookalike, unverified,
+  returning), the full journey through the server modules, event policies, appeals linked to
+  decisions, stale moderator approvals, deletion blocked by open reports.
+
+**End-to-end** (`tests/e2e`, Playwright against `next start` with a fresh seeded DB)
+- `journey.spec.ts`: moderator creates a real event -> new student signs in and onboards ->
+  browses events -> lists a wristband (and is blocked from putting a phone number in public
+  text) -> another student finds it and asks (seller's email never shown) -> seller accepts and
+  shares a note -> buyer sees it -> seller marks sold (leaves search) -> buyer records the outcome
+  -> buyer reports a suspicious listing -> moderator hides it and resolves the report (both in
+  the audit log) -> analytics show exactly 1 listing published and 1 request (sample data
+  excluded) -> a student is refused moderator pages.
+- `access.spec.ts`: other domains and lookalikes rejected, unverified email rejected, sign-in
+  return path, forged session cookie ignored, sign-out, prohibited/unknown/face-value/cancelled
+  event rules, 404s, stale-tab conflict, analytics endpoint input validation and same-origin
+  requirement, open-redirect payloads, CSP header and zero CSP violations, cron secret, security
+  headers, robots/noindex, keyboard skip link.
+- `mobile.spec.ts`: no horizontal scroll on landing and app, menu folds into a sheet and closes
+  on navigation.
+- `a11y.spec.ts`: axe scans of public, student and moderator pages.
+
+## Lighthouse (measured)
+
+Lighthouse 12.8.2, mobile emulation, headless Chrome, against `next start` on this machine
+(local network, so real-world numbers will be somewhat slower):
+
+| Page | Performance | Accessibility | Best practices | SEO | LCP | CLS | TBT |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `/` landing | 94 | 100 | 100 | 100 | 2.6 s | 0 | 170 ms |
+| `/sign-in` | 98 | 100 | 100 | 63* | 2.3 s | 0 | 40 ms |
+| `/tickets` (signed in) | 97 | 100 | 100 | 63* | 2.5 s | 0 | 50 ms |
+| `/events` (signed in) | 98 | 100 | 100 | 63* | 2.4 s | 0 | 40 ms |
+
+\* Private pages send `noindex` on purpose; that is the only SEO deduction.
+
+## Not tested (and why)
+
+- **Real Google OAuth through Supabase**: no credentials in this environment. The callback logic
+  is unit-reachable through `completeSignIn` (tested), and the provider check is in code; follow
+  docs/DEPLOYMENT.md section 5 to verify on a real project.
+- **Supabase-specific roles** (`postgres` membership in `authenticated`): verified only against
+  the local shim; DEPLOYMENT.md has the SQL check to run once on the real project.
+- **Screen readers**: automated axe checks and keyboard tests only; a manual NVDA/VoiceOver pass
+  is recommended before launch.
+- **Load testing**: not done; expected scale is one campus.
