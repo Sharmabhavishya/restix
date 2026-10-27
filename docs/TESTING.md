@@ -88,6 +88,11 @@ Lighthouse 12.8.2, mobile emulation, headless Chrome, against `next start` on th
 
 \* Private pages send `noindex` on purpose; that is the only SEO deduction.
 
+Re-measured after the logo/motion pass on a busier machine: landing 87-91, sign-in 97, with
+accessibility, best practices and SEO still 100. The previous commit, rebuilt and measured in the
+same session, scored 89-91, so the drop is the machine, not the change. Lighthouse numbers on a
+laptop move by several points between runs; compare like with like.
+
 The landing LCP is now the hero clip's poster image (simulated slow 4G); before the media it was
 the headline text at 2.6 s. The clips themselves load after the page's load event and only when
 in view, so they don't hold up first paint.

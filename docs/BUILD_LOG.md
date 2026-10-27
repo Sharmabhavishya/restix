@@ -120,5 +120,16 @@ ResTix). Update after every milestone; newest log entries last.
   becoming the LCP: poster is now a real priority image and clips load after the page.
   Lighthouse briefly showed 500s and 95/96 scores: a stale `next start` from an earlier session
   was still holding the port with an old build; re-measured on the right server (table in TESTING).
+- New mark (owner: the band-and-tab logo read as something else): a tilted ticket stub with a
+  smile and a sparkle, lowercase "restix", new favicon, link preview, watermark (photos and
+  posters restamped). New footer with the giant cropped name. CSS-only motion; the scroll reveal
+  script was replaced by scroll-driven CSS. DM Sans now loads as one variable font, not four
+  weights. next.config: fewer image sizes, WebP only, month-long cache (free-tier transformation
+  quotas), long cache for /media.
+- Lighthouse measured 86-90 after this and looked like a regression. Checked properly: rebuilt the
+  previous commit on the same machine and it also scored 89-91 (the machine got slower since the
+  93-94 reading). The real cost found on the way: keyframes on individual transform properties
+  repainted every frame; moved to `transform`, paint per load 248 ms -> ~95 ms. Also found a
+  leftover in-memory test database still running from an earlier E2E run; stopped it.
 - "Open to offers" search filter and band label; offers waiting on you count in the inbox badge
   ("Things to answer"); the agreed price pops in once.

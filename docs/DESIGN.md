@@ -67,6 +67,33 @@ small marks, event tints deepened through CSS `light-dark()`. Every colour is a 
 `globals.css`; components never hard-code hex values. The axe suite scans the main pages in both
 schemes (with reduced motion so scroll-entrance content is included).
 
+## The mark (redrawn 2026-10-27, owner request)
+
+The first mark (a band with a round snap tab) read wrong at a glance. The mark is now a **ticket
+stub**: notched sides and a perforation say "ticket" at any size, tilted -10 degrees like a sticker
+someone slapped on, with a smile and a butter-yellow sparkle (the sparkle twinkles on hover). The
+name is set lowercase, **restix**, like a handle. `components/logo.tsx` is the source; the favicon
+(`app/icon.svg`) is a flat, sparkle-free cut that survives 16px; the photo watermark cuts the
+face and perforation out of a white ticket; the link-preview image draws the same paths.
+
+## Motion (CSS only)
+
+Fun, but cheap: no animation library and no motion JavaScript. Keyframes move `transform` and
+`opacity` only, so the compositor runs them (moving the individual `rotate`/`translate`
+properties cost about 150 ms of extra paint per load in Lighthouse; switching to `transform` fixed
+it). Everything sits behind `prefers-reduced-motion: no-preference`.
+- Hero lines slide up on load (transform only, so the headline still paints first).
+- Landing sections rise in with scroll-driven animations (`animation-timeline: view()`); browsers
+  without it simply show the content. This replaced a small client script.
+- The "free. no cap." sticker wobbles twice on arrival and on hover (not forever).
+- The logo tilts and its sparkle twinkles on hover; footer letters hop on hover and the big ticket
+  sticker floats; agreed prices get a one-shot confetti pop; photos zoom slightly on hover.
+
+## Footer
+
+"see you at the next one.", the links, then the name set enormous and cropped by the page edge,
+with the ticket stuck on beside it (`components/site-footer.tsx`).
+
 ## Voice: Gen Z, but trustworthy (owner request, 2026-10-27)
 
 Write like a friend in your batch who actually reads the rules.

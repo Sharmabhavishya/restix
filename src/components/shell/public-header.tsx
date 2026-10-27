@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Wordmark } from "../logo";
+import { Mark, Wordmark } from "../logo";
 import { ButtonLink } from "../ui/button";
 import { getViewer } from "@/server/auth/viewer";
 
@@ -33,7 +33,10 @@ export function PublicFooter() {
   return (
     <footer className="mx-auto w-full max-w-[1200px] px-4 py-10 text-sm text-muted sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
-        <p>ResTix connects students. Payments and handovers happen between you, never through us.</p>
+        <p className="flex items-center gap-2.5">
+          <Mark className="size-6 flex-none" sparkle={false} />
+          ResTix connects students. Payments and handovers happen between you, never through us.
+        </p>
         <nav aria-label="Legal" className="flex gap-4">
           <Link href="/safety" className="hover:text-ink">Safety</Link>
           <Link href="/privacy" className="hover:text-ink">Privacy</Link>

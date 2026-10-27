@@ -209,16 +209,96 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .prose-restix th { text-align: left; font-weight: 500; color: var(--color-muted); font-size: 13px; padding: 0.5rem 0.75rem 0.5rem 0; }
 .prose-restix td { padding: 0.6rem 0.75rem 0.6rem 0; border-top: 1px solid var(--color-rule); vertical-align: top; }
 
-/* Landing entrances: only applied by <Reveal/> to elements still below the fold. */
-.reveal-pending {
-  opacity: 0;
-  transform: translateY(24px);
+/* ---------------------------------------------------------------------------
+   Fun, cheap motion. All CSS: transforms and opacity only (compositor-friendly), no
+   libraries, no script. Everything sits behind prefers-reduced-motion: no-preference,
+   so the reduced-motion rule above never has to fight it.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* Landing sections rise in as they scroll into view: a scroll-driven animation, so it
+     needs no JavaScript; browsers without view timelines just show everything. */
+  @supports (animation-timeline: view()) {
+    [data-reveal] {
+      animation: rise-in linear both;
+      animation-timeline: view();
+      animation-range: entry calc(var(--i, 0) * 6%) entry calc(70% + var(--i, 0) * 6%);
+    }
+  }
+
+  /* The hero lines slide up into place on load. Transform only, so the headline paints at
+     once and still counts for first paint. */
+  .hero-line {
+    display: inline-block;
+    animation: line-up 900ms var(--ease-out-expo) both;
+    animation-delay: calc(var(--i, 0) * 110ms);
+  }
+
+  /* The "free. no cap." sticker wobbles twice on arrival, then again whenever you point at it.
+     (Not forever: endless idle motion costs battery and frames for nothing.) */
+  .sticker {
+    animation: wobble 1.6s ease-in-out 600ms 2;
+    transition: scale 200ms var(--ease-out-expo);
+  }
+  .sticker:hover { scale: 1.12; animation: wobble 1.6s ease-in-out; }
+
+  /* The logo's sparkle twinkles when you point at it. */
+  .mark-sparkle { transform-box: fill-box; transform-origin: center; }
+  svg:hover .mark-sparkle,
+  .group\/logo:hover .mark-sparkle { animation: twinkle 700ms var(--ease-out-expo); }
+
+  /* Footer: letters hop on hover, the ticket sticker floats. */
+  .footer-letter { transition: translate 300ms var(--ease-out-expo), rotate 300ms var(--ease-out-expo); }
+  .footer-letter:hover { translate: 0 -8%; rotate: -4deg; }
+  .footer-word:hover .footer-letter:not(:hover) { translate: 0 -2%; }
+  .footer-sticker { animation: float 6s ease-in-out infinite; will-change: transform; }
 }
-.reveal-in {
-  opacity: 1;
-  transform: none;
-  transition: opacity 640ms var(--ease-out-expo), transform 760ms var(--ease-out-expo);
-  transition-delay: calc(var(--i, 0) * 75ms);
+
+/* Static fallbacks so nothing depends on motion. */
+.sticker { rotate: 8deg; }
+.footer-sticker { rotate: -8deg; }
+
+/* Keyframes move `transform` and `opacity` only, which the browser can run on the compositor
+   without repainting the page each frame. (They stack on top of any static `rotate`.) */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(32px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes line-up {
+  from { transform: translateY(0.4em) rotate(2deg); }
+  to { transform: none; }
+}
+@keyframes wobble {
+  0%, 100% { transform: none; }
+  50% { transform: rotate(-5deg); }
+}
+@keyframes twinkle {
+  0% { transform: none; }
+  50% { transform: scale(1.45) rotate(45deg); }
+  100% { transform: rotate(90deg); }
+}
+@keyframes float {
+  0%, 100% { transform: none; }
+  50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+/* A tiny confetti pop when a price is agreed: twelve dots, one pass, then gone. */
+.confetti { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.confetti i {
+  position: absolute;
+  left: 2.5rem;
+  top: 50%;
+  width: 6px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--c);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .confetti i { animation: confetti 900ms var(--ease-out-expo) both; animation-delay: 120ms; }
+}
+@keyframes confetti {
+  0% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(var(--r)); }
 }
 
 /* The empty-state band bobs a little, like it was just dropped. */

@@ -65,7 +65,7 @@ export function LoopVideo({
       {/* Clips can't be stamped without re-encoding, so the mark rides on top (posters are stamped). */}
       {mark && playing && (
         <span className="pointer-events-none absolute right-3 bottom-3 flex items-center gap-1.5 text-[13px] font-bold tracking-[-0.02em] text-white/85 [text-shadow:0_1px_6px_rgb(0_0_0/0.55)]">
-          <Mark className="size-4 [&_*]:!fill-white/90" /> ResTix
+          <Mark mono className="size-5 text-white/90" /> restix
         </span>
       )}
     </div>

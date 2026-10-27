@@ -9,12 +9,11 @@ import { formatDate, formatTime } from "@/lib/format";
 import { POLICY_LABEL } from "@/lib/listing-rules";
 import { bandStyle } from "@/lib/tint";
 import { PublicHeader } from "@/components/shell/public-header";
-import { Mark } from "@/components/logo";
 import { ButtonLink } from "@/components/ui/button";
 import { Notice } from "@/components/ui/bits";
 import { TrackView } from "@/components/track";
-import { Reveal } from "@/components/reveal";
-import { ALL_PHOTOS, BAND_PHOTOS, CLIPS, MOMENT_PHOTO } from "@/components/landing-photos";
+import { SiteFooter } from "@/components/site-footer";
+import { BAND_PHOTOS, CLIPS, MOMENT_PHOTO } from "@/components/landing-photos";
 import { LoopVideo } from "@/components/loop-video";
 import Image from "next/image";
 
@@ -75,7 +74,6 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
   const events = data?.events ?? [];
   const totalTickets = events.reduce((n, e) => n + e.availableTickets, 0);
   const domains = env().allowedDomains.join(" or ");
-  const credited = ALL_PHOTOS.filter((p) => p.credit);
   const cta = signedIn ? (
     <ButtonLink href="/tickets" size="lg" variant="dark">Open ResTix <ArrowRight className="size-4" aria-hidden /></ButtonLink>
   ) : (
@@ -85,7 +83,6 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
   return (
     <div className="overflow-x-clip">
       <TrackView name="landing_viewed" />
-      <Reveal />
       <PublicHeader />
 
       {sp.notice === "deleted" && (
@@ -99,7 +96,9 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
       <section className="mx-auto grid max-w-[1200px] grid-cols-[minmax(0,1fr)] items-center gap-10 px-4 pt-10 pb-20 sm:px-6 md:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] md:pt-16 md:pb-28">
         <div>
           <h1 className="text-[clamp(2.4rem,4.7vw,4.5rem)] leading-[0.95] font-bold tracking-[-0.045em] text-balance">
-            spare wristband?<br /> sorted.
+            <span className="hero-line" style={{ "--i": 0 } as React.CSSProperties}>spare wristband?</span>
+            <br />
+            <span className="hero-line" style={{ "--i": 1 } as React.CSSProperties}>sorted.</span>
           </h1>
           <p className="mt-6 max-w-[34ch] text-lg leading-relaxed text-ink-soft">
             ResTix is the ticket exchange for {college} students. List the fest wristband you can&apos;t use, find the one you need, sort the handover on campus. No WhatsApp-group chaos.
@@ -121,7 +120,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
             <span aria-hidden className="absolute inset-0 rounded-l-[48px] bg-accent opacity-40 mix-blend-multiply md:rounded-r-none" />
             <span aria-hidden className="absolute top-1/2 left-5 hidden size-5 -translate-y-1/2 rounded-full border-[3px] border-white/80 sm:block" />
             <div data-ui className="relative rounded-[var(--radius-card)] bg-surface p-5 shadow-[0_18px_40px_-24px_rgba(56,10,30,0.55)] sm:ml-6">
-              <span className="absolute -top-4 -right-3 z-10 rotate-[8deg] rounded-full bg-sticker px-3.5 py-1.5 text-sm font-bold whitespace-nowrap text-sticker-ink sm:-right-5">
+              <span className="sticker absolute -top-4 -right-3 z-10 rounded-full bg-sticker px-3.5 py-1.5 text-sm font-bold whitespace-nowrap text-sticker-ink sm:-right-5">
                 free. no cap.
               </span>
               <div className="flex items-baseline justify-between gap-4">
@@ -197,14 +196,14 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
             const shape = i === 0 ? "md:rounded-l-[48px]" : last ? "md:rounded-r-full" : "";
             return (
               <figure key={p.caption} className={`flex min-w-0 flex-col gap-2 ${i === 0 ? "md:flex-[5]" : "md:flex-[3]"}`}>
-                <div className={`relative aspect-[3/4] overflow-hidden rounded-[var(--radius-card)] bg-raised md:aspect-auto md:h-[clamp(320px,34vw,480px)] md:rounded-none ${shape}`}>
+                <div className={`group/photo relative aspect-[3/4] overflow-hidden rounded-[var(--radius-card)] bg-raised md:aspect-auto md:h-[clamp(320px,34vw,480px)] md:rounded-none ${shape}`}>
                   <Image
                     src={p.src}
                     alt={p.alt}
                     placeholder="blur"
                     sizes={i === 0 ? "(min-width: 768px) 36vw, 50vw" : "(min-width: 768px) 22vw, 50vw"}
-                    className="size-full object-cover"
-                    style={{ objectPosition: p.focus }}
+                    className="size-full object-cover transition-transform duration-700 ease-[var(--ease-out-expo)] motion-safe:group-hover/photo:scale-[1.04]"
+                    style={{ objectPosition: p.focus, transformOrigin: "100% 100%" }}
                   />
                   {last && <span aria-hidden className="absolute top-[40%] right-[16%] hidden size-6 -translate-y-1/2 rounded-full border-[3px] border-white/80 md:block" />}
                 </div>
@@ -340,41 +339,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
         </div>
       </section>
 
-      {/* Footer: the mark, built large. */}
-      <footer className="bg-accent-deep text-white">
-        <div className="mx-auto max-w-[1200px] px-4 pt-14 pb-10 sm:px-6">
-          <div aria-hidden className="flex h-[22vw] max-h-56 min-h-28 items-stretch gap-1">
-            <div className="flex-[5] rounded-l-[28px] bg-accent" />
-            <div className="flex-[2] bg-accent/80" />
-            <div className="relative flex-[2] rounded-r-full bg-white/15">
-              <span className="absolute top-1/2 right-[18%] size-[18%] max-h-10 min-h-4 -translate-y-1/2 rounded-full border-[3px] border-white/60" style={{ aspectRatio: "1" }} />
-            </div>
-          </div>
-          <div className="mt-12 grid gap-8 text-[15px] sm:grid-cols-[1fr_auto]">
-            <div className="flex items-center gap-3">
-              <Mark className="size-8" />
-              <p className="max-w-md text-white/80">ResTix connects students. Payments and handovers happen between you, never through us. Not affiliated with any event organiser unless an event says so.</p>
-            </div>
-            <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2 text-white/85">
-              <Link href="/safety" className="hover:text-white">Safety</Link>
-              <Link href="/privacy" className="hover:text-white">Privacy</Link>
-              <Link href="/terms" className="hover:text-white">Terms</Link>
-              <Link href="/sign-in" className="hover:text-white">Sign in</Link>
-            </nav>
-          </div>
-          {credited.length > 0 && <p className="mt-10 max-w-3xl text-[13px] leading-relaxed text-white/80">
-            Photos:{" "}
-            {credited.map((p, i, list) => (
-              <span key={p.caption}>
-                <a href={p.credit!.url} className="underline underline-offset-2 hover:text-white">{p.credit!.title}</a> by {p.credit!.author},{" "}
-                <a href={p.credit!.licenceUrl} className="underline underline-offset-2 hover:text-white">{p.credit!.licence}</a>, via {p.credit!.via}
-                {i < list.length - 1 ? "; " : "."}
-              </span>
-            ))}
-          </p>}
-          <p className="mt-4 text-[13px] text-white/70">© {new Date().getFullYear()} ResTix · a student project</p>
-        </div>
-      </footer>
+      <SiteFooter year={new Date().getFullYear()} />
     </div>
   );
 }

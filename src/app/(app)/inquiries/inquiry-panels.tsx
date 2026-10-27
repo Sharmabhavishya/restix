@@ -5,6 +5,7 @@ import { initialState } from "@/lib/action-state";
 import { MessageCircle } from "lucide-react";
 import { answerOffer, close, confirm, offer, respond, withdraw } from "./actions";
 import { formatPaise } from "@/lib/money";
+import { Confetti } from "@/components/confetti";
 import { Checkbox, Field, Input, Textarea, describedBy } from "@/components/ui/field";
 import { Notice } from "@/components/ui/bits";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -164,7 +165,8 @@ export function Bargain({
       )}
 
       {agreedPricePaise !== null ? (
-        <p className="pop rounded-[var(--radius-control)] bg-positive-soft px-3 py-2 text-[15px] text-positive-ink">
+        <p className="pop relative rounded-[var(--radius-control)] bg-positive-soft px-3 py-2 text-[15px] text-positive-ink">
+          <Confetti />
           <span className="font-semibold">Deal.</span> Agreed at <span className="num font-semibold">{formatPaise(agreedPricePaise)}</span> a ticket. Pay at the handover, after you&apos;ve checked it.
         </p>
       ) : (

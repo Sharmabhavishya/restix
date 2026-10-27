@@ -4,7 +4,7 @@
 //   * turns it upright from its EXIF orientation, then drops ALL metadata (phone photos carry GPS
 //     location, device and time; none of that should ship on a public site);
 //   * resizes to at most `maxWidth` wide;
-//   * draws the mark (band + snap tab) and the word "ResTix" in the bottom-right corner, white
+//   * draws the mark (the ticket stub) and the word "restix" in the bottom-right corner, white
 //     with a soft dark halo so it reads on bright stage lights and dark crowds alike.
 import sharp from "sharp";
 
@@ -35,14 +35,24 @@ export function watermarkSvg(width: number, height: number): string {
       <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <g filter="url(#halo)" opacity="0.88" transform="translate(${x} ${y})">
+  <g filter="url(#halo)" opacity="0.9" transform="translate(${x} ${y})">
     <g transform="scale(${s.toFixed(3)})">
-      <rect x="1" y="9" width="20" height="14" rx="3" fill="#ffffff"/>
-      <path d="M23 9h4a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4h-4z" fill="#ffffff"/>
-      <circle cx="27" cy="16" r="1.8" fill="#b8336a"/>
+      <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+        <rect width="32" height="32" fill="#fff"/>
+        <g stroke="#000" fill="none" stroke-linecap="round">
+          <path d="M21 9.5V22.5" stroke-width="1.6" stroke-dasharray="1.6 1.9"/>
+          <path d="M8.2 18.6c1.8 1.9 5 1.9 6.8 0" stroke-width="1.7"/>
+          <circle cx="9.6" cy="13.6" r="1.2" fill="#000" stroke="none"/>
+          <circle cx="13.6" cy="13.6" r="1.2" fill="#000" stroke="none"/>
+        </g>
+      </mask>
+      <g transform="rotate(-10 16 16)">
+        <path mask="url(#cut)" fill="#ffffff"
+              d="M5 7H27A3 3 0 0 1 30 10V13A3 3 0 0 0 30 19V22A3 3 0 0 1 27 25H5A3 3 0 0 1 2 22V19A3 3 0 0 0 2 13V10A3 3 0 0 1 5 7Z"/>
+      </g>
     </g>
-    <text x="${Math.round(h * 1.08)}" y="${Math.round(h * 0.74)}" font-family="DM Sans, Segoe UI, Arial, sans-serif" font-weight="700"
-          font-size="${font}" letter-spacing="-0.5" fill="#ffffff">ResTix</text>
+    <text x="${Math.round(h * 1.12)}" y="${Math.round(h * 0.72)}" font-family="DM Sans, Segoe UI, Arial, sans-serif" font-weight="700"
+          font-size="${font}" letter-spacing="-1" fill="#ffffff">restix</text>
   </g>
 </svg>`;
 }

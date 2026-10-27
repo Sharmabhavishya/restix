@@ -12,7 +12,7 @@ describe("photo watermark", () => {
   it("sits in the bottom-right corner, sized to the photo", () => {
     const svg = watermarkSvg(1600, 1067);
     expect(svg).toContain('width="1600" height="1067"');
-    expect(svg).toContain(">ResTix</text>");
+    expect(svg).toContain(">restix</text>");
     const [, x, y] = svg.match(/translate\((\d+) (\d+)\)/)!.map(Number);
     expect(x).toBeGreaterThan(1600 * 0.7);
     expect(y).toBeGreaterThan(1067 * 0.85);

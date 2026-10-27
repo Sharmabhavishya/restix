@@ -18,8 +18,6 @@ export type Photo = {
    * corner, so crops keep that corner ("100% 100%") and trim from the top and left instead.
    */
   focus: string;
-  /** Only for open-licence pictures; photos the ResTix team took need none. */
-  credit?: { title: string; author: string; licence: string; licenceUrl: string; url: string; via: string };
 };
 
 /** The band of pictures under the hero, in order. */
@@ -61,8 +59,6 @@ export const MOMENT_PHOTO: Photo & { wide: StaticImageData } = {
   caption: "main stage, the night of",
   focus: "100% 100%",
 };
-
-export const ALL_PHOTOS: Photo[] = [...BAND_PHOTOS, MOMENT_PHOTO];
 
 /** Short muted loops shot on the same nights (public/media), each with a stamped poster. */
 export const CLIPS = {

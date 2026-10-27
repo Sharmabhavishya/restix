@@ -5,7 +5,7 @@ import "./globals.css";
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  // DM Sans is variable: no weight list means one font file instead of four.
   display: "swap",
 });
 

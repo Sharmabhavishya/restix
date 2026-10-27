@@ -28,8 +28,22 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "256kb" },
   },
+  // Free-tier friendly: free hosts meter image transformations, so ask for few sizes, one
+  // modern format, and keep each result cached for a month. Our photos never change in place
+  // (a new photo is a new file), so long caching is safe.
+  images: {
+    formats: ["image/webp"],
+    deviceSizes: [640, 828, 1200, 1920],
+    imageSizes: [128, 256, 384],
+    qualities: [75],
+    minimumCacheTTL: 60 * 60 * 24 * 31,
+  },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Clips and posters: cache hard at the CDN and in the browser; renaming a file busts it.
+      { source: "/media/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" }] },
+    ];
   },
 };
 
