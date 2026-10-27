@@ -14,6 +14,11 @@ import { ButtonLink } from "@/components/ui/button";
 import { Notice } from "@/components/ui/bits";
 import { TrackView } from "@/components/track";
 import { Reveal } from "@/components/reveal";
+import { ALL_PHOTOS, BAND_PHOTOS, CLOSING_PHOTO } from "@/components/landing-photos";
+import Image from "next/image";
+
+// One size for every section heading below the hero.
+const H2 = "text-[clamp(2rem,4vw,3.25rem)] leading-[0.95] font-bold tracking-[-0.03em] text-balance";
 
 export const metadata: Metadata = {
   title: { absolute: "ResTix: spare wristband? sorted." },
@@ -66,6 +71,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
   const events = data?.events ?? [];
   const totalTickets = events.reduce((n, e) => n + e.availableTickets, 0);
   const domains = env().allowedDomains.join(" or ");
+  const credited = ALL_PHOTOS.filter((p) => p.credit);
   const cta = signedIn ? (
     <ButtonLink href="/tickets" size="lg" variant="dark">Open ResTix <ArrowRight className="size-4" aria-hidden /></ButtonLink>
   ) : (
@@ -151,6 +157,38 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
         </div>
       </section>
 
+      {/* The fest world: real bands and real campus nights, laid end to end like one band. */}
+      <section aria-labelledby="fest-heading" className="mx-auto max-w-[1200px] px-4 pb-20 sm:px-6 md:pb-28">
+        <div className="grid gap-5 md:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] md:items-end">
+          <h2 id="fest-heading" className={H2}>every fest runs on a band.</h2>
+          <p className="max-w-[42ch] text-lg leading-relaxed text-ink-soft">
+            Plans change, exams move, friends bail. The band you can&apos;t use is the one someone in your hostel is hunting for.
+          </p>
+        </div>
+        <div className="mt-10 grid grid-cols-2 gap-x-[3px] gap-y-5 md:flex md:gap-[3px]">
+          {BAND_PHOTOS.map((p, i) => {
+            const last = i === BAND_PHOTOS.length - 1;
+            const shape = i === 0 ? "md:rounded-l-[48px]" : last ? "md:rounded-r-full" : "";
+            return (
+              <figure key={p.caption} className={`flex min-w-0 flex-col gap-2 ${i === 0 || last ? "col-span-2" : ""} ${i === 0 ? "md:flex-[5]" : "md:flex-[3]"}`}>
+                <div className={`relative aspect-[4/3] overflow-hidden rounded-[var(--radius-card)] bg-raised md:aspect-auto md:h-[clamp(300px,32vw,440px)] md:rounded-none ${shape} ${i > 0 && !last ? "aspect-square" : ""}`}>
+                  <Image
+                    src={p.src}
+                    alt={p.alt}
+                    placeholder="blur"
+                    sizes={i === 0 ? "(min-width: 768px) 36vw, 100vw" : "(min-width: 768px) 22vw, 50vw"}
+                    className="size-full object-cover"
+                    style={{ objectPosition: p.focus }}
+                  />
+                  {last && <span aria-hidden className="absolute top-1/2 right-[16%] hidden size-6 -translate-y-1/2 rounded-full border-[3px] border-white/80 md:block" />}
+                </div>
+                <figcaption className="text-[13px] text-muted">{p.caption}</figcaption>
+              </figure>
+            );
+          })}
+        </div>
+      </section>
+
       {/* How it works: one wristband, four fields, further along each time. */}
       <section id="how" aria-labelledby="how-heading" className="grid md:grid-cols-4">
         {[
@@ -177,54 +215,35 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
         ))}
       </section>
 
-      {/* What keeps it safe: close-ups of the real interface pieces. */}
+      {/* What keeps it safe: one mark per promise, every tile built the same way so they line up. */}
       <section aria-labelledby="safe-heading" className="mx-auto max-w-[1200px] px-4 py-24 sm:px-6 md:py-36">
         <div className="grid gap-2 md:grid-cols-12">
-          <div data-reveal className="flex flex-col justify-end rounded-[var(--radius-card)] bg-primary p-6 text-on-primary md:col-span-6 md:row-span-1 md:min-h-56">
-            <h2 id="safe-heading" className="text-[clamp(2rem,4vw,3.5rem)] leading-[0.95] font-bold tracking-[-0.03em]">no randoms. no screenshots.</h2>
+          <div data-reveal className="flex flex-col justify-end rounded-[var(--radius-card)] bg-primary p-6 text-on-primary md:col-span-6 md:min-h-64">
+            <h2 id="safe-heading" className={H2}>no randoms. no screenshots.</h2>
           </div>
-          <div data-reveal style={{ "--i": 1 } as React.CSSProperties} className="relative overflow-hidden rounded-[var(--radius-card)] bg-positive-soft p-6 md:col-span-6 md:min-h-56">
-            <div data-ui aria-hidden className="absolute -top-3 -right-6 flex items-center gap-3 text-[56px] font-medium text-positive sm:text-[72px]">
-              <BadgeCheck className="size-[1em]" strokeWidth={1.75} /> {college} email
+          {[
+            { span: "md:col-span-6", tone: "bg-positive-soft", mark: "text-positive", body: "text-positive-ink", icon: <BadgeCheck className="size-[1em] flex-none" strokeWidth={1.75} />, label: `${college} email`, title: "Verified campus accounts", text: `Everyone signs in with a ${domains} Google account. That proves the email; it doesn't vouch for the ticket.` },
+            { span: "md:col-span-6 lg:col-span-4", tone: "bg-accent-soft", mark: "text-accent-strong", body: "text-accent-ink", icon: <ShieldCheck className="size-[1em] flex-none" strokeWidth={1.75} />, label: "Face value", title: "Event rules, enforced", text: "Price caps and no-resale events are blocked before anything goes live." },
+            { span: "md:col-span-6 lg:col-span-4", tone: "bg-raised", mark: "text-ink", body: "text-muted", icon: null, label: "₹0 fees", title: "We never touch money", text: "No payments, no fees, no escrow. Pay at the handover, after you've checked the band." },
+            { span: "md:col-span-12 lg:col-span-4", tone: "bg-negative-soft", mark: "text-negative-ink", body: "text-negative-ink", icon: <Flag className="size-[0.9em] flex-none" strokeWidth={1.75} />, label: "Report this", title: "Real moderators", text: "Reports go to a queue. Listings come down, accounts get restricted, every action is logged and can be appealed." },
+          ].map((t, i) => (
+            <div key={t.title} data-reveal style={{ "--i": i + 1 } as React.CSSProperties} className={`${t.span} ${t.tone} flex flex-col gap-16 rounded-[var(--radius-card)] p-6 md:gap-24`}>
+              <p data-ui aria-hidden className={`${t.mark} num flex items-center gap-3 text-[2.25rem] leading-none font-semibold tracking-[-0.02em]`}>
+                {t.icon}
+                <span className="truncate">{t.label}</span>
+              </p>
+              <div>
+                <h3 className="text-lg font-medium">{t.title}</h3>
+                <p className={`mt-1 max-w-[46ch] text-base leading-relaxed ${t.body}`}>{t.text}</p>
+              </div>
             </div>
-            <div className="relative mt-24 sm:mt-28">
-              <h3 className="text-lg font-medium">Verified campus accounts</h3>
-              <p className="text-[15px] text-positive-ink">Everyone signs in with a {domains} Google account. That proves the email; it doesn&apos;t vouch for the ticket.</p>
-            </div>
-          </div>
-          <div data-reveal style={{ "--i": 2 } as React.CSSProperties} className="relative overflow-hidden rounded-[var(--radius-card)] bg-accent-soft p-6 md:col-span-4 md:min-h-72">
-            <div data-ui aria-hidden className="absolute -top-2 -right-10 inline-flex items-center gap-2 rounded-full bg-accent-track px-6 py-3 text-[40px] font-medium text-accent-ink">
-              <ShieldCheck className="size-[1em]" /> Face value only
-            </div>
-            <div className="relative mt-28">
-              <h3 className="text-lg font-medium">Event rules, enforced</h3>
-              <p className="text-[15px] text-accent-ink">Price caps and no-resale events are blocked before anything goes live.</p>
-            </div>
-          </div>
-          <div data-reveal style={{ "--i": 3 } as React.CSSProperties} className="relative overflow-hidden rounded-[var(--radius-card)] bg-raised p-6 md:col-span-4 md:min-h-72">
-            <div data-ui aria-hidden className="absolute -top-4 -right-4 flex items-baseline gap-2 text-[64px] leading-none font-bold tracking-[-0.03em] text-ink">
-              <span className="num">₹0</span><span className="text-[28px] font-medium text-muted">fees</span>
-            </div>
-            <div className="relative mt-28">
-              <h3 className="text-lg font-medium">We never touch money</h3>
-              <p className="text-[15px] text-muted">No payments, no fees, no escrow. Pay at the handover, after you&apos;ve checked the band.</p>
-            </div>
-          </div>
-          <div data-reveal style={{ "--i": 4 } as React.CSSProperties} className="relative overflow-hidden rounded-[var(--radius-card)] bg-negative-soft p-6 md:col-span-4 md:min-h-72">
-            <div data-ui aria-hidden className="absolute -top-3 -right-8 flex items-center gap-2 text-[44px] font-medium text-negative-ink underline decoration-2 underline-offset-8">
-              <Flag className="size-[0.9em]" /> Report this
-            </div>
-            <div className="relative mt-28">
-              <h3 className="text-lg font-medium">Real moderators</h3>
-              <p className="text-[15px] text-negative-ink">Reports go to a queue. Listings come down, accounts get restricted, every action is logged and can be appealed.</p>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
       {/* Questions: filed like index cards. */}
       <section aria-labelledby="faq-heading" className="mx-auto max-w-[900px] px-4 pb-24 sm:px-6 md:pb-36">
-        <h2 id="faq-heading" data-reveal className="mb-10 text-[clamp(2rem,4vw,3.25rem)] leading-none font-bold tracking-[-0.03em]">questions, answered</h2>
+        <h2 id="faq-heading" className={`mb-10 ${H2}`}>questions, answered</h2>
         <div className="flex flex-col">
           {FAQ.map((f, i) => (
             <details
@@ -248,11 +267,19 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
         </div>
       </section>
 
-      {/* Closing statement. */}
-      <section className="mx-auto max-w-[1200px] px-4 pb-24 sm:px-6 md:pb-32">
-        <div data-reveal className="flex flex-col items-start gap-8 md:flex-row md:items-end md:justify-between">
-          <h2 className="max-w-[14ch] text-[clamp(2.25rem,5.5vw,4.75rem)] leading-[0.95] font-bold tracking-[-0.04em]">your campus. your tickets.</h2>
-          {cta}
+      {/* Closing statement, beside the crowd it is for. */}
+      <section aria-labelledby="closing-heading" className="mx-auto max-w-[1200px] px-4 pb-24 sm:px-6 md:pb-32">
+        <div className="grid items-end gap-8 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-10">
+          <div className="flex flex-col items-start gap-8">
+            <h2 id="closing-heading" className={`max-w-[12ch] ${H2}`}>your campus. your tickets.</h2>
+            {cta}
+          </div>
+          <figure className="flex flex-col gap-2">
+            <div className="relative aspect-[3/2] overflow-hidden rounded-[var(--radius-card)] bg-raised md:rounded-r-[48px]">
+              <Image src={CLOSING_PHOTO.src} alt={CLOSING_PHOTO.alt} placeholder="blur" sizes="(min-width: 768px) 56vw, 100vw" className="size-full object-cover" style={{ objectPosition: CLOSING_PHOTO.focus }} />
+            </div>
+            <figcaption className="text-[13px] text-muted">{CLOSING_PHOTO.caption}</figcaption>
+          </figure>
         </div>
       </section>
 
@@ -262,8 +289,8 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
           <div aria-hidden className="flex h-[22vw] max-h-56 min-h-28 items-stretch gap-1">
             <div className="flex-[5] rounded-l-[28px] bg-accent" />
             <div className="flex-[2] bg-accent/80" />
-            <div className="relative flex-[2] rounded-r-full bg-accent-soft/15">
-              <span className="absolute top-1/2 right-[18%] size-[18%] max-h-10 min-h-4 -translate-y-1/2 rounded-full border-[3px] border-accent-soft/60" style={{ aspectRatio: "1" }} />
+            <div className="relative flex-[2] rounded-r-full bg-white/15">
+              <span className="absolute top-1/2 right-[18%] size-[18%] max-h-10 min-h-4 -translate-y-1/2 rounded-full border-[3px] border-white/60" style={{ aspectRatio: "1" }} />
             </div>
           </div>
           <div className="mt-12 grid gap-8 text-[15px] sm:grid-cols-[1fr_auto]">
@@ -278,7 +305,17 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
               <Link href="/sign-in" className="hover:text-white">Sign in</Link>
             </nav>
           </div>
-          <p className="mt-10 text-[13px] text-white/60">© {new Date().getFullYear()} ResTix · a student project</p>
+          {credited.length > 0 && <p className="mt-10 max-w-3xl text-[13px] leading-relaxed text-white/80">
+            Photos:{" "}
+            {credited.map((p, i, list) => (
+              <span key={p.caption}>
+                <a href={p.credit!.url} className="underline underline-offset-2 hover:text-white">{p.credit!.title}</a> by {p.credit!.author},{" "}
+                <a href={p.credit!.licenceUrl} className="underline underline-offset-2 hover:text-white">{p.credit!.licence}</a>, via {p.credit!.via}
+                {i < list.length - 1 ? "; " : "."}
+              </span>
+            ))}
+          </p>}
+          <p className="mt-4 text-[13px] text-white/70">© {new Date().getFullYear()} ResTix · a student project</p>
         </div>
       </footer>
     </div>

@@ -48,3 +48,6 @@ next-env.d.ts
 /test-results
 /playwright-report
 /playwright/.cache
+
+# taste-skill downloads (originals; resized copies live in src/assets/photos)
+/assets/*.jpg

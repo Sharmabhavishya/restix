@@ -40,8 +40,12 @@ codes; this campus has wristbands, so the competitor test passes.
 tickets available right now and the lowest asking price, read from the database. No numbers are
 invented; with no listings it says so.
 
-**Imagery:** no photographs exist and none are faked. Pictures are the product's own interface
-fragments (`data-ui`), drawn at real size from real data.
+**Imagery:** the product's own interface fragments (`data-ui`), drawn at real size from real data,
+plus photographs of the fest world in `src/assets/photos/`, listed with captions and credits in
+`src/components/landing-photos.ts`. Under the hero they run end to end as one band (rounded start,
+pill end with its snap); one more sits beside the closing statement. Open-licence pictures are
+resized only, captioned for what they are (never as a ResTix event) and credited in the footer; the
+credit line disappears when every photo is the owner's own (entries without `credit`).
 
 **Sections (argument order):** hero (what it is + sign in) → on sale now (two-ended rows) → how it
 works (one wristband in four fields, further along each time) → what keeps it safe (close-ups
