@@ -49,7 +49,7 @@ listings involve real money changing hands off-platform. Security is a release b
 
 **Abuse**
 - Postgres-backed rate limits on listing creation/edits, inquiries (burst + daily), responses,
-  reports, appeals, profile edits, moderation actions, dev sign-in and analytics beacons
+  reports, appeals, profile edits, saves, moderation actions, dev sign-in and analytics beacons
   (per account, and per IP for anonymous traffic).
 - One open inquiry per buyer per listing; one open report per reporter per target; one open
   appeal per person.
@@ -65,14 +65,36 @@ Emails and WhatsApp numbers live in `profile_private` (owner + moderators of tha
 Status reasons are owner/moderator only. Analytics hold no IPs, search text or names. Logs
 record error messages, not personal data. A seller's number reaches one buyer only, copied onto
 that inquiry when they accept with "share my WhatsApp" (`inquiries.seller_whatsapp`, readable by
-the two parties); chat links are built from it at render time and only for well-formed E.164
-numbers. Owner photos go through `npm run photos`, which drops EXIF (GPS, device, time).
+the two parties). The buyer's number goes the other way at the same moment and no earlier: the
+`inquiries_whatsapp_handoff` trigger (security definer) copies it from the buyer's own
+`profile_private` into `inquiries.buyer_whatsapp` only when the inquiry becomes `accepted` and the
+buyer ticked "let them WhatsApp me" when asking. It blanks the column on insert and keeps it fixed
+on every other update, and clients have no grant to write it, so neither side can plant or change
+it. Before acceptance nobody sees anyone's number. Chat links are built at render time and only
+for well-formed E.164 numbers; the prefilled messages end with a "Sent via ResTix" line. Owner photos go through `npm run photos`, which drops EXIF (GPS, device, time).
+
+**Event covers**
+Only moderators upload them. The browser shrinks the image first; the server then refuses
+anything over 1.4 MB, any type but JPEG, PNG, WebP or AVIF (no SVG), anything sharp can't decode
+(`failOn: "error"`), images over 40 megapixels (decompression bombs) or under 200px, and
+re-encodes what's left as WebP, which drops all metadata. The image is checked before the event
+is saved. Covers are served only to signed-in students of the event's college (RLS on
+`event_covers`), as `image/webp` with `nosniff`, at a versioned URL. Server Actions accept bodies
+up to 1.5 MB for this.
 
 **Bargaining**
 Offers carry no payment and move no money. The database decides what's allowed (see
 DATABASE.md, `prepare_offer` / `guard_offer_update`): parties only, in their own name, never above
 the asking price or face value, one open offer, only the other side accepts, and the agreed price
 can't be written directly. Offers are rate limited (40/hour per account).
+
+**Saved listings and price signals**
+The watchlist (`saved_listings`) is private: RLS lets you read and delete only your own rows and
+insert only for yourself, while you can browse, for an active listing you can see that isn't yours.
+Sellers cannot learn who saved their listing. The server caps saves at 100 per user and rate
+limits them (`save`, 120/hour). The "good deal" tiers and filter never use the seller-entered "what
+I paid" price, because the seller could inflate it; the yardstick is the ticket type's face value
+or the median asking price of live listings of the same type (see docs/DESIGN.md).
 
 ## Security review (27 Oct 2026)
 

@@ -1,24 +1,39 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, Clock, MapPin, MessageCircle } from "lucide-react";
+import { CalendarDays, Clock, Flame, Lock, MapPin, Sparkles } from "lucide-react";
 import { requireBrowser } from "@/server/auth/viewer";
 import { displayStatus, getListing } from "@/server/listings";
 import { myInquiryFor } from "@/server/inquiries";
-import { FORMAT_LABEL, HANDOVER_LABEL, STATUS_LABEL, sellerCan } from "@/lib/listing-rules";
+import { FORMAT_LABEL, HANDOVER_LABEL, STATUS_LABEL, sellerCan, type TicketFormat } from "@/lib/listing-rules";
+import { dealFor, REF_LABEL } from "@/lib/deal";
 import { formatDateTime, formatLongDate, relativeTime } from "@/lib/format";
 import { formatPaise } from "@/lib/money";
 import { bandStyle } from "@/lib/tint";
 import { ContactForm, OwnerActions, ReportForm } from "./listing-panels";
-import { FixtureTag, PolicyPill, StatusPill, VerifiedEmail } from "@/components/listing-bits";
+import { FixtureTag, StatusPill, VerifiedEmail } from "@/components/listing-bits";
+import { PRICE_TONE } from "@/components/ticket-card";
+import { SaveButton } from "@/components/save-button";
+import { coverUrl } from "@/server/event-covers";
 import { KeyValue, Notice, Panel } from "@/components/ui/bits";
-import { ButtonLink, buttonClass } from "@/components/ui/button";
-import { env } from "@/server/env";
-import { sellerShare, waLink } from "@/lib/whatsapp";
+import { ButtonLink } from "@/components/ui/button";
+import { privateProfile } from "@/server/profile";
 import { TrackView } from "@/components/track";
 import { ShareButton } from "@/components/share-button";
 
 export const metadata: Metadata = { title: "Listing" };
+
+// What to check before paying, by kind of ticket.
+const CHECK_TIP: Record<TicketFormat, string> = {
+  wristband: "Look at the wristband before you pay: uncut, unworn, the right event.",
+  paper: "Look at the ticket before you pay: right event, right date, stub not torn off.",
+  qr: "Get the QR before you pay and check the name and date on it. A screenshot can be sent to more than one person.",
+  email: "Check the booking email shows the right event, and whether the name on it is checked at entry.",
+  app: "Have the seller start the transfer in the app, and accept it before you pay.",
+  pass: "Check the pass in person before you pay: right event, nobody else's photo on it.",
+  token: "Count the tokens and check they're for this event before you pay.",
+  other: "Check the ticket before you pay.",
+};
 
 const SAVED: Record<string, string> = {
   publish: "Your listing is live. We'll show requests in Inquiries.",
@@ -39,14 +54,9 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
   const inquiry = mine ? null : await myInquiryFor(viewer.id, listing.id);
   const saved = typeof sp.saved === "string" ? SAVED[sp.saved] : undefined;
   const style = bandStyle(listing.eventId) as React.CSSProperties;
-  const savings = listing.originalPricePaise !== null ? listing.originalPricePaise - listing.askingPricePaise : null;
-  // Sellers post their listing to group chats; the link still needs a campus sign-in to open.
-  const shareHref = mine
-    ? waLink(null, sellerShare({
-        eventName: listing.eventName, ticketTypeName: listing.ticketTypeName, askingPricePaise: listing.askingPricePaise,
-        quantity: listing.quantity, url: `${env().APP_URL}/listings/${listing.id}`, college: viewer.collegeShortName,
-      }))
-    : null;
+  const deal = dealFor(listing);
+  // The buyer's own saved number, for the "share if they say yes" choice.
+  const priv = mine ? null : await privateProfile(viewer.id);
 
   return (
     <>
@@ -58,49 +68,68 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
           <Link href={`/events/${listing.eventSlug}`} className="hover:text-ink">{listing.eventName}</Link>
         </nav>
         {status === "active" && (
+          <div className="flex flex-none items-center gap-2">
+          {!mine && <SaveButton listingId={listing.id} saved={Boolean(listing.saved)} label />}
           <ShareButton
             path={`/listings/${listing.id}`}
             title={`${listing.eventName} on ResTix`}
-            text={`${listing.ticketTypeName} for ${listing.eventName}, ${formatPaise(listing.askingPricePaise)}${listing.quantity > 1 ? " each" : ""}. Campus sign-in needed to see it.`}
+            text={`${listing.ticketTypeName} for ${listing.eventName}, ${formatPaise(listing.askingPricePaise)}${listing.quantity > 1 ? " each" : ""}. Student sign-in needed to see it.`}
           />
+          </div>
         )}
       </div>
 
       {saved && mine && <Notice tone="success" className="mb-5">{saved}</Notice>}
 
-      {/* The object header is the ticket itself. */}
-      <header style={style} className="mb-6 flex flex-col gap-[3px] sm:flex-row">
-        <div className="flex-1 rounded-t-[var(--radius-card)] bg-[var(--band)] px-5 py-5 sm:rounded-l-[var(--radius-card)] sm:rounded-tr-none sm:px-7">
+      {/* The object header is the ticket itself: body, perforation, stub. */}
+      {listing.eventCoverVersion ? (
+        <Link href={`/events/${listing.eventSlug}`} aria-label={`${listing.eventName}: event page`} className="group block overflow-hidden rounded-t-[14px]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- served by our own cover route */}
+          <img src={coverUrl(listing.eventId, listing.eventCoverVersion)} alt="" className="h-36 w-full object-cover transition-transform duration-1000 ease-[var(--ease-out-expo)] group-hover:scale-[1.04] sm:h-48" />
+        </Link>
+      ) : null}
+      <header style={style} className={`mb-6 flex flex-col overflow-hidden sm:flex-row ${listing.eventCoverVersion ? "rounded-b-[14px]" : "rounded-[14px]"}`}>
+        <div className="flex-1 bg-[var(--band)] px-5 py-5 sm:px-7 sm:py-6">
           <div className="flex flex-wrap items-center gap-2">
-            <StatusPill status={status} />
-            <PolicyPill policy={listing.transferPolicy} />
+            {status !== "active" && <StatusPill status={status} />}
+            <span className="inline-flex h-6 items-center rounded-full bg-surface/70 px-2.5 text-[12px] font-semibold text-[var(--band-ink)]">{FORMAT_LABEL[listing.format]}</span>
             {listing.eventIsFixture && <FixtureTag />}
           </div>
-          <h1 className="mt-3 text-2xl leading-tight font-bold tracking-[-0.01em] sm:text-[32px]">{listing.eventName}</h1>
-          <p className="mt-1 text-[15px] text-[var(--band-ink)]">
-            {listing.ticketTypeName} · {FORMAT_LABEL[listing.format]} · {listing.quantity} {listing.quantity === 1 ? "ticket" : "tickets"}
+          <h1 className="mt-3 font-display text-[28px] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance sm:text-[38px]">{listing.eventName}</h1>
+          <p className="mt-2 text-[15px] text-[var(--band-ink)]">
+            {listing.ticketTypeName} · {listing.quantity} {listing.quantity === 1 ? "ticket" : "tickets"}
           </p>
           <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-[var(--band-ink)]">
             <li className="flex items-center gap-1.5"><CalendarDays className="size-4" aria-hidden />{formatDateTime(listing.eventStartsAt)}</li>
             {listing.eventVenue && <li className="flex items-center gap-1.5"><MapPin className="size-4" aria-hidden />{listing.eventVenue}</li>}
           </ul>
         </div>
-        <div className="flex items-center justify-between gap-6 rounded-b-[var(--radius-card)] bg-[var(--band-strong)] px-5 py-4 sm:w-60 sm:flex-col sm:items-end sm:justify-center sm:rounded-r-full sm:rounded-bl-none sm:py-5 sm:pr-12">
+        <div className="flex items-center justify-between gap-6 border-t-2 border-dashed border-[color-mix(in_oklab,var(--band-ink)_30%,transparent)] bg-[var(--band-strong)] px-5 py-4 sm:w-64 sm:flex-col sm:items-end sm:justify-center sm:border-t-0 sm:border-l-2 sm:px-7 sm:py-6">
           <div className="sm:text-right">
-            <p className="num text-3xl leading-none font-bold">{formatPaise(listing.askingPricePaise)}</p>
-            <p className="mt-1 text-[13px] text-[var(--band-ink)]">
+            <p className={`num font-display text-4xl leading-none font-extrabold ${deal.tier ? PRICE_TONE[deal.tier] : ""}`}>{formatPaise(listing.askingPricePaise)}</p>
+            <p className="mt-1.5 text-[13px] text-[var(--band-ink)]">
               {listing.quantity > 1 ? "per ticket" : "asking"}
               {listing.priceNegotiable ? " · open to offers" : ""}
             </p>
           </div>
-          {listing.originalPricePaise !== null && (
-            <p className="text-[13px] text-[var(--band-ink)] sm:text-right">
-              paid {formatPaise(listing.originalPricePaise)}
-              {savings !== null && savings > 0 ? ` · ${formatPaise(savings)} under` : ""}
-            </p>
-          )}
+          <div className="flex flex-col items-end gap-1 text-right text-[13px] text-[var(--band-ink)]">
+            {listing.bulkMinQuantity && listing.bulkPricePaise !== null && (
+              <span className="font-semibold text-price-low">{listing.bulkMinQuantity}+ for {formatPaise(listing.bulkPricePaise)} each</span>
+            )}
+            {deal.ref && <span>{deal.ref.source === "face" ? `face value ${formatPaise(deal.ref.paise)}` : `going rate ~${formatPaise(deal.ref.paise)}`}</span>}
+          </div>
         </div>
       </header>
+
+      {status === "active" && deal.alert && (
+        <div className="deal-banner mb-6 flex items-center gap-3 rounded-[12px] bg-buy px-4 py-3 text-white">
+          {deal.tier === "steal" ? <Flame className="size-5 flex-none" aria-hidden /> : <Sparkles className="size-5 flex-none" aria-hidden />}
+          <p className="text-[15px]">
+            <span className="font-bold">{deal.tier === "steal" ? "Steal alert." : "Good deal alert."}</span>{" "}
+            {deal.saving}% under {REF_LABEL[deal.ref!.source]}.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex flex-col gap-6">
@@ -126,14 +155,11 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
           <Panel className="p-5 sm:p-6">
             <h2 className="mb-3 text-[17px] font-semibold">What&apos;s verified, and what isn&apos;t</h2>
             <ul className="flex flex-col gap-3 text-[15px]">
-              <li><VerifiedEmail college={viewer.collegeShortName} />: the seller signed in with a verified {viewer.collegeShortName} Google account. That proves the email, not enrolment.</li>
-              <li>
-                <span className="font-medium">Resale policy:</span> {listing.transferPolicy === "allowed" ? "the event's organisers allow resale" : listing.transferPolicy === "face_value_only" ? "resale is allowed at face value only" : listing.transferPolicy === "unknown" ? "not confirmed yet" : "resale isn't allowed"}. This is about the event, not this specific ticket.
-              </li>
+              <li><VerifiedEmail />: the seller signed in with a verified college Google account. That proves the email, not enrolment.</li>
               <li>
                 <span className="font-medium">The ticket itself isn&apos;t checked by ResTix.</span>{" "}
-                {listing.reviewedAt ? "A moderator approved this listing against the event's resale rules, which isn't the same as checking the ticket. " : ""}
-                Look at the wristband or ticket before you pay.
+                {listing.reviewedAt ? "A moderator approved this listing, which isn't the same as checking the ticket. " : ""}
+                {CHECK_TIP[listing.format]}
               </li>
             </ul>
           </Panel>
@@ -153,7 +179,7 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
                 </p>
               </div>
             </div>
-            {listing.sellerVerified && <div className="mt-3"><VerifiedEmail college={viewer.collegeShortName} /></div>}
+            {listing.sellerVerified && <div className="mt-3"><VerifiedEmail /></div>}
 
             <div className="mt-5 border-t border-rule pt-5">
               {mine ? (
@@ -165,11 +191,10 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
                     <ButtonLink href={`/listings/${listing.id}/edit`} variant="secondary">Edit details</ButtonLink>
                   )}
                   <OwnerActions listingId={listing.id} version={listing.version} status={status} />
-                  {status === "active" && shareHref && (
-                    <a href={shareHref} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary", "md")}>
-                      <MessageCircle className="size-4" aria-hidden /> Share in your WhatsApp groups
-                    </a>
-                  )}
+                  <p className="flex gap-2 text-[13px] text-muted">
+                    <Lock className="mt-0.5 size-4 flex-none" aria-hidden />
+                    Your number stays private. A buyer only gets your WhatsApp after you accept their request.
+                  </p>
                 </div>
               ) : inquiry && (inquiry.status === "pending" || inquiry.status === "accepted") ? (
                 <Notice tone={inquiry.status === "accepted" ? "success" : "info"} title={inquiry.status === "accepted" ? "The seller said yes" : "Request sent"}>
@@ -187,6 +212,9 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
                   sellerName={listing.sellerName}
                   negotiable={listing.priceNegotiable}
                   askingPricePaise={listing.askingPricePaise}
+                  bulkMinQuantity={listing.bulkMinQuantity}
+                  bulkPricePaise={listing.bulkPricePaise}
+                  savedWhatsapp={priv?.whatsappNumber ?? null}
                 />
               )}
             </div>

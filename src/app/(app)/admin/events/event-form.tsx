@@ -6,6 +6,7 @@ import { saveEventAction } from "../actions";
 import { Field, Input, Select, Textarea, describedBy } from "@/components/ui/field";
 import { Notice } from "@/components/ui/bits";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { CoverPicker } from "./cover-picker";
 
 export interface EventDefaults {
   eventId?: string;
@@ -20,14 +21,18 @@ export interface EventDefaults {
   transferPolicy?: string;
   policySource?: string | null;
   ticketTypes?: string;
+  /** The student request this event comes from, marked done when it's saved. */
+  requestId?: string;
+  /** Where the current cover is served from, when there is one. */
+  coverUrl?: string | null;
 }
 
 const CATEGORIES = [["fest", "Fest"], ["concert", "Concert"], ["party", "Party"], ["prom", "Prom"], ["workshop", "Workshop"], ["sports", "Sports"], ["other", "Other"]] as const;
 const POLICIES = [
-  ["unknown", "Unconfirmed: listings need moderator review"],
-  ["allowed", "Resale allowed"],
-  ["face_value_only", "Resale at face value only"],
-  ["prohibited", "No resale (removes live listings)"],
+  ["allowed", "None: resale at any price (default)"],
+  ["face_value_only", "Price cap: face value or less"],
+  ["prohibited", "No resale (hides the event, removes live listings)"],
+  ["unknown", "Hold: hide the event until rules are confirmed"],
 ] as const;
 
 function slugify(s: string) {
@@ -41,11 +46,12 @@ export function EventForm({ d = {} }: { d?: EventDefaults }) {
   const [name, setName] = useState(v?.name ?? d.name ?? "");
   const [slug, setSlug] = useState(v?.slug ?? d.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(d.slug));
-  const [policy, setPolicy] = useState(v?.transferPolicy ?? d.transferPolicy ?? "unknown");
+  const [policy, setPolicy] = useState(v?.transferPolicy ?? d.transferPolicy ?? "allowed");
 
   return (
     <form action={action} className="flex flex-col gap-6" noValidate>
       {d.eventId && <input type="hidden" name="eventId" value={d.eventId} />}
+      {d.requestId && <input type="hidden" name="requestId" value={d.requestId} />}
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Name" htmlFor="name" error={fe.name}>
@@ -77,27 +83,39 @@ export function EventForm({ d = {} }: { d?: EventDefaults }) {
           </Select>
         </Field>
       </div>
+      <CoverPicker current={d.coverUrl} name={name} />
+      {fe.cover && <p className="-mt-4 text-[13px] font-medium text-negative" role="alert">{fe.cover}</p>}
+
       <Field label="Description" htmlFor="description" optional error={fe.description}>
         <Textarea id="description" name="description" rows={3} maxLength={2000} defaultValue={v?.description ?? d.description ?? ""} />
       </Field>
 
-      <fieldset className="flex flex-col gap-5 rounded-[var(--radius-card)] bg-raised p-4">
-        <legend className="sr-only">Resale policy</legend>
-        <Field label="Resale policy" htmlFor="transferPolicy" error={fe.transferPolicy}>
-          <Select id="transferPolicy" name="transferPolicy" value={policy} onChange={(e) => setPolicy(e.target.value)}>
-            {POLICIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </Select>
-        </Field>
-        <Field label="Where does this policy come from?" htmlFor="policySource" optional={policy === "unknown"} error={fe.policySource} hint="Who confirmed it and when, e.g. “Cultural committee email, 12 Oct”. Shown to students.">
-          <Input id="policySource" name="policySource" maxLength={300} defaultValue={v?.policySource ?? d.policySource ?? ""} {...describedBy("policySource", fe.policySource, true)} />
-        </Field>
-      </fieldset>
+      {/* Most events need none of this: by default anyone can resell at any price. */}
+      <details className="group rounded-[10px] border border-border bg-surface open:border-control" open={policy !== "allowed" || Boolean(fe.transferPolicy || fe.policySource) || undefined}>
+        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+          <span>
+            <span className="block text-[15px] font-semibold">Restrictions</span>
+            <span className="block text-[13px] text-muted">{POLICIES.find(([p]) => p === policy)?.[1] ?? "None"}</span>
+          </span>
+          <span aria-hidden className="text-muted transition-transform duration-300 group-open:rotate-180">▾</span>
+        </summary>
+        <div className="flex flex-col gap-5 border-t border-border px-4 pt-4 pb-5">
+          <Field label="Resale rule" htmlFor="transferPolicy" error={fe.transferPolicy} hint="Only use a restriction when the organisers actually ask for one.">
+            <Select id="transferPolicy" name="transferPolicy" value={policy} onChange={(e) => setPolicy(e.target.value)}>
+              {POLICIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </Select>
+          </Field>
+          <Field label="Where does this rule come from?" htmlFor="policySource" optional error={fe.policySource} hint="Who asked for it and when, e.g. “Cultural committee email, 12 Oct”. For your records.">
+            <Input id="policySource" name="policySource" maxLength={300} defaultValue={v?.policySource ?? d.policySource ?? ""} {...describedBy("policySource", fe.policySource, true)} />
+          </Field>
+        </div>
+      </details>
 
       <Field label="Ticket types" htmlFor="ticketTypes" optional error={fe.ticketTypes} hint="One per line: name, face value in rupees. e.g. “Night pass, 800”. Existing types are kept.">
         <Textarea id="ticketTypes" name="ticketTypes" rows={3} defaultValue={v?.ticketTypes ?? d.ticketTypes ?? ""} {...describedBy("ticketTypes", fe.ticketTypes, true)} />
       </Field>
       <Field label="Reason for this change" htmlFor="reason" error={fe.reason} hint="Goes in the audit log.">
-        <Input id="reason" name="reason" maxLength={1000} defaultValue={v?.reason ?? ""} placeholder={d.eventId ? "e.g. Organisers confirmed resale is fine" : "e.g. Announced on the SAC page"} {...describedBy("reason", fe.reason, true)} />
+        <Input id="reason" name="reason" maxLength={1000} defaultValue={v?.reason ?? ""} placeholder={d.eventId ? "e.g. Moved to the main ground" : d.requestId ? "e.g. Student request, checked the poster" : "e.g. Announced on the cultural committee page"} {...describedBy("reason", fe.reason, true)} />
       </Field>
       <div>
         <SubmitButton pendingLabel="Saving…">{d.eventId ? "Save event" : "Create event"}</SubmitButton>

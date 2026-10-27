@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger" | "dark";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "dark" | "buy";
 type Size = "sm" | "md" | "lg";
 
 const base =
@@ -16,6 +16,8 @@ const variants: Record<Variant, string> = {
   secondary: "border border-control bg-surface text-ink hover:border-control-hover hover:bg-raised",
   ghost: "text-ink hover:bg-raised",
   danger: "border border-negative-line bg-surface text-negative hover:bg-negative-soft",
+  // Getting a ticket: deep green, the colour of "this is a good move".
+  buy: "bg-buy text-white hover:bg-buy-hover",
 };
 
 const sizes: Record<Size, string> = {

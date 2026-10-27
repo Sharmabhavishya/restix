@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { Mark } from "./logo";
 
 /**
  * A muted, looping clip from a real campus night. Decorative: it never carries information.
@@ -13,8 +12,8 @@ import { Mark } from "./logo";
  * when it leaves, and never plays for anyone with reduced motion or Data Saver on.
  */
 export function LoopVideo({
-  src, poster, className = "", mark = true, priority = false,
-}: { src: string; poster: string; className?: string; mark?: boolean; priority?: boolean }) {
+  src, poster, className = "", priority = false,
+}: { src: string; poster: string; className?: string; priority?: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -62,12 +61,6 @@ export function LoopVideo({
         onPlaying={() => setPlaying(true)}
         className={`absolute inset-0 size-full object-cover transition-opacity duration-700 ${playing ? "opacity-100" : "opacity-0"}`}
       />
-      {/* Clips can't be stamped without re-encoding, so the mark rides on top (posters are stamped). */}
-      {mark && playing && (
-        <span className="pointer-events-none absolute right-3 bottom-3 flex items-center gap-1.5 text-[13px] font-bold tracking-[-0.02em] text-white/85 [text-shadow:0_1px_6px_rgb(0_0_0/0.55)]">
-          <Mark mono className="size-5 text-white/90" /> restix
-        </span>
-      )}
     </div>
   );
 }

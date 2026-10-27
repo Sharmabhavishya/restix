@@ -16,8 +16,8 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   await mod.page.getByLabel("Name", { exact: true }).fill(eventName);
   await mod.page.getByLabel("Starts").fill(isoLocal(5));
   await mod.page.getByLabel(/^Ends/).fill(isoLocal(5.2));
-  await mod.page.getByLabel("Resale policy", { exact: true }).selectOption("allowed");
-  await mod.page.getByLabel("Where does this policy come from?").fill("Organisers confirmed by email (e2e)");
+  // No restriction chosen: open to resale at any price, the default.
+  await expect(mod.page.getByLabel("Resale rule")).toBeHidden();
   await mod.page.getByLabel(/^Ticket types/).fill("Day pass, 600");
   await mod.page.getByLabel("Reason for this change").fill("E2E test event");
   await mod.page.getByRole("button", { name: "Create event" }).click();
@@ -40,10 +40,14 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   // 4. Create a wristband listing.
   await page.goto("/sell");
   await selectByText(page, "Event", eventName);
-  await expect(page.getByText("Resale allowed").first()).toBeVisible();
-  await selectByText(page, "Ticket type", "Day pass");
-  await page.getByLabel("How many?").fill("1");
-  await page.getByLabel(/Asking price/).fill("750");
+  // One ticket type: the form doesn't ask. The quick path is event, kind, price.
+  await expect(page.getByLabel("Ticket type")).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: /Wristband/ })).toBeChecked();
+  await page.getByLabel("Tickets", { exact: true }).fill("1");
+  await page.getByLabel("Price", { exact: true }).fill("750");
+  // Extras live in sections that stay shut until opened.
+  await expect(page.getByLabel("Meetup spot")).toBeHidden();
+  await page.getByText("Handover", { exact: true }).click();
   await page.getByLabel("Meetup spot").fill("Library steps");
   await page.getByRole("button", { name: "Publish listing" }).click();
   await expect(page).toHaveURL(/\/listings\/[0-9a-f-]{36}\?saved=publish/);
@@ -53,7 +57,8 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   // Public text can't carry contact details.
   await page.goto("/sell");
   await selectByText(page, "Event", "Spring Fest: Night 2");
-  await page.getByLabel(/Asking price/).fill("750");
+  await page.getByLabel("Price", { exact: true }).fill("750");
+  await page.getByText("Notes and timing", { exact: true }).click();
   await page.getByLabel("Anything else").fill("call me on 98765 43210");
   await page.getByRole("button", { name: "Publish listing" }).click();
   await expect(page.getByText(/Keep phone numbers, emails and social handles out/)).toBeVisible();
@@ -65,8 +70,9 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   await buyer.page.goto(listingUrl);
   await expect(buyer.page.getByText("Tara S", { exact: true }).first()).toBeVisible();
   await expect(buyer.page.getByText(sellerEmail)).toHaveCount(0); // email never shown
+  await buyer.page.getByText("Add a note", { exact: true }).click();
   await buyer.page.getByLabel(/Message to Tara S/).fill("Hey! Can we meet at the library at 6?");
-  await buyer.page.getByRole("button", { name: "Ask the seller" }).click();
+  await buyer.page.getByRole("button", { name: "Request this ticket" }).click();
   await expect(buyer.page.getByText("Request sent")).toBeVisible();
 
   // The seller accepts and shares a contact note privately.
@@ -77,7 +83,7 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   await page.getByRole("button", { name: "Share & accept" }).click();
   // The card refreshes into its accepted state.
   await expect(page.getByText("Contact shared")).toBeVisible();
-  await expect(page.getByText("You shared")).toBeVisible();
+  await expect(page.getByText("You said yes. Close the deal")).toBeVisible();
   await buyer.page.goto("/inquiries?tab=sent");
   await expect(buyer.page.getByText("Insta @tara.s, see you at 6")).toBeVisible();
 

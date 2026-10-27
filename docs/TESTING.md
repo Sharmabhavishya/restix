@@ -29,6 +29,9 @@ Chrome stable). Re-run before relying on them.
 - WhatsApp hand-off: the buyer's opening message (listed vs agreed price), malformed numbers
   never become links, the seller's group-chat post. Offer amounts (optional when asking,
   required when countering, rupees to paise).
+- Deal tiers (`src/lib/deal.test.ts`): reference price (face value first, the market median only with
+  enough listings, nothing for free events or missing data), tier boundaries, whole-percent savings,
+  alerts only for good deals and steals.
 - Photo watermark (`scripts/watermark.test.ts`): mark lands bottom-right, the rest of the image
   is untouched, photos are resized, and EXIF (camera, GPS) is stripped.
 
@@ -50,6 +53,10 @@ Chrome stable). Re-run before relying on them.
   price is agreed or the conversation closed; strangers reading or joining; editing an amount;
   accepting your own offer; writing the agreed price directly; a buyer setting the seller's
   WhatsApp number.
+- `formats-deals-saves.test.ts`: the ticket formats and the handover-fits-format rule (old `digital`
+  refused in the database), multi-ticket deals (valid ones stored, bad ones refused, restricted
+  sellers can't change them), only resale-allowed events reaching students, the "good deals"
+  filter, and saved listings (private, not your own, capped, dropped when the listing is deleted).
 - `suggestions.test.ts` / `replies.test.ts`: event suggestions; unseen-reply counts and who may
   mark them seen.
 
@@ -70,6 +77,8 @@ Chrome stable). Re-run before relying on them.
   event rules, 404s, stale-tab conflict, analytics endpoint input validation and same-origin
   requirement, open-redirect payloads, CSP header and zero CSP violations, cron secret, security
   headers, robots/noindex, keyboard skip link.
+  Also covers a student's event request being approved and published by a moderator, and that new
+  events have no price cap by default.
 - `mobile.spec.ts`: no horizontal scroll on landing and app, menu folds into a sheet and closes
   on navigation.
 - `a11y.spec.ts`: axe scans of public, student and moderator pages.

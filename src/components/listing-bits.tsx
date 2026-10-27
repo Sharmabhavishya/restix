@@ -33,11 +33,11 @@ export function PolicyPill({ policy }: { policy: TransferPolicy }) {
 }
 
 /** Seller-level fact: they control an institutional mailbox. Not proof of enrolment or of the ticket. */
-export function VerifiedEmail({ short, college = "SNU" }: { short?: boolean; college?: string }) {
+export function VerifiedEmail({ short }: { short?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1 text-[13px] text-positive" title={`Signed in with a verified ${college} email address. This does not verify the ticket.`}>
+    <span className="inline-flex items-center gap-1 text-[13px] text-positive" title="Signed in with a verified college email address. This does not verify the ticket.">
       <BadgeCheck className="size-4" aria-hidden />
-      {short ? `${college} email` : `${college} email verified`}
+      {short ? "college email" : "college email verified"}
     </span>
   );
 }

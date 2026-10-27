@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import {
   BarChart3, CalendarDays, ClipboardCheck, Flag, Gavel, Inbox, LayoutList, Menu, ScrollText, Search, Tag, User, Users, X,
 } from "lucide-react";
-import { Mark } from "../logo";
+import { Wordmark } from "../logo";
 
 const ICONS = {
   search: Search, calendar: CalendarDays, tag: Tag, list: LayoutList, inbox: Inbox, user: User,
@@ -74,12 +74,9 @@ function NavLinks({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () 
 export function Sidebar({ groups, footer, scope }: { groups: NavGroup[]; footer: React.ReactNode; scope: string }) {
   return (
     <aside className="sticky top-0 hidden h-dvh w-[230px] flex-none flex-col border-r border-border px-3 py-5 md:flex">
-      <Link href="/tickets" className="group/logo mb-6 flex items-center gap-2.5 px-3">
-        <Mark className="size-8 transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover/logo:-rotate-12 group-hover/logo:scale-110" />
-        <span className="leading-tight">
-          <span className="block font-bold tracking-[-0.04em]">restix</span>
-          <span className="block text-[12px] text-muted">{scope}</span>
-        </span>
+      <Link href="/tickets" className="mb-7 flex flex-col gap-1.5 px-3 pt-2">
+        <Wordmark className="text-[26px]" />
+        <span className="text-[12px] text-muted">{scope}</span>
       </Link>
       <div className="flex-1 overflow-y-auto">
         <NavLinks groups={groups} />
@@ -110,9 +107,8 @@ export function MobileBar({ groups, footer, scope }: { groups: NavGroup[]; foote
   return (
     <div className="md:hidden">
       <div className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-border bg-ground px-4">
-        <Link href="/tickets" className="flex items-center gap-2 font-bold tracking-[-0.04em]">
-          <Mark className="size-7" />
-          restix
+        <Link href="/tickets" className="pt-1">
+          <Wordmark className="text-[22px]" />
         </Link>
         <button
           type="button"

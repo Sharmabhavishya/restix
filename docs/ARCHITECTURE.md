@@ -23,7 +23,7 @@ Browser ──> Next.js 16 (App Router, server components + server actions)
 | Auth | `src/server/auth/*` | Identity from Supabase (`getClaims()`, signature-verified) or the dev cookie; `completeSignIn` applies the institutional rules; `getViewer` re-checks domain and status on every request; `require*` guards for pages; `writeBlockReason` for actions. |
 | Actions & routes | `src/app/**/actions.ts`, `src/app/api/*` | Parse input, call `getViewer()`, refuse if not allowed, call a server module, revalidate. They never trust ids, roles, prices or statuses from the client. |
 | Pages | `src/app/**/page.tsx` | Server components. Call a `require*` guard first, then server modules. |
-| UI | `src/components/*` | Design tokens in `globals.css`, primitives (`ui/`), the wristband strip, shell, charts. |
+| UI | `src/components/*` | Design tokens in `globals.css`, primitives (`ui/`), the ticket card (one shape per format), shell, charts. |
 
 ## Key decisions
 
@@ -72,7 +72,7 @@ src/lib/               pure rules and helpers (+ unit tests)
 src/server/            database access, auth, analytics, metrics
 src/app/(app)/         signed-in pages (tickets, events, listings, sell, selling, inquiries, account, admin)
 src/app/               landing, sign-in, welcome, legal pages, auth callback, api routes
-src/components/        UI primitives, wristband, shell, charts
+src/components/        UI primitives, ticket card, shell, charts
 tests/integration/     RLS attacks and server flows against PGlite
 tests/e2e/             Playwright against the production build
 ```

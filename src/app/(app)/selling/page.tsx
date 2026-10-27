@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireBrowser } from "@/server/auth/viewer";
 import { displayStatus, myListings } from "@/server/listings";
 import type { ListingStatus } from "@/lib/listing-rules";
-import { Wristband } from "@/components/wristband";
+import { TicketCard } from "@/components/ticket-card";
 import { EmptyState, Notice, PageTitle } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/button";
 import { CountTile } from "@/components/ui/count-tile";
@@ -44,7 +44,7 @@ export default async function SellingPage({ searchParams }: PageProps<"/selling"
 
       {listings.length === 0 ? (
         <EmptyState title="your shelf's empty" action={<ButtonLink href="/sell">List a ticket</ButtonLink>}>
-          Got a wristband you can&apos;t use? Someone on campus probably wants it.
+          Got a ticket you can&apos;t use? Someone probably wants it.
         </EmptyState>
       ) : (
         <>
@@ -59,10 +59,10 @@ export default async function SellingPage({ searchParams }: PageProps<"/selling"
           {shown.length === 0 ? (
             <EmptyState title={`nothing in "${group.label.toLowerCase()}"`} />
           ) : (
-            <ul className="flex flex-col gap-2.5">
+            <ul className="flex flex-col gap-4">
               {shown.map((l) => (
                 <li key={l.id}>
-                  <Wristband
+                  <TicketCard
                     listing={l}
                     status={l.shown}
                     href={`/listings/${l.id}`}

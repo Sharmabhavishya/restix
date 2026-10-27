@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { parseRupees } from "./money";
 import { fromLocalInput } from "./format";
+import { defaultHandover, FORMATS, handoversFor, type TicketFormat } from "./listing-rules";
 
 // Strips control characters (keeping newlines and tabs) and trims. React escapes
 // output, so this is about tidy data, not HTML safety.
@@ -52,28 +53,48 @@ const rupees = (label: string) =>
       return paise;
     });
 
+const optionalRupees = (message: string) =>
+  z
+    .string()
+    .trim()
+    .optional()
+    .transform((v, ctx) => {
+      if (!v) return null;
+      const paise = parseRupees(v);
+      if (paise === null) {
+        ctx.addIssue({ code: "custom", message });
+        return z.NEVER;
+      }
+      return paise;
+    });
+
 export const listingInput = z
   .object({
     eventId: z.uuid("Choose an event."),
     ticketTypeId: z.uuid("Choose a ticket type."),
-    format: z.enum(["wristband", "digital", "paper", "other"], "Choose the ticket format."),
+    // "digital" is what older forms and links sent; it meant a QR e-ticket.
+    format: z.preprocess((v) => (v === "digital" ? "qr" : v), z.enum(FORMATS as [TicketFormat, ...TicketFormat[]], "Choose what kind of ticket it is.")),
     quantity: z.coerce.number("Enter how many tickets.").int().min(1, "List at least one ticket.").max(10, "List at most 10 tickets at once."),
     askingPrice: rupees("asking price"),
-    originalPrice: z
+    originalPrice: optionalRupees("Enter the original price in rupees, or leave it blank."),
+    priceNegotiable: checkbox,
+    // Optional: the quick form leaves it out and the format decides (see defaultHandover).
+    handoverMethod: z.enum(["in_person", "digital_transfer", "either"], "Choose how you'll hand it over.").optional(),
+    // Multi-ticket deal: both blank, or both filled.
+    bulkMinQuantity: z
       .string()
       .trim()
       .optional()
       .transform((v, ctx) => {
         if (!v) return null;
-        const paise = parseRupees(v);
-        if (paise === null) {
-          ctx.addIssue({ code: "custom", message: "Enter the original price in rupees, or leave it blank." });
+        const n = Number(v);
+        if (!Number.isInteger(n) || n < 2 || n > 10) {
+          ctx.addIssue({ code: "custom", message: "A multi-ticket deal starts at 2 to 10 tickets." });
           return z.NEVER;
         }
-        return paise;
+        return n;
       }),
-    priceNegotiable: checkbox,
-    handoverMethod: z.enum(["in_person", "digital_transfer", "either"], "Choose how you'll hand it over."),
+    bulkPrice: optionalRupees("Enter the deal price per ticket in rupees, or leave it blank."),
     meetupArea: publicText(80),
     handoverNotes: publicText(500),
     sellerNotes: publicText(1000),
@@ -90,9 +111,22 @@ export const listingInput = z
         return d;
       }),
   })
-  .refine((v) => v.format !== "wristband" || v.handoverMethod !== "digital_transfer", {
+  .transform((v) => ({ ...v, handoverMethod: v.handoverMethod ?? defaultHandover(v.format) }))
+  .refine((v) => handoversFor(v.format).includes(v.handoverMethod), {
     path: ["handoverMethod"],
-    message: "A physical wristband has to be handed over in person.",
+    message: "That handover doesn't fit this kind of ticket. Physical tickets are handed over in person; app transfers happen in the app.",
+  })
+  .refine((v) => (v.bulkMinQuantity === null) === (v.bulkPrice === null), {
+    path: ["bulkPrice"],
+    message: "Fill in both the number of tickets and the deal price, or leave both blank.",
+  })
+  .refine((v) => v.bulkMinQuantity === null || v.bulkMinQuantity <= v.quantity, {
+    path: ["bulkMinQuantity"],
+    message: "The deal can't need more tickets than you're listing.",
+  })
+  .refine((v) => v.bulkPrice === null || v.bulkPrice < v.askingPrice, {
+    path: ["bulkPrice"],
+    message: "The deal price has to be lower than your asking price.",
   });
 export type ListingInput = z.output<typeof listingInput>;
 
@@ -122,6 +156,21 @@ export const inquiryInput = z.object({
     .transform(cleanText)
     .pipe(z.string().min(10, "Write at least a short note (10+ characters).").max(1000, "Keep it under 1000 characters.")),
   offer: offerAmount(false),
+  // Whether the seller gets the buyer's WhatsApp if (and only when) they accept.
+  shareWhatsapp: checkbox,
+  // A number to save to the buyer's own profile for that, when they don't have one yet.
+  whatsapp: z
+    .string()
+    .optional()
+    .transform((v, ctx) => {
+      if (!v || !v.trim()) return null;
+      const e164 = normalizeWhatsapp(v);
+      if (!e164) {
+        ctx.addIssue({ code: "custom", message: "Enter a 10-digit mobile number, or +country code and number." });
+        return z.NEVER;
+      }
+      return e164;
+    }),
 });
 
 export const offerInput = z.object({

@@ -36,8 +36,8 @@ export async function seed(databaseUrl: string, log: (msg: string) => void = con
         { slug: "spring-fest-night-2", name: "Spring Fest: Night 2", category: "fest", days: 9, policy: "allowed",
           source: "Sample policy for development", venue: "Main Ground",
           types: [["Night pass", 80000], ["Night pass + pit", 140000]] },
-        { slug: "freshers-party", name: "Freshers' Party", category: "party", days: 4, policy: "face_value_only",
-          source: "Sample policy: resale at or below face value", venue: "Student Activity Centre",
+        { slug: "freshers-party", name: "Freshers' Party", category: "party", days: 4, policy: "allowed",
+          source: null, venue: "Student Activity Centre",
           types: [["Entry wristband", 50000]] },
         { slug: "senior-prom", name: "Senior Prom", category: "prom", days: 21, policy: "unknown",
           source: null, venue: "Convention Hall", types: [["Single", 120000], ["Couple", 200000]] },
@@ -76,19 +76,26 @@ export async function seed(databaseUrl: string, log: (msg: string) => void = con
       }
 
       const [asha] = DEV_USERS;
-      const listings = [
-        { event: "spring-fest-night-2", type: 0, format: "wristband", qty: 2, ask: 90000, orig: 80000, area: "Library steps" },
-        { event: "spring-fest-night-2", type: 1, format: "wristband", qty: 1, ask: 150000, orig: 140000, area: "Hostel gate 2" },
-        { event: "freshers-party", type: 0, format: "wristband", qty: 1, ask: 45000, orig: 50000, area: "Food court" },
-        { event: "indie-night", type: 0, format: "digital", qty: 3, ask: 25000, orig: 30000, area: null },
-      ] as const;
+      // One of each kind of ticket, priced across the range so the deal colours all show up.
+      const listings: { event: string; type: number; format: string; qty: number; ask: number; orig: number | null; area: string | null; bulk?: [number, number]; offers?: boolean }[] = [
+        { event: "spring-fest-night-2", type: 0, format: "wristband", qty: 2, ask: 60000, orig: 80000, area: "Library steps" },
+        { event: "spring-fest-night-2", type: 1, format: "wristband", qty: 1, ask: 175000, orig: 140000, area: "Main gate" },
+        { event: "spring-fest-night-2", type: 0, format: "pass", qty: 1, ask: 85000, orig: 80000, area: "Café steps", offers: true },
+        { event: "freshers-party", type: 0, format: "paper", qty: 1, ask: 45000, orig: 50000, area: "Food court" },
+        { event: "indie-night", type: 0, format: "qr", qty: 3, ask: 25000, orig: 30000, area: null, bulk: [2, 22000] },
+        { event: "indie-night", type: 0, format: "email", qty: 1, ask: 30000, orig: 30000, area: null },
+        { event: "indie-night", type: 0, format: "app", qty: 4, ask: 32000, orig: 30000, area: null, bulk: [3, 28000], offers: true },
+        { event: "spring-fest-night-2", type: 0, format: "token", qty: 5, ask: 40000, orig: null, area: "Food court" },
+      ];
       for (const l of listings) {
         const ev = ids[l.event];
+        const handover = ["qr", "email", "app"].includes(l.format) ? "digital_transfer" : "in_person";
         await tx`
           insert into restix.ticket_listings (event_id, ticket_type_id, seller_id, format, quantity, asking_price_paise,
-            original_price_paise, handover_method, meetup_area, seller_notes, status, expires_at, published_at)
+            original_price_paise, price_negotiable, bulk_min_quantity, bulk_price_paise, handover_method, meetup_area,
+            seller_notes, status, expires_at, published_at)
           values (${ev.id}, ${ev.types[l.type]}, ${asha.id}, ${l.format}, ${l.qty}, ${l.ask}, ${l.orig},
-            ${l.format === "digital" ? "digital_transfer" : "in_person"}, ${l.area},
+            ${l.offers ?? false}, ${l.bulk?.[0] ?? null}, ${l.bulk?.[1] ?? null}, ${handover}, ${l.area},
             ${"Sample listing for local development."}, 'active',
             ${new Date(now + 3 * DAY)}, now())`;
       }

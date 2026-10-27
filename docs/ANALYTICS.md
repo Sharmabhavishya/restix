@@ -20,6 +20,7 @@ Admins see aggregates at `/admin/analytics`. Code: `src/server/analytics.ts` (re
 | `inquiry_accepted` | server | seller shared contact | |
 | `offer_made` | server | an offer or counter was recorded | amount (paise) |
 | `offer_accepted` | server | an offer was accepted (price agreed) | amount (paise) |
+| `listing_saved` | server | a student saved a listing to their watchlist (never from the browser) | none |
 | `listing_shared` | not recorded | name reserved in the database; the WhatsApp share is a plain link and sends nothing | none |
 | `outcome_confirmed` | server | a party recorded an outcome | party, outcome |
 | `report_submitted` | server | report recorded | reason |

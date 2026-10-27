@@ -8,7 +8,7 @@ const profile = await import("@/server/profile");
 
 const input = (eventId: string, ticketTypeId: string, over: Record<string, unknown> = {}) => ({
   eventId, ticketTypeId, format: "wristband" as const, quantity: 1, askingPrice: 45_000, originalPrice: 50_000,
-  priceNegotiable: false, handoverMethod: "in_person" as const, meetupArea: null, handoverNotes: null,
+  priceNegotiable: false, bulkMinQuantity: null, bulkPrice: null, handoverMethod: "in_person" as const, meetupArea: null, handoverNotes: null,
   sellerNotes: null, expiresAt: null, ...over,
 });
 

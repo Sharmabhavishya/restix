@@ -1,5 +1,7 @@
 "use server";
 
+import { processCover, removeCover, setCover, type Cover } from "@/server/event-covers";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -10,7 +12,7 @@ import {
   decideAppeal, moderateListing, moderateUser, setRole, updateReport,
   type ListingModAction, type UserModAction,
 } from "@/server/moderation";
-import { eventInput, saveEvent } from "@/server/event-admin";
+import { eventInput, saveEvent, linkSuggestion } from "@/server/event-admin";
 
 const uuid = z.uuid();
 
@@ -93,8 +95,25 @@ export async function saveEventAction(_prev: ActionState, formData: FormData): P
   if (!parsed.success) return { error: "Fix the highlighted fields.", fieldErrors: fieldErrors(parsed.error), values: formValues(formData) };
   const eventId = formData.get("eventId") ? String(formData.get("eventId")) : undefined;
   if (eventId && !uuid.safeParse(eventId).success) return { error: "Invalid request." };
+  // Check the cover before saving anything, so a bad image doesn't leave a half-saved event.
+  const upload = formData.get("cover");
+  let cover: Cover | null = null;
+  if (upload instanceof File && upload.size > 0) {
+    const processed = await processCover(upload);
+    if (!processed.ok) return { error: processed.error, fieldErrors: { cover: processed.error }, values: formValues(formData) };
+    cover = processed.cover;
+  }
   const result = await saveEvent(mod.id, mod.collegeId, parsed.data, eventId);
   if (!result.ok) return { error: result.error, values: formValues(formData) };
+  if (cover) {
+    const saved = await setCover(mod.id, result.id, cover);
+    if (!saved.ok) return { error: `The event was saved, but not its cover: ${saved.error}`, values: formValues(formData) };
+  } else if (formData.get("removeCover") === "on") {
+    await removeCover(mod.id, result.id);
+  }
+  const requestId = formData.get("requestId");
+  if (typeof requestId === "string" && uuid.safeParse(requestId).success) await linkSuggestion(mod.id, requestId, result.id);
+  revalidatePath("/sell");
   revalidatePath("/events");
   revalidatePath("/admin/events");
   redirect(`/admin/events?saved=${encodeURIComponent(parsed.data.name)}`);

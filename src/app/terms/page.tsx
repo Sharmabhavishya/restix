@@ -36,7 +36,7 @@ export default function TermsPage() {
 
       <h2>What ResTix is, and is not</h2>
       <p>
-        Short version: a student-run board where students at one university list tickets and fest wristbands and contact each other.
+        Short version: a board where verified students list tickets they can&apos;t use, from fest wristbands to e-tickets, and contact each other.
         It is a student project. It is not affiliated with event organisers or the university administration unless an event page says
         so.
       </p>

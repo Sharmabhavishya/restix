@@ -3,19 +3,29 @@ import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
 import { afterAll, describe, expect, it } from "vitest";
-import { stampPhoto, watermarkSvg } from "./watermark";
+import { stampPhoto, watermarkPlacement } from "./watermark";
 
 const dir = await mkdtemp(path.join(os.tmpdir(), "restix-wm-"));
 afterAll(() => rm(dir, { recursive: true, force: true }));
 
 describe("photo watermark", () => {
-  it("sits in the bottom-right corner, sized to the photo", () => {
-    const svg = watermarkSvg(1600, 1067);
-    expect(svg).toContain('width="1600" height="1067"');
-    expect(svg).toContain(">restix</text>");
-    const [, x, y] = svg.match(/translate\((\d+) (\d+)\)/)!.map(Number);
-    expect(x).toBeGreaterThan(1600 * 0.7);
-    expect(y).toBeGreaterThan(1067 * 0.85);
+  it("sits in the bottom-right corner, sized to the photo and clamped on tiny or huge ones", () => {
+    const at = watermarkPlacement(1600, 1067);
+    expect(at.left).toBeGreaterThan(1600 * 0.75);
+    expect(at.top).toBeGreaterThan(1067 * 0.85);
+    expect(at.left + at.width).toBeLessThan(1600);
+    expect(watermarkPlacement(200, 150).width).toBe(96);
+    expect(watermarkPlacement(9000, 3000).width).toBe(240);
+  });
+
+  it("leaves video posters clean when asked", async () => {
+    const dark = await sharp({ create: { width: 1200, height: 800, channels: 3, background: { r: 20, g: 20, b: 30 } } }).jpeg().toBuffer();
+    const out = path.join(dir, "poster.jpg");
+    await stampPhoto(dark, out, { stamp: false });
+    const { data, info } = await sharp(out).raw().toBuffer({ resolveWithObject: true });
+    let max = 0;
+    for (let i = 0; i < data.length; i += info.channels) max = Math.max(max, data[i]);
+    expect(max).toBeLessThan(40);
   });
 
   it("stamps the corner, leaves the rest, resizes, and drops GPS and camera metadata", async () => {
@@ -40,7 +50,8 @@ describe("photo watermark", () => {
       return sum / (w * h);
     };
     // Bright marks in the bottom-right; the top-left stays as dark as the original.
-    expect(brightness(info.width - 300, info.height - 110, 260, 80)).toBeGreaterThan(40);
+    const at = watermarkPlacement(info.width, info.height);
+    expect(brightness(at.left, at.top + Math.round(at.width * 0.18), at.width, Math.round(at.width * 0.22))).toBeGreaterThan(40);
     expect(brightness(20, 20, 260, 80)).toBeLessThan(30);
   });
 

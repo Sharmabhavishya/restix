@@ -14,31 +14,37 @@ test("offer, counter, deal, then WhatsApp with the message already written", asy
   await page.goto("/sell");
   await selectByText(page, "Event", "Spring Fest: Night 2");
   await selectByText(page, "Ticket type", "Night pass");
-  await page.getByLabel(/Asking price/).fill("800");
+  await page.getByLabel("Price", { exact: true }).fill("800");
+  await page.getByText("Offers and deals", { exact: true }).click();
   await page.getByLabel("Open to offers").check();
   await page.getByRole("button", { name: "Publish listing" }).click();
   await expect(page).toHaveURL(/\/listings\/[0-9a-f-]{36}\?saved=publish/);
   const listingUrl = page.url().split("?")[0];
 
-  // The seller can post it to their group chats.
-  const share = page.getByRole("link", { name: /Share in your WhatsApp groups/ });
-  await expect(share).toHaveAttribute("href", /^https:\/\/wa\.me\/\?text=Selling%20/);
+  // No group-chat sharing: the seller's number stays private.
+  await expect(page.getByRole("link", { name: /Share in your WhatsApp groups/ })).toHaveCount(0);
+  await expect(page.getByText(/Your number stays private/)).toBeVisible();
 
   // A buyer asks with an offer; going over the asking price is refused.
   const buyer = await asFixture(browser, "Rohan M");
   await buyer.page.goto(listingUrl);
+  // The buyer's number goes in now, but the seller only sees it after saying yes.
+  const ownNumber = buyer.page.getByLabel("Your WhatsApp number");
+  if (await ownNumber.count()) await ownNumber.fill("98111 22233");
+  await buyer.page.getByText("Add a note or make an offer", { exact: true }).click();
   await buyer.page.getByLabel(/Message to Kabir D/).fill("Hey! Would you take a bit less?");
-  await buyer.page.getByLabel(/Make an offer/).fill("900");
-  await buyer.page.getByRole("button", { name: "Ask the seller" }).click();
+  await buyer.page.getByLabel(/Your offer per ticket/).fill("900");
+  await buyer.page.getByRole("button", { name: "Request this ticket" }).click();
   await expect(buyer.page.getByText("Offers can't go above the asking price.")).toBeVisible();
-  await buyer.page.getByLabel(/Make an offer/).fill("650");
-  await buyer.page.getByRole("button", { name: "Ask the seller" }).click();
+  await buyer.page.getByLabel(/Your offer per ticket/).fill("650");
+  await buyer.page.getByRole("button", { name: "Request this ticket" }).click();
   // The page refreshes into its "you've asked" state.
   await expect(buyer.page.getByText("Request sent")).toBeVisible();
 
-  // The seller counters.
+  // The seller counters. No WhatsApp for anyone yet.
   await page.goto("/inquiries?tab=received");
   const card = page.locator("article", { hasText: "Would you take a bit less?" });
+  await expect(card.getByRole("link", { name: /^WhatsApp/ })).toHaveCount(0);
   await expect(card.getByText("Bargaining")).toBeVisible();
   await card.getByLabel(/Or counter with/).fill("720");
   await card.getByRole("button", { name: "Counter" }).click();
@@ -56,9 +62,16 @@ test("offer, counter, deal, then WhatsApp with the message already written", asy
   await card.getByRole("button", { name: "Share & accept" }).click();
   await expect(card.getByText("Contact shared")).toBeVisible();
 
+  // Now the seller gets the buyer's WhatsApp, with their opener written and signed by ResTix...
+  const toBuyer = card.getByRole("link", { name: /^WhatsApp Rohan/ });
+  await expect(toBuyer).toHaveAttribute("href", /^https:\/\/wa\.me\/919811122233\?text=Hi%20Rohan!%20I've%20accepted/);
+  await expect(toBuyer).toHaveAttribute("href", /close%20it%20at%20%E2%82%B9720/);
+  await expect(toBuyer).toHaveAttribute("href", /Sent%20via%20ResTix/);
+
+  // ...and the buyer gets the seller's.
   await buyer.page.reload();
-  const chat = mine.getByRole("link", { name: "Message on WhatsApp" });
-  await expect(chat).toHaveAttribute("href", /^https:\/\/wa\.me\/919876543210\?text=Hey%20Kabir!/);
-  await expect(chat).toHaveAttribute("href", /we%20agreed%20%E2%82%B9720/);
+  const chat = mine.getByRole("link", { name: /^WhatsApp Kabir/ });
+  await expect(chat).toHaveAttribute("href", /^https:\/\/wa\.me\/919876543210\?text=Hi%20Kabir!%20You%20accepted/);
+  await expect(chat).toHaveAttribute("href", /close%20it%20at%20%E2%82%B9720/);
   await buyer.context.close();
 });

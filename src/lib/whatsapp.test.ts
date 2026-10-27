@@ -1,52 +1,51 @@
 import { describe, expect, it } from "vitest";
-import { buyerOpener, sellerShare, waLink } from "./whatsapp";
-import { inquiryInput, offerInput } from "./validation";
+import { buyerOpener, sellerOpener, waLink, type DealContext } from "./whatsapp";
 
-const ctx = {
-  buyerName: "Asha K",
-  sellerName: "Rohan M",
+const ctx: DealContext = {
+  buyerName: "Rohan Mehta",
+  sellerName: "Asha K",
   eventName: "Spring Fest: Night 2",
   ticketTypeName: "Night pass",
   quantity: 1,
-  askingPricePaise: 90000,
-  agreedPricePaise: null,
+  unitPricePaise: 80000,
+  format: "wristband",
+  site: "restix.app",
 };
 
-describe("WhatsApp links", () => {
-  it("writes the buyer's first message so the seller knows which ticket", () => {
-    expect(buyerOpener(ctx)).toBe(
-      "Hey Rohan! It's Asha K from ResTix. About your Spring Fest: Night 2 (Night pass), listed at ₹900. Is it still on? When works for the handover on campus?",
+describe("WhatsApp handoff", () => {
+  it("writes the seller's opener to the accepted buyer, signed by ResTix", () => {
+    expect(sellerOpener(ctx)).toBe(
+      "Hi Rohan! I've accepted your request for a ticket (Night pass) to Spring Fest: Night 2 on ResTix. Let's close it at ₹800. When and where works for you to meet?\n\nSent via ResTix · restix.app",
     );
-    expect(buyerOpener({ ...ctx, quantity: 2, agreedPricePaise: 80000 })).toContain("for 2 tickets, listed at ₹900, and we agreed ₹800 each");
   });
 
-  it("only links to well-formed numbers, and encodes the text", () => {
-    expect(waLink("+919876543210", "Hi & bye")).toBe("https://wa.me/919876543210?text=Hi%20%26%20bye");
-    expect(waLink("919876543210", "x")).toBeNull();
+  it("writes the buyer's opener to the seller who accepted", () => {
+    expect(buyerOpener(ctx)).toBe(
+      "Hi Asha! You accepted my request for a ticket (Night pass) to Spring Fest: Night 2 on ResTix. Happy to close it at ₹800. When and where works for you to meet?\n\nSent via ResTix · restix.app",
+    );
+  });
+
+  it("spells out each and total for several tickets", () => {
+    expect(sellerOpener({ ...ctx, quantity: 3, unitPricePaise: 70000 })).toContain("3 tickets (Night pass)");
+    expect(sellerOpener({ ...ctx, quantity: 3, unitPricePaise: 70000 })).toContain("₹700 each (₹2,100 in total)");
+  });
+
+  it("asks to send it over for tickets that travel online, with payment after", () => {
+    for (const format of ["qr", "email", "app"] as const) {
+      expect(sellerOpener({ ...ctx, format })).toContain("you can pay once you've got it");
+      expect(buyerOpener({ ...ctx, format })).toContain("I'll pay as soon as I've got it");
+    }
+  });
+
+  it("copes with odd names", () => {
+    expect(sellerOpener({ ...ctx, buyerName: "   " })).toMatch(/^Hi there!/);
+    expect(buyerOpener({ ...ctx, sellerName: "प्रिया शर्मा" })).toMatch(/^Hi प्रिया!/);
+  });
+
+  it("only links to a real international number", () => {
+    expect(waLink("+919876543210", "Hi & bye?")).toBe("https://wa.me/919876543210?text=Hi%20%26%20bye%3F");
+    expect(waLink("9876543210", "x")).toBeNull();
     expect(waLink("+91 98765", "x")).toBeNull();
-    expect(waLink(null, "share me")).toBe("https://wa.me/?text=share%20me");
-  });
-
-  it("gives sellers a group-chat post with the link", () => {
-    expect(sellerShare({ eventName: "Indie Night", ticketTypeName: "General", askingPricePaise: 25000, quantity: 3, url: "https://restix.app/listings/1", college: "SNU" }))
-      .toBe("Selling 3x Indie Night (General) for ₹250 each on ResTix. SNU students can grab it here: https://restix.app/listings/1");
-  });
-});
-
-describe("offer amounts", () => {
-  const base = { listingId: "6f1c1c6e-8f4e-4b8a-9a55-0d1b2c3d4e5f", quantity: "1", message: "Is this still available?" };
-
-  it("is optional when asking, and parsed to paise", () => {
-    expect(inquiryInput.parse(base).offer).toBeNull();
-    expect(inquiryInput.parse({ ...base, offer: "  " }).offer).toBeNull();
-    expect(inquiryInput.parse({ ...base, offer: "₹ 750" }).offer).toBe(75000);
-    expect(inquiryInput.safeParse({ ...base, offer: "seven fifty" }).success).toBe(false);
-    expect(inquiryInput.safeParse({ ...base, offer: "0.5" }).success).toBe(false);
-  });
-
-  it("is required when making one", () => {
-    const id = "6f1c1c6e-8f4e-4b8a-9a55-0d1b2c3d4e5f";
-    expect(offerInput.safeParse({ inquiryId: id, amount: "" }).success).toBe(false);
-    expect(offerInput.parse({ inquiryId: id, amount: "1,200" }).amount).toBe(120000);
+    expect(waLink(null, "x")).toBeNull();
   });
 });

@@ -10,47 +10,130 @@ import { Notice } from "@/components/ui/bits";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { buttonClass } from "@/components/ui/button";
 import { formatPaise } from "@/lib/money";
+import { unitPrice } from "@/lib/listing-rules";
+import { ChevronDown, Lock, Minus, Plus } from "lucide-react";
 
-export function ContactForm({ listingId, maxQuantity, sellerName, negotiable, askingPricePaise }: { listingId: string; maxQuantity: number; sellerName: string; negotiable: boolean; askingPricePaise: number }) {
+export function ContactForm({
+  listingId, maxQuantity, sellerName, negotiable, askingPricePaise, bulkMinQuantity, bulkPricePaise, savedWhatsapp,
+}: {
+  listingId: string;
+  maxQuantity: number;
+  sellerName: string;
+  negotiable: boolean;
+  askingPricePaise: number;
+  bulkMinQuantity: number | null;
+  bulkPricePaise: number | null;
+  /** The buyer's saved WhatsApp number, if any (shown masked). */
+  savedWhatsapp: string | null;
+}) {
   const [state, action] = useActionState(contactSeller, initialState);
   const fe = state.fieldErrors ?? {};
+  const [share, setShare] = useState(state.values ? state.values.shareWhatsapp === "on" : true);
+  const [qty, setQty] = useState(() => Math.min(maxQuantity, Math.max(1, Number(state.values?.quantity ?? 1) || 1)));
   if (state.ok) {
     return <Notice tone="success" title="Request sent">{state.message}</Notice>;
   }
+  const each = unitPrice({ askingPricePaise, bulkMinQuantity, bulkPricePaise }, qty);
+  const dealOn = each < askingPricePaise;
+  const toDeal = bulkMinQuantity !== null && bulkPricePaise !== null && qty < bulkMinQuantity && bulkMinQuantity <= maxQuantity ? bulkMinQuantity - qty : 0;
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <input type="hidden" name="listingId" value={listingId} />
+      <input type="hidden" name="quantity" value={qty} />
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      <Field label={`Message to ${sellerName}`} htmlFor="message" error={fe.message} hint="Say when you could meet. Don't send money before you have the ticket.">
-        <Textarea
-          id="message"
-          name="message"
-          rows={3}
-          maxLength={1000}
-          required
-          defaultValue={state.values?.message ?? "Hey! Is this still available? I could meet "}
-          {...describedBy("message", fe.message, true)}
-        />
-      </Field>
-      {maxQuantity > 1 && (
-        <Field label="How many do you want?" htmlFor="quantity" error={fe.quantity}>
-          <Input id="quantity" name="quantity" type="number" min={1} max={maxQuantity} defaultValue={state.values?.quantity ?? 1} className="w-28" />
-        </Field>
+
+      {/* The quick path: how many, what it comes to, one button. */}
+      <div className="flex items-center justify-between gap-4 rounded-[10px] bg-raised px-4 py-3">
+        {maxQuantity > 1 ? (
+          <div className="flex items-center gap-1" role="group" aria-label="How many tickets">
+            <QtyButton label="One fewer" disabled={qty <= 1} onClick={() => setQty((q) => Math.max(1, q - 1))}><Minus className="size-4" /></QtyButton>
+            <span className="num w-10 text-center text-lg font-semibold" aria-live="polite">{qty}</span>
+            <QtyButton label="One more" disabled={qty >= maxQuantity} onClick={() => setQty((q) => Math.min(maxQuantity, q + 1))}><Plus className="size-4" /></QtyButton>
+          </div>
+        ) : (
+          <span className="text-sm text-muted">1 ticket</span>
+        )}
+        <div className="text-right">
+          <p className={`num text-xl leading-none font-bold ${dealOn ? "text-price-low" : ""}`}>{formatPaise(each * qty)}</p>
+          <p className="mt-1 text-[12px] text-muted">{qty > 1 ? `${formatPaise(each)} each${dealOn ? ", deal price" : ""}` : "total"}</p>
+        </div>
+      </div>
+      {toDeal > 0 && (
+        <p className="-mt-2 text-[13px] font-medium text-price-low">
+          Add {toDeal} more to get {formatPaise(bulkPricePaise!)} each.
+        </p>
       )}
-      {maxQuantity === 1 && <input type="hidden" name="quantity" value="1" />}
-      {negotiable && (
-        <Field
-          label="Make an offer (₹)"
-          htmlFor="offer"
-          optional
-          error={fe.offer}
-          hint={`Per ticket. Leave it blank to ask at ${formatPaise(askingPricePaise)}. Can't go above the asking price.`}
-        >
-          <Input id="offer" name="offer" inputMode="decimal" placeholder={String(Math.round((askingPricePaise * 0.9) / 100))} defaultValue={state.values?.offer ?? ""} className="w-36" {...describedBy("offer", fe.offer, true)} />
-        </Field>
-      )}
-      <SubmitButton size="lg" pendingLabel="Sending…">Ask the seller</SubmitButton>
+
+      {/* Private until accepted: the core promise, said where the decision is made. */}
+      <div className="rounded-[10px] border border-border px-3 py-3">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input type="checkbox" name="shareWhatsapp" checked={share} onChange={(e) => setShare(e.target.checked)} className="mt-0.5 size-[18px] shrink-0 accent-accent" />
+          <span className="text-sm leading-snug">
+            <span className="font-medium">Let {sellerName.split(/\s+/)[0]} WhatsApp me if they say yes</span>
+            <span className="mt-0.5 flex items-center gap-1 text-[13px] text-muted">
+              <Lock className="size-3.5 flex-none" aria-hidden />
+              {savedWhatsapp ? `Your number (•••• ${savedWhatsapp.slice(-4)}) stays hidden until then.` : "Your number stays hidden until then."}
+            </span>
+          </span>
+        </label>
+        {share && !savedWhatsapp && (
+          <div className="mt-3 pl-[30px]">
+            <Input name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" aria-label="Your WhatsApp number" placeholder="Your WhatsApp, like 98765 43210" defaultValue={state.values?.whatsapp ?? ""} aria-invalid={fe.whatsapp ? true : undefined} />
+            {fe.whatsapp && <p className="mt-1.5 text-[13px] font-medium text-negative" role="alert">{fe.whatsapp}</p>}
+          </div>
+        )}
+      </div>
+
+      <details className="group rounded-[10px] border border-border" open={Boolean(fe.message || fe.offer) || undefined}>
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+          {negotiable ? "Add a note or make an offer" : "Add a note"}
+          <ChevronDown className="size-4 text-muted transition-transform duration-300 group-open:rotate-180" aria-hidden />
+        </summary>
+        <div className="flex flex-col gap-4 border-t border-border px-3 pt-3 pb-4">
+          <Field label={`Message to ${sellerName}`} htmlFor="message" error={fe.message} hint="Say when you could meet. Don't send money before you have the ticket.">
+            <Textarea
+              id="message"
+              name="message"
+              rows={3}
+              maxLength={1000}
+              required
+              defaultValue={state.values?.message ?? "Hey! Is this still available? I could meet whenever works for you."}
+              {...describedBy("message", fe.message, true)}
+            />
+          </Field>
+          {negotiable && (
+            <Field
+              label="Your offer per ticket (₹)"
+              htmlFor="offer"
+              optional
+              error={fe.offer}
+              hint={`Leave it blank to ask at ${formatPaise(each)}. It can't go above the asking price.`}
+            >
+              <Input id="offer" name="offer" inputMode="decimal" placeholder={String(Math.round((each * 0.9) / 100))} defaultValue={state.values?.offer ?? ""} className="w-36" {...describedBy("offer", fe.offer, true)} />
+            </Field>
+          )}
+        </div>
+      </details>
+
+      <SubmitButton size="lg" variant="buy" pendingLabel="Sending…">
+        Request {qty === 1 ? "this ticket" : `${qty} tickets`}
+      </SubmitButton>
+      <p className="-mt-1 text-center text-[12px] text-muted">Free. The seller sees your name, never your email or number.</p>
     </form>
+  );
+}
+
+function QtyButton({ label, onClick, disabled, children }: { label: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      disabled={disabled}
+      className="grid size-10 place-items-center rounded-full border border-control bg-surface transition-transform duration-150 hover:border-control-hover active:scale-90 disabled:opacity-40"
+    >
+      {children}
+    </button>
   );
 }
 

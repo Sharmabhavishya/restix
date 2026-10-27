@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireBrowser } from "@/server/auth/viewer";
 import { inbox, markRepliesSeen, type InquiryRow, type InquiryStatus } from "@/server/inquiries";
-import { STATUS_LABEL } from "@/lib/listing-rules";
+import { STATUS_LABEL, unitPrice } from "@/lib/listing-rules";
 import { privateProfile } from "@/server/profile";
 import { FORMAT_LABEL, type TicketFormat } from "@/lib/listing-rules";
 import { formatDate, relativeTime } from "@/lib/format";
@@ -10,7 +10,8 @@ import { formatPaise } from "@/lib/money";
 import { bandStyle } from "@/lib/tint";
 import { Bargain, OutcomeForm, RespondForm, SharedContact, SmallAction, WhatsAppSeller, type OfferView } from "./inquiry-panels";
 import { offersFor } from "@/server/offers";
-import { buyerOpener, waLink } from "@/lib/whatsapp";
+import { buyerOpener, sellerOpener, waLink } from "@/lib/whatsapp";
+import { env } from "@/server/env";
 import { EmptyState, PageTitle, Panel, Pill, type Tone } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/button";
 
@@ -91,13 +92,22 @@ function InquiryCard({ row: r, hasWhatsapp, viewerName, offers }: { row: Inquiry
   const live = r.status === "pending" || r.status === "accepted";
   // Buyers open bargaining only on "open to offers" listings, unless the seller already made an offer.
   const canOffer = live && r.agreedPricePaise === null && (r.role === "seller" || r.priceNegotiable || offers.some((o) => !o.mine));
-  const chat = r.role === "buyer" && r.status === "accepted" && r.sellerWhatsapp
-    ? buyerOpener({
-        buyerName: viewerName, sellerName: r.counterpartName, eventName: r.eventName, ticketTypeName: r.ticketTypeName,
-        quantity: r.quantityRequested, askingPricePaise: r.askingPricePaise, agreedPricePaise: r.agreedPricePaise,
-      })
-    : null;
-  const chatHref = chat ? waLink(r.sellerWhatsapp, chat) : null;
+  // After a yes, each side gets one tap into WhatsApp with the first message written for them.
+  const deal = {
+    buyerName: r.role === "buyer" ? viewerName : r.counterpartName,
+    sellerName: r.role === "seller" ? viewerName : r.counterpartName,
+    eventName: r.eventName,
+    ticketTypeName: r.ticketTypeName,
+    quantity: r.quantityRequested,
+    unitPricePaise: r.agreedPricePaise ?? unitPrice(r, r.quantityRequested),
+    format: r.format as TicketFormat,
+    site: new URL(env().APP_URL).host,
+  };
+  const accepted = r.status === "accepted";
+  const theirNumber = r.role === "buyer" ? r.sellerWhatsapp : r.buyerWhatsapp;
+  const chat = accepted && theirNumber ? (r.role === "buyer" ? buyerOpener(deal) : sellerOpener(deal)) : null;
+  const chatHref = chat ? waLink(theirNumber, chat) : null;
+  const theirFirst = r.counterpartName.split(/\s+/)[0];
   const [label, tone] = STATUS[r.status];
   const style = bandStyle(r.eventId) as React.CSSProperties;
   const showOutcome = (r.status === "accepted" || r.status === "closed") && r.respondedAt && !r.myOutcome;
@@ -107,7 +117,8 @@ function InquiryCard({ row: r, hasWhatsapp, viewerName, offers }: { row: Inquiry
         <Link href={`/listings/${r.listingId}`} className="min-w-0 hover:underline">
           <span className="font-semibold">{r.eventName}</span>
           <span className="text-[13px] text-[var(--band-ink)]">
-            {" "}· {r.ticketTypeName} · {FORMAT_LABEL[r.format as TicketFormat]} · {formatPaise(r.askingPricePaise)} · {formatDate(r.eventStartsAt)}
+            {" "}· {r.ticketTypeName} · {FORMAT_LABEL[r.format as TicketFormat]} · {formatPaise(unitPrice(r, r.quantityRequested))}
+            {unitPrice(r, r.quantityRequested) < r.askingPricePaise ? " each (multi-ticket deal)" : ""} · {formatDate(r.eventStartsAt)}
           </span>
         </Link>
         <div className="flex flex-wrap gap-2">
@@ -136,14 +147,22 @@ function InquiryCard({ row: r, hasWhatsapp, viewerName, offers }: { row: Inquiry
 
         {r.role === "seller" && r.status === "pending" && <RespondForm inquiryId={r.id} hasWhatsapp={hasWhatsapp} />}
 
-        {r.status === "accepted" && (r.sellerContactShared || r.sellerWhatsapp) && (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium">{r.role === "buyer" ? "How to reach the seller" : "You shared"}</p>
-            {chatHref && chat && <WhatsAppSeller href={chatHref} preview={chat} />}
-            {r.role === "seller" && r.sellerWhatsapp && <p className="text-[15px] text-positive-ink">Your WhatsApp number, with this buyer only.</p>}
+        {accepted && (
+          <div className="flex flex-col gap-3 rounded-[12px] bg-positive-soft/60 p-4">
+            <p className="text-sm font-semibold text-positive-ink">{r.role === "buyer" ? "They said yes. Close the deal" : "You said yes. Close the deal"}</p>
+            {chatHref && chat ? (
+              <WhatsAppSeller href={chatHref} preview={chat} name={theirFirst} />
+            ) : (
+              <p className="text-[13px] text-muted">
+                {r.role === "seller"
+                  ? `${theirFirst} didn't share a WhatsApp number, so they'll message you using what you shared.`
+                  : r.sellerContactShared ? "The seller left a note on how to reach them below." : "The seller hasn't shared a WhatsApp number."}
+              </p>
+            )}
+            {r.role === "seller" && r.sellerWhatsapp && <p className="text-[13px] text-positive-ink">{theirFirst} can see your WhatsApp number now. Nobody else can.</p>}
             {r.sellerContactShared && <SharedContact text={r.sellerContactShared} />}
             {r.role === "buyer" && (
-              <p className="text-[13px] text-muted">Meet somewhere public on campus. Check the ticket before you pay. ResTix can&apos;t recover money sent in advance.</p>
+              <p className="text-[13px] text-muted">Meet somewhere public, or get it sent first. Check the ticket before you pay. ResTix can&apos;t recover money sent in advance.</p>
             )}
           </div>
         )}

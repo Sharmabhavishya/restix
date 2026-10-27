@@ -17,7 +17,7 @@ export default async function EditListingPage({ params }: PageProps<"/listings/[
   if (!listing || listing.sellerId !== viewer.id) notFound();
   if (!sellerCan("edit", displayStatus(listing))) redirect(`/listings/${id}`);
 
-  const events = (await listableEvents(viewer.id)).filter((e) => e.id === listing.eventId);
+  const events = (await listableEvents(viewer.id, listing.eventId)).filter((e) => e.id === listing.eventId);
   if (events.length === 0) redirect(`/listings/${id}`);
   const formEvents = events.map((e) => ({
     id: e.id, name: e.name, startsAt: e.startsAt.toISOString(), closesAt: eventCloseTime(e).toISOString(), status: e.status,
@@ -45,6 +45,8 @@ export default async function EditListingPage({ params }: PageProps<"/listings/[
             meetupArea: listing.meetupArea,
             handoverNotes: listing.handoverNotes,
             sellerNotes: listing.sellerNotes,
+            bulkMinQuantity: listing.bulkMinQuantity,
+            bulkPricePaise: listing.bulkPricePaise,
             expiresAt: toLocalInput(listing.expiresAt),
           }}
         />

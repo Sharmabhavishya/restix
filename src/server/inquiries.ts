@@ -22,6 +22,8 @@ export interface InquiryRow {
   sellerContactShared: string | null;
   /** Seller's number in E.164, set only when they chose to share it on accepting. */
   sellerWhatsapp: string | null;
+  /** Buyer's number in E.164, filled in by the database only when the seller accepts. */
+  buyerWhatsapp: string | null;
   agreedPricePaise: number | null;
   priceNegotiable: boolean;
   createdAt: Date;
@@ -32,6 +34,8 @@ export interface InquiryRow {
   ticketTypeName: string;
   format: string;
   askingPricePaise: number;
+  bulkMinQuantity: number | null;
+  bulkPricePaise: number | null;
   listingStatus: ListingStatus;
   myOutcome: Outcome | null;
   theirOutcome: Outcome | null;
@@ -39,7 +43,10 @@ export interface InquiryRow {
 
 type Result = { ok: true; message?: string } | { ok: false; error: string };
 
-export async function sendInquiry(viewerId: string, input: { listingId: string; quantity: number; message: string; offerPaise?: number | null }): Promise<Result> {
+export async function sendInquiry(
+  viewerId: string,
+  input: { listingId: string; quantity: number; message: string; offerPaise?: number | null; shareWhatsapp?: boolean; whatsapp?: string | null },
+): Promise<Result> {
   if (!(await allow("inquiryBurst", viewerId)) || !(await allow("inquiry", viewerId))) {
     return { ok: false, error: "You've contacted a lot of sellers in a short time. Please wait a while before sending another." };
   }
@@ -52,9 +59,12 @@ export async function sendInquiry(viewerId: string, input: { listingId: string; 
   }
   try {
     await asUser(viewerId, async (tx) => {
+      // A new number goes on the buyer's own private profile; the seller sees it only on accepting.
+      if (input.whatsapp) await tx`update restix.profile_private set whatsapp_number = ${input.whatsapp} where user_id = ${viewerId}`;
       const [row] = await tx<{ id: string }[]>`
-        insert into restix.inquiries (listing_id, buyer_id, seller_id, message, quantity_requested)
-        values (${listing.id}, ${viewerId}, ${listing.sellerId}, ${input.message}, ${input.quantity}) returning id`;
+        insert into restix.inquiries (listing_id, buyer_id, seller_id, message, quantity_requested, buyer_shares_whatsapp)
+        values (${listing.id}, ${viewerId}, ${listing.sellerId}, ${input.message}, ${input.quantity}, ${input.shareWhatsapp ?? true})
+        returning id`;
       // An opening offer goes in the same transaction: if it breaks a rule, nothing is sent.
       if (input.offerPaise) await insertOffer(tx, viewerId, row.id, input.offerPaise);
     });
@@ -77,11 +87,11 @@ export async function inbox(viewerId: string): Promise<InquiryRow[]> {
            case when i.seller_id = ${viewerId} then 'seller' else 'buyer' end as role,
            case when i.seller_id = ${viewerId} then b.display_name else s.display_name end as counterpart_name,
            case when i.seller_id = ${viewerId} then i.buyer_id else i.seller_id end as counterpart_id,
-           i.message, i.quantity_requested, i.status, i.seller_contact_shared, i.seller_whatsapp, i.agreed_price_paise,
+           i.message, i.quantity_requested, i.status, i.seller_contact_shared, i.seller_whatsapp, i.buyer_whatsapp, i.agreed_price_paise,
            l.price_negotiable, i.created_at, i.responded_at,
            case when i.buyer_id = ${viewerId} and (i.buyer_seen_at is null or i.buyer_seen_at < i.responded_at) then null else coalesce(i.buyer_seen_at, i.created_at) end as buyer_seen_at,
            e.name as event_name, e.starts_at as event_starts_at, t.name as ticket_type_name, l.format,
-           l.asking_price_paise,
+           l.asking_price_paise, l.bulk_min_quantity, l.bulk_price_paise,
            case when l.status = 'active' and (l.expires_at <= now() or coalesce(e.ends_at, e.starts_at) <= now()) then 'expired'
                 when l.status = 'active' and e.status = 'cancelled' then 'unavailable'
                 else l.status end as listing_status,

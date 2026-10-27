@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { connection } from "next/server";
-import { Mark } from "@/components/logo";
+import { Wordmark } from "@/components/logo";
 import { ButtonLink } from "@/components/ui/button";
 import stagePurple from "@/assets/photos/own-stage-purple.jpg";
 
@@ -11,8 +11,8 @@ export default async function NotFound() {
   return (
     <main className="grid min-h-dvh grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
       <div className="mx-auto flex w-full max-w-xl flex-col justify-center px-4 py-16 sm:px-6">
-        <Link href="/" aria-label="ResTix home" className="mb-12 inline-flex">
-          <Mark className="size-8" />
+        <Link href="/" className="mb-12 inline-flex">
+          <Wordmark className="text-[28px]" />
         </Link>
         <p className="num text-[13px] text-muted">404</p>
         <h1 className="mt-2 text-[clamp(2.25rem,6vw,3.5rem)] leading-[1] font-bold tracking-[-0.035em]">this page isn&apos;t on the list</h1>

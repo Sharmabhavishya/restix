@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireModerator } from "@/server/auth/viewer";
 import { eventForEdit } from "@/server/event-admin";
+import { coverUrl } from "@/server/event-covers";
 import { toLocalInput } from "@/lib/format";
 import { paiseToInput } from "@/lib/money";
 import { EventForm } from "../event-form";
@@ -16,7 +17,7 @@ export default async function EditEventPage({ params }: PageProps<"/admin/events
   if (!e) notFound();
   return (
     <>
-      <PageTitle title={e.name} sub="Changing the policy or status updates existing listings straight away." />
+      <PageTitle title={e.name} sub="Changes go live straight away, including for listings already up." />
       {e.isFixture && <Notice tone="warning" className="mb-5">This is a development sample event. It is labelled as sample data everywhere.</Notice>}
       <Panel className="max-w-3xl p-5 sm:p-7">
         <EventForm
@@ -33,6 +34,7 @@ export default async function EditEventPage({ params }: PageProps<"/admin/events
             transferPolicy: e.transferPolicy,
             policySource: e.policySource,
             ticketTypes: e.ticketTypes.map((t) => (t.faceValuePaise !== null ? `${t.name}, ${paiseToInput(t.faceValuePaise)}` : t.name)).join("\n"),
+            coverUrl: e.coverVersion ? coverUrl(e.id, e.coverVersion) : null,
           }}
         />
       </Panel>

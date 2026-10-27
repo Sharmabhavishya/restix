@@ -49,7 +49,7 @@ export function ProfileForm({
             id="rules"
             name="rules"
             label="I'll only list tickets I own and am allowed to resell"
-            hint="ResTix doesn't handle payments or guarantee tickets. Meet on campus, check the wristband before paying."
+            hint="ResTix doesn't handle payments or guarantee tickets. Check the ticket before paying."
           />
           {fe.rules && <p className="text-[13px] font-medium text-negative" role="alert">{fe.rules}</p>}
           <p className="text-[13px] text-muted">

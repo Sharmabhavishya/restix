@@ -126,15 +126,60 @@ export const POLICY_LABEL: Record<TransferPolicy, string> = {
 
 export const FORMAT_LABEL = {
   wristband: "Wristband",
-  digital: "Digital ticket",
   paper: "Paper ticket",
+  qr: "QR e-ticket",
+  email: "Email ticket",
+  app: "App transfer",
+  pass: "Pass or lanyard",
+  token: "Token or coupon",
   other: "Other",
 } as const;
 export type TicketFormat = keyof typeof FORMAT_LABEL;
+export const FORMATS = Object.keys(FORMAT_LABEL) as TicketFormat[];
+
+/** One line on what each format is, for the picker. */
+export const FORMAT_HINT: Record<TicketFormat, string> = {
+  wristband: "Fabric or silicone band",
+  paper: "Printed ticket or stub",
+  qr: "PDF or screenshot with a QR code",
+  email: "Booking email in your name",
+  app: "Sent inside a ticketing app",
+  pass: "Entry card, pass or lanyard",
+  token: "Food, drink or entry coupon",
+  other: "Something else",
+};
 
 export const HANDOVER_LABEL = {
-  in_person: "In person on campus",
-  digital_transfer: "Digital transfer",
-  either: "In person or digital",
+  in_person: "In person",
+  digital_transfer: "Sent digitally",
+  either: "In person or digitally",
 } as const;
 export type HandoverMethod = keyof typeof HANDOVER_LABEL;
+
+const PHYSICAL: readonly TicketFormat[] = ["wristband", "paper", "pass", "token"];
+
+/** Handover methods that make sense for a format (the database enforces the same pairs). */
+export function handoversFor(format: TicketFormat): HandoverMethod[] {
+  if (PHYSICAL.includes(format)) return ["in_person"];
+  if (format === "app") return ["digital_transfer"];
+  return ["digital_transfer", "in_person", "either"];
+}
+
+/** The handover a quick listing gets when the seller doesn't pick one. */
+export function defaultHandover(format: TicketFormat): HandoverMethod {
+  return handoversFor(format)[0];
+}
+
+/** Old saved searches and links still say "digital"; that meant a QR e-ticket. */
+export function parseFormat(value: string | undefined): TicketFormat | undefined {
+  if (value === "digital") return "qr";
+  return (FORMATS as readonly string[]).includes(value ?? "") ? (value as TicketFormat) : undefined;
+}
+
+/** The per-ticket price for buying `quantity`, with the multi-ticket deal applied when it kicks in. */
+export function unitPrice(
+  l: { askingPricePaise: number; bulkMinQuantity: number | null; bulkPricePaise: number | null },
+  quantity: number,
+): number {
+  return l.bulkMinQuantity !== null && l.bulkPricePaise !== null && quantity >= l.bulkMinQuantity ? l.bulkPricePaise : l.askingPricePaise;
+}

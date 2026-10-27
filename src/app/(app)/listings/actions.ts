@@ -10,6 +10,7 @@ import { getViewer, writeBlockReason } from "@/server/auth/viewer";
 import { createListing, sellerAction, updateListing } from "@/server/listings";
 import { sendInquiry } from "@/server/inquiries";
 import { submitReport } from "@/server/moderation";
+import { setSaved } from "@/server/saved";
 
 function listingFields(formData: FormData) {
   return {
@@ -20,7 +21,10 @@ function listingFields(formData: FormData) {
     askingPrice: formData.get("askingPrice") ?? "",
     originalPrice: formData.get("originalPrice") ?? undefined,
     priceNegotiable: formData.get("priceNegotiable") ?? undefined,
-    handoverMethod: formData.get("handoverMethod"),
+    // Blank or missing: the format decides (see defaultHandover).
+    handoverMethod: formData.get("handoverMethod") || undefined,
+    bulkMinQuantity: formData.get("bulkMinQuantity") ?? undefined,
+    bulkPrice: formData.get("bulkPrice") ?? undefined,
     meetupArea: formData.get("meetupArea") ?? undefined,
     handoverNotes: formData.get("handoverNotes") ?? undefined,
     sellerNotes: formData.get("sellerNotes") ?? undefined,
@@ -100,8 +104,10 @@ export async function contactSeller(_prev: ActionState, formData: FormData): Pro
     quantity: formData.get("quantity"),
     message: formData.get("message") ?? "",
     offer: formData.get("offer") ?? undefined,
+    shareWhatsapp: formData.get("shareWhatsapp") ?? undefined,
+    whatsapp: formData.get("whatsapp") ?? undefined,
   });
-  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: formValues(formData) };
+  if (!parsed.success) return { error: "Check the highlighted fields.", fieldErrors: fieldErrors(parsed.error), values: formValues(formData) };
   const { offer, ...rest } = parsed.data;
   const result = await sendInquiry(viewer!.id, { ...rest, offerPaise: offer });
   if (!result.ok) return { error: result.error, values: formValues(formData) };
@@ -123,4 +129,16 @@ export async function reportListing(_prev: ActionState, formData: FormData): Pro
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: formValues(formData) };
   const result = await submitReport(viewer!.id, parsed.data);
   return result.ok ? { ok: true, message: result.message } : { error: result.error, values: formValues(formData) };
+}
+
+/** Saves or unsaves a listing. Called from the heart button; the result drives its state. */
+export async function toggleSaved(listingId: string, save: boolean): Promise<{ ok: boolean; saved?: boolean; error?: string }> {
+  const viewer = await getViewer();
+  const blocked = writeBlockReason(viewer);
+  if (blocked) return { ok: false, error: blocked };
+  if (!z.uuid().safeParse(listingId).success || typeof save !== "boolean") return { ok: false, error: "Invalid request." };
+  const result = await setSaved(viewer!.id, listingId, save);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath("/tickets");
+  return { ok: true, saved: result.saved };
 }

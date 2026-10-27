@@ -49,9 +49,9 @@ export default function SafetyPage() {
       <h2>Meeting up</h2>
       <p>Short version: keep it public, keep it daylight, and keep your money in your pocket until you have seen the thing.</p>
       <ul>
-        <li>Meet in a busy, public spot on campus, in daylight or a well-lit area.</li>
+        <li>Meet in a busy, public spot, in daylight or a well-lit area.</li>
         <li>Never go to someone&apos;s room, and do not invite a stranger to yours.</li>
-        <li>Check the wristband or ticket in person before you pay.</li>
+        <li>Check the ticket before you pay: in person for wristbands, paper tickets and passes; for QR, email and app tickets, get it sent or transferred first.</li>
         <li>Pay at the handover, never in advance. Do not &quot;pay first to hold it&quot;.</li>
         <li>Bring a friend if you can, and tell someone where you are going.</li>
       </ul>

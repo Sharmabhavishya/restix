@@ -11,7 +11,7 @@ const { completeSignIn } = await import("@/server/auth/complete-sign-in");
 
 const input = (eventId: string, ticketTypeId: string, over: Record<string, unknown> = {}) => ({
   eventId, ticketTypeId, format: "wristband" as const, quantity: 2, askingPrice: 45_000, originalPrice: 50_000,
-  priceNegotiable: false, handoverMethod: "in_person" as const, meetupArea: "Library steps", handoverNotes: null,
+  priceNegotiable: false, bulkMinQuantity: null, bulkPrice: null, handoverMethod: "in_person" as const, meetupArea: "Library steps", handoverNotes: null,
   sellerNotes: null, expiresAt: null, ...over,
 });
 

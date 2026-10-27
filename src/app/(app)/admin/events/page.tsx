@@ -15,26 +15,27 @@ export default async function AdminEventsPage({ searchParams }: PageProps<"/admi
   const sp = await searchParams;
   const mod = await requireModerator();
   const [events, suggestions] = await Promise.all([allEvents(mod.id), openSuggestions(mod.id)]);
-  const unknown = events.filter((e) => e.transferPolicy === "unknown" && e.status !== "cancelled").length;
+  const held = events.filter((e) => e.transferPolicy === "unknown" && e.status !== "cancelled").length;
   return (
     <>
       <PageTitle
         title="Events"
-        sub={unknown ? `${unknown} ${unknown === 1 ? "event has" : "events have"} no confirmed resale policy, so every listing needs a manual check.` : "Every event's resale rules are confirmed."}
+        sub={held ? `${held} ${held === 1 ? "event is" : "events are"} on hold and hidden from students.` : "Every event here is open for students to buy and sell."}
         actions={<ButtonLink href="/admin/events/new">Add event</ButtonLink>}
       />
       {typeof sp.saved === "string" && <Notice tone="success" className="mb-5">Saved “{sp.saved}”.</Notice>}
       {suggestions.length > 0 && (
         <Panel className="mb-6">
-          <h2 className="px-5 pt-5 pb-1 text-[17px] font-semibold">Suggested by students ({suggestions.length})</h2>
-          <p className="px-5 text-[13px] text-muted">Add the event yourself (with its resale rules), then mark the suggestion added.</p>
+          <h2 className="px-5 pt-5 pb-1 text-[17px] font-semibold">Event requests from students ({suggestions.length})</h2>
+          <p className="px-5 text-[13px] text-muted">Nobody sees these until you approve. “Approve &amp; publish” puts the event live as sent; “Edit first” opens it in the editor.</p>
           <ul className="mt-2 divide-y divide-rule">
             {suggestions.map((s) => (
               <li key={s.id} className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
                 <div className="min-w-0">
                   <p className="font-medium">{s.name}</p>
                   <p className="text-[13px] text-muted">
-                    {s.happensOn ?? "date not given"} · from {s.suggestedByName ?? "a deleted account"}
+                    {s.startsAt ? formatDateTime(s.startsAt) : s.happensOn ?? "date not given"}
+                    {s.venue ? ` · ${s.venue}` : ""} · from {s.suggestedByName ?? "a deleted account"}
                   </p>
                   {s.details && <p className="mt-1 text-sm whitespace-pre-line">{s.details}</p>}
                 </div>

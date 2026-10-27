@@ -9,9 +9,22 @@ describe("parseFilters", () => {
   });
 
   it("drops anything invalid instead of passing it on", () => {
-    const f = parseFilters({ format: "qr", sort: "drop table", page: "-3", min: "abc", event: "../etc", category: "rave", from: "yesterday" });
-    expect(f).toEqual({ q: undefined, event: undefined, category: undefined, format: undefined, minPaise: undefined, maxPaise: undefined, from: undefined, to: undefined, offers: undefined, sort: "newest", page: 1 });
+    const f = parseFilters({ format: "hologram", sort: "drop table", page: "-3", min: "abc", event: "../etc", category: "rave", from: "yesterday", deals: "true", saved: "yes" });
+    expect(f).toEqual({ q: undefined, event: undefined, category: undefined, format: undefined, minPaise: undefined, maxPaise: undefined, from: undefined, to: undefined, offers: undefined, deals: undefined, saved: undefined, sort: "newest", page: 1 });
     expect(parseFilters({ offers: "yes" }).offers).toBeUndefined();
+  });
+
+  it("knows every ticket format, and reads old 'digital' links as QR e-tickets", () => {
+    for (const f of ["wristband", "paper", "qr", "email", "app", "pass", "token", "other"]) expect(parseFilters({ format: f }).format).toBe(f);
+    expect(parseFilters({ format: "digital" }).format).toBe("qr");
+    expect(parseFilters({ format: ["paper", "qr"] }).format).toBe("paper");
+    expect(parseFilters({ format: "WRISTBAND" }).format).toBeUndefined();
+  });
+
+  it("filters to good deals and saved listings", () => {
+    const f = parseFilters({ deals: "1", saved: "1" });
+    expect(f).toMatchObject({ deals: true, saved: true });
+    expect(activeFilterCount(f)).toBe(2);
   });
 
   it("filters to listings open to offers", () => {

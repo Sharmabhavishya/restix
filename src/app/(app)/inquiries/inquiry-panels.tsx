@@ -221,15 +221,15 @@ export function Bargain({
   );
 }
 
-/** The buyer's WhatsApp button: opens a chat with the seller with the first message already written. */
-export function WhatsAppSeller({ href, preview }: { href: string; preview: string }) {
+/** One tap into WhatsApp with the other person, the first message already written (and signed by ResTix). */
+export function WhatsAppSeller({ href, preview, name }: { href: string; preview: string; name: string }) {
   return (
     <div className="flex flex-col gap-2">
-      <a href={href} target="_blank" rel="noopener noreferrer nofollow" className={buttonClass("dark", "md", "self-start")}>
-        <MessageCircle className="size-4" aria-hidden /> Message on WhatsApp
+      <a href={href} target="_blank" rel="noopener noreferrer nofollow" className={buttonClass("buy", "md", "self-start")}>
+        <MessageCircle className="size-4" aria-hidden /> WhatsApp {name}
       </a>
       <p className="text-[13px] text-muted">
-        Opens WhatsApp with this ready to send: <span className="text-ink-soft">&ldquo;{preview}&rdquo;</span>
+        Opens WhatsApp with this ready to send (you can edit it): <span className="whitespace-pre-line text-ink-soft">&ldquo;{preview}&rdquo;</span>
       </p>
     </div>
   );

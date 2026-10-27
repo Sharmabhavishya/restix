@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans } from "next/font/google";
+import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -9,11 +9,20 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
+// The display face: the logo and the big headings. Also variable, so one file.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+  // Optical sizing is what makes it tight and punchy at headline sizes.
+  axes: ["opsz"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
-  title: { default: "ResTix: campus ticket exchange", template: "%s · ResTix" },
+  title: { default: "ResTix: the student ticket exchange", template: "%s · ResTix" },
   description:
-    "Spare a fest wristband or need one? ResTix lets verified students list and find tickets for campus events, without the WhatsApp-group chaos.",
+    "Spare a ticket or need one? ResTix lets verified students trade tickets for fests, gigs and events. Your number stays private until you accept a buyer.",
   applicationName: "ResTix",
   // Private by default; public pages opt back in to indexing.
   robots: { index: false, follow: false },
@@ -31,7 +40,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-IN" className={dmSans.variable}>
+    <html lang="en-IN" className={`${dmSans.variable} ${bricolage.variable}`}>
       <body className="min-h-dvh">{children}</body>
     </html>
   );

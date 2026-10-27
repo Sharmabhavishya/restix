@@ -43,11 +43,18 @@
   --color-notice-soft: #fffbeb;
   --color-notice-line: #fde68a;
   --color-notice-ink: #92400e;
+  /* Buying and prices: deep green for "get it" and low prices, amber to red as prices climb. */
+  --color-buy: #166534;
+  --color-buy-hover: #14532d;
+  --color-price-low: oklch(0.42 0.12 150);
+  --color-price-high: oklch(0.47 0.13 55);
+  --color-price-steep: oklch(0.46 0.17 27);
   /* Stickers stay butter-yellow in both schemes, like the real thing. */
   --color-sticker: #ffd84d;
   --color-sticker-ink: #2e2300;
 
   --font-sans: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+  --font-display: var(--font-bricolage), "Bricolage Grotesque", var(--font-dm-sans), system-ui, sans-serif;
 
   --radius-card: 8px;
   --radius-control: 6px;
@@ -112,6 +119,12 @@
     --color-notice-soft: #261e0c;
     --color-notice-line: #5c4810;
     --color-notice-ink: #fcd34d;
+
+    --color-buy: #15803d;
+    --color-buy-hover: #166534;
+    --color-price-low: oklch(0.86 0.14 150);
+    --color-price-high: oklch(0.86 0.13 75);
+    --color-price-steep: oklch(0.8 0.13 25);
   }
 }
 
@@ -215,15 +228,36 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
    so the reduced-motion rule above never has to fight it.
    --------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: no-preference) {
-  /* Landing sections rise in as they scroll into view: a scroll-driven animation, so it
-     needs no JavaScript; browsers without view timelines just show everything. */
-  @supports (animation-timeline: view()) {
-    [data-reveal] {
-      animation: rise-in linear both;
-      animation-timeline: view();
-      animation-range: entry calc(var(--i, 0) * 6%) entry calc(70% + var(--i, 0) * 6%);
-    }
+  /* Sections rise in the first time they scroll into view (components/motion-root.tsx adds and
+     clears .reveal-wait). Without script, or with reduced motion, everything just shows. */
+  [data-reveal] {
+    transition:
+      opacity 700ms var(--ease-out-quart), transform 1000ms var(--ease-out-expo),
+      translate 300ms var(--ease-out-expo), background-color 300ms, border-color 300ms;
   }
+  .js-motion [data-reveal].reveal-wait {
+    opacity: 0;
+    transform: translateY(56px) scale(0.97);
+    transition: none;
+  }
+  /* The stagger applies only while revealing, so hovers stay instant afterwards. */
+  .js-motion [data-reveal].reveal-run { transition-delay: calc(var(--i, 0) * 90ms); }
+
+  /* "Live" means live: the dot breathes. */
+  .live-dot { animation: live 2s ease-in-out infinite; }
+
+  /* Things that float gently forever cost little: one transform on the compositor. */
+  .float-a { animation: float 7s ease-in-out infinite; }
+  .float-b { animation: float 8s ease-in-out -2.5s infinite reverse; }
+  .float-c { animation: float 6s ease-in-out -4s infinite; }
+
+  /* Saving a listing: the heart pops. */
+  .save-pop { animation: heart-pop 420ms var(--ease-out-expo); }
+
+  /* The logo's ticket dot drops onto the i when the page loads, and wiggles on hover. */
+  .wordmark .logo-dot { animation: dot-drop 900ms var(--ease-out-expo) 150ms backwards; }
+  a:hover .wordmark .logo-dot { animation: dot-wiggle 600ms var(--ease-out-expo); }
+  .footer-dot { animation: dot-bob 4s ease-in-out infinite; }
 
   /* The hero lines slide up into place on load. Transform only, so the headline paints at
      once and still counts for first paint. */
@@ -241,28 +275,18 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   }
   .sticker:hover { scale: 1.12; animation: wobble 1.6s ease-in-out; }
 
-  /* The logo's sparkle twinkles when you point at it. */
-  .mark-sparkle { transform-box: fill-box; transform-origin: center; }
-  svg:hover .mark-sparkle,
-  .group\/logo:hover .mark-sparkle { animation: twinkle 700ms var(--ease-out-expo); }
 
   /* Footer: letters hop on hover, the ticket sticker floats. */
   .footer-letter { transition: translate 300ms var(--ease-out-expo), rotate 300ms var(--ease-out-expo); }
   .footer-letter:hover { translate: 0 -8%; rotate: -4deg; }
   .footer-word:hover .footer-letter:not(:hover) { translate: 0 -2%; }
-  .footer-sticker { animation: float 6s ease-in-out infinite; will-change: transform; }
 }
 
 /* Static fallbacks so nothing depends on motion. */
 .sticker { rotate: 8deg; }
-.footer-sticker { rotate: -8deg; }
 
 /* Keyframes move `transform` and `opacity` only, which the browser can run on the compositor
    without repainting the page each frame. (They stack on top of any static `rotate`.) */
-@keyframes rise-in {
-  from { opacity: 0; transform: translateY(32px); }
-  to { opacity: 1; transform: none; }
-}
 @keyframes line-up {
   from { transform: translateY(0.4em) rotate(2deg); }
   to { transform: none; }
@@ -271,14 +295,34 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   0%, 100% { transform: none; }
   50% { transform: rotate(-5deg); }
 }
-@keyframes twinkle {
-  0% { transform: none; }
-  50% { transform: scale(1.45) rotate(45deg); }
-  100% { transform: rotate(90deg); }
-}
 @keyframes float {
   0%, 100% { transform: none; }
-  50% { transform: translateY(-10px) rotate(5deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+@keyframes live {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-positive) 55%, transparent); }
+  60% { box-shadow: 0 0 0 7px transparent; }
+}
+@keyframes heart-pop {
+  0% { transform: scale(0.6); }
+  50% { transform: scale(1.3); }
+  100% { transform: none; }
+}
+/* The dot keeps its centring and tilt in the separate translate/rotate properties; these
+   keyframes move it on top of that. */
+@keyframes dot-drop {
+  0% { transform: translateY(-180%) rotate(-50deg); opacity: 0; }
+  60% { transform: translateY(10%) rotate(8deg); opacity: 1; }
+  100% { transform: none; }
+}
+@keyframes dot-wiggle {
+  0%, 100% { transform: none; }
+  30% { transform: translateY(-35%) rotate(-18deg); }
+  65% { transform: rotate(16deg); }
+}
+@keyframes dot-bob {
+  0%, 100% { transform: none; }
+  50% { transform: translateY(-14%) rotate(8deg); }
 }
 
 /* A tiny confetti pop when a price is agreed: twelve dots, one pass, then gone. */
@@ -307,19 +351,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   50% { transform: rotate(-4deg) translateY(-4px); }
 }
 
-/* The landing's tape strip slides as the page scrolls (scroll-driven, so it never moves on its
-   own); browsers without scroll timelines show it still. */
+/* The landing's tape strip runs like a ticker; pointing at it holds it still. */
 @keyframes tape {
   to { transform: translateX(-50%); }
 }
-@supports (animation-timeline: scroll()) {
-  .tape-track {
-    animation: tape linear both;
-    animation-timeline: scroll(root);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .tape-track { animation: none !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .tape-track { animation: tape 45s linear infinite; }
+  .tape-track:hover { animation-play-state: paused; }
 }
 
 /* A price gets agreed: the line pops once (reduced motion makes it instant via the global rule). */
@@ -340,4 +378,309 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 .settle {
   animation: settle 320ms var(--ease-out-expo);
+}
+
+/* ---------------------------------------------------------------------------
+   Ticket shapes (components/ticket-card.tsx). One silhouette per kind of ticket, all drawn from
+   the event's tint: --band (body), --band-strong (stub), --band-ink (text and marks). Pure
+   decoration: the facts inside are the same for every shape.
+   --------------------------------------------------------------------------- */
+.tk {
+  --stub: 7rem;
+  --weave: repeating-linear-gradient(90deg, transparent 0 3px, color-mix(in oklab, var(--band-ink) 7%, transparent) 3px 4px),
+           repeating-linear-gradient(0deg, transparent 0 3px, color-mix(in oklab, var(--band-ink) 5%, transparent) 3px 4px);
+  position: relative;
+  display: flex;
+  min-height: 5.5rem;
+}
+.tk-qr { --stub: 8.5rem; }
+@media (min-width: 640px) {
+  .tk, .tk-qr { --stub: 9.5rem; }
+}
+.tk-body {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 1rem 1.25rem;
+  background: var(--band);
+}
+.tk-stub {
+  position: relative;
+  flex: none;
+  width: var(--stub);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 0.75rem 0.85rem;
+  background: var(--band-strong);
+}
+.tk-lead {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding-left: 0.85rem;
+  background: var(--band);
+}
+.tk-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-surface) 70%, transparent);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--band-ink);
+}
+
+/* Wristband: woven fabric, stitched edges, a plastic slider clasp, the tail cut on the bias. */
+.tk-wristband .tk-body {
+  border-radius: 5px 0 0 5px;
+  background-image: var(--weave);
+}
+.tk-wristband .tk-body::before {
+  content: "";
+  position: absolute;
+  inset: 5px 0 5px 7px;
+  border-block: 1.5px dashed color-mix(in oklab, var(--band-ink) 32%, transparent);
+  pointer-events: none;
+}
+.tk-wristband .tk-stub {
+  padding-left: 1.6rem;
+  padding-right: 1.75rem;
+  background-image: var(--weave);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+}
+.tk-clasp {
+  position: absolute;
+  z-index: 1;
+  top: -5px;
+  bottom: -5px;
+  right: calc(var(--stub) - 11px);
+  width: 22px;
+  border-radius: 7px;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.4), transparent 45%), var(--band-ink);
+  box-shadow: 0 2px 6px -2px rgb(0 0 0 / 0.35);
+}
+.tk-clasp::after {
+  content: "";
+  position: absolute;
+  inset: 9px 6px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.45) 0 2px, transparent 2px 5px);
+}
+
+/* Paper: punched notches at the tear line, a perforated stub, "admit N" printed sideways. */
+.tk-paper {
+  border-radius: 10px;
+  overflow: hidden;
+  -webkit-mask:
+    radial-gradient(circle 9px at calc(100% - var(--stub)) 0, #0000 96%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle 9px at calc(100% - var(--stub)) 100%, #0000 96%, #000) bottom / 100% 51% no-repeat;
+  mask:
+    radial-gradient(circle 9px at calc(100% - var(--stub)) 0, #0000 96%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle 9px at calc(100% - var(--stub)) 100%, #0000 96%, #000) bottom / 100% 51% no-repeat;
+}
+.tk-paper .tk-stub {
+  padding-left: 1.9rem;
+  border-left: 2px dashed color-mix(in oklab, var(--band-ink) 35%, transparent);
+}
+.tk-admit {
+  position: absolute;
+  left: 0.55rem;
+  top: 50%;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%) rotate(180deg);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--band-ink);
+}
+
+/* QR e-ticket: a wallet pass with a white stub and a code on it. */
+.tk-qr {
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--band-ink) 14%, transparent);
+}
+.tk-qr .tk-body { background: linear-gradient(120deg, var(--band) 40%, var(--band-strong)); }
+.tk-qr .tk-stub {
+  background: var(--color-surface);
+  border-left: 1.5px dashed color-mix(in oklab, var(--band-ink) 22%, transparent);
+  color: var(--band-ink);
+}
+
+/* Email ticket: an envelope with an airmail edge, the price on a perforated stamp. */
+.tk-email {
+  border-radius: 6px;
+  overflow: hidden;
+}
+.tk-email .tk-body { padding-top: 1.1rem; padding-bottom: 1.05rem; }
+.tk-email .tk-body::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 16px;
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - 0.75px), color-mix(in oklab, var(--band-ink) 30%, transparent) 50%, transparent calc(50% + 0.75px)) left / 50% 100% no-repeat,
+    linear-gradient(to bottom left, transparent calc(50% - 0.75px), color-mix(in oklab, var(--band-ink) 30%, transparent) 50%, transparent calc(50% + 0.75px)) right / 50% 100% no-repeat;
+}
+.tk-email::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 5px;
+  background: repeating-linear-gradient(-45deg, #d9455f 0 7px, transparent 7px 14px, #3c6fd1 14px 21px, transparent 21px 28px);
+}
+.tk-email .tk-stub { background: var(--band); justify-content: center; padding: 0.6rem 0.75rem 0.9rem; }
+.tk-stamp {
+  display: block;
+  padding: 5px;
+  background: var(--color-surface);
+  rotate: 3deg;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, radial-gradient(3px at 3px 3px, #0000 98%, #000) -3px -3px / 7px 7px;
+  mask: linear-gradient(#000 0 0) content-box, radial-gradient(3px at 3px 3px, #0000 98%, #000) -3px -3px / 7px 7px;
+}
+.tk-stamp > span {
+  display: block;
+  padding: 0.45rem 0.6rem;
+  background: var(--band-strong);
+  outline: 1px solid color-mix(in oklab, var(--band-ink) 25%, transparent);
+  outline-offset: -3px;
+}
+
+/* App transfer: a notification card, an app tile, the price as a pill. */
+.tk-app {
+  border-radius: 22px;
+  overflow: hidden;
+  background: var(--band);
+}
+.tk-app .tk-stub { background: transparent; }
+.tk-app .tk-price {
+  align-items: center;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+.tk-appicon {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.8rem;
+  color: #fff;
+  background: linear-gradient(145deg, color-mix(in oklab, var(--band-ink) 70%, white), var(--band-ink));
+}
+
+/* Pass or lanyard: a punched slot for the lanyard and a printed header stripe. */
+.tk-pass {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.tk-pass::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 auto 0;
+  height: 6px;
+  background: var(--band-ink);
+  opacity: 0.85;
+}
+.tk-pass .tk-body { padding-top: 1.05rem; }
+.tk-slot { padding-left: 0.9rem; padding-right: 0.15rem; }
+.tk-slot i {
+  display: block;
+  width: 8px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--color-ground);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.3);
+}
+
+/* Token or coupon: a ridged coin on a coupon with a dashed edge. */
+.tk-token {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.tk-token::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1.5px dashed color-mix(in oklab, var(--band-ink) 30%, transparent);
+  border-radius: 8px;
+  pointer-events: none;
+}
+.tk-coin {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 4px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(var(--band-ink) 0 6deg, color-mix(in oklab, var(--band-ink) 65%, white) 6deg 12deg);
+}
+.tk-coin b {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--band-strong);
+  font-size: 13px;
+  color: var(--band-ink);
+}
+
+/* Anything else: a clean card. */
+.tk-other {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* The good-deal sticker, slapped on the top-right corner. */
+.deal-sticker {
+  position: absolute;
+  z-index: 2;
+  top: -0.6rem;
+  right: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 1.4rem;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  background: var(--color-buy);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  rotate: 3deg;
+  box-shadow: 0 4px 10px -4px rgb(20 83 45 / 0.6);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tk-link { transition: transform 280ms var(--ease-out-expo); }
+  a.tk-link:hover { transform: translateY(-3px) rotate(-0.5deg); }
+  a.tk-link:active { transform: scale(0.99); }
+  .tk-clasp, .tk-paper .tk-stub, .tk-stamp, .tk-coin, .tk-appicon, .tk-qrmark, .deal-sticker {
+    transition: transform 420ms var(--ease-out-expo);
+  }
+  a.tk-link:hover .tk-clasp { transform: translateX(7px); }
+  a.tk-link:hover .tk-paper .tk-stub { transform: translateX(3px) rotate(2deg); transform-origin: 0 100%; }
+  a.tk-link:hover .tk-stamp { transform: rotate(-9deg) scale(1.06); }
+  a.tk-link:hover .tk-coin { transform: rotate(360deg); transition-duration: 800ms; }
+  a.tk-link:hover .tk-appicon { transform: scale(1.1) rotate(-6deg); }
+  a.tk-link:hover .tk-qrmark { transform: scale(1.12); }
+  a.tk-link:hover .deal-sticker { transform: rotate(-6deg) scale(1.08); }
+  .deal-sticker { animation: sticker-in 600ms var(--ease-out-expo) backwards; }
+}
+@keyframes sticker-in {
+  from { transform: scale(0.4) rotate(-20deg); opacity: 0; }
+  to { transform: none; opacity: 1; }
 }

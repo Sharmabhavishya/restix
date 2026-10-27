@@ -13,7 +13,7 @@ export default function PrivacyPage() {
       title="Privacy"
       intro={
         <>
-          Short version: we collect what we need to run a campus ticket exchange, we do not sell it, and we do not use third-party
+          Short version: we collect what we need to run a student ticket exchange, we do not sell it, and we do not use third-party
           analytics or ad trackers. Below is exactly what is stored and who can see it.
         </>
       }
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
 
       <h2>Who this covers</h2>
       <p>
-        ResTix is a student project that lets students at one university list tickets and fest wristbands and contact each other.
+        ResTix lets verified students list tickets they can&apos;t use, from fest wristbands to e-tickets, and contact each other.
         Access is limited to verified institutional email accounts. We aim to follow the principles of India&apos;s Digital Personal
         Data Protection Act, 2023. Contact: the ResTix team at the email address listed on the sign-in page of this deployment.
       </p>

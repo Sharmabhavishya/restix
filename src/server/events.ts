@@ -17,6 +17,9 @@ export interface EventSummary {
   availableListings: number;
   availableTickets: number;
   lowestPricePaise: number | null;
+  /** Cover image version (null without a cover) and its tiny blurred placeholder. */
+  coverVersion: number | null;
+  coverBlur: string | null;
 }
 
 export interface TicketType {
@@ -36,19 +39,24 @@ export interface EventDetail extends EventSummary {
 export const available = (tx: Tx) => tx`l.status = 'active' and l.expires_at > now()
   and e.status in ('scheduled', 'postponed') and coalesce(e.ends_at, e.starts_at) > now()`;
 
+// Students only ever see events whose organisers allow resale (at any price or at face value).
+// The rest stay in the moderators' views until someone confirms the rules.
+const resaleOk = (tx: Tx) => tx`e.transfer_policy in ('allowed', 'face_value_only')`;
+
 /** Upcoming events for a college with live availability, for signed-in students. */
 export async function listUpcomingEvents(viewerId: string, opts: { includePast?: boolean } = {}): Promise<EventSummary[]> {
   return asUser(viewerId, (tx) => tx<EventSummary[]>`
     select e.id, e.slug, e.name, e.category, e.venue, e.starts_at, e.ends_at, e.status, e.transfer_policy,
-           e.policy_source, e.is_fixture,
+           e.policy_source, e.is_fixture, c.version as cover_version, c.blur as cover_blur,
            count(l.id)::int as available_listings,
            coalesce(sum(l.quantity), 0)::int as available_tickets,
            min(l.asking_price_paise)::int as lowest_price_paise
     from restix.events e
+    left join restix.event_covers c on c.event_id = e.id
     left join restix.ticket_listings l on l.event_id = e.id and ${available(tx)}
-    where e.college_id = restix.my_college_id()
+    where e.college_id = restix.my_college_id() and ${resaleOk(tx)}
       and (${opts.includePast ?? false} or coalesce(e.ends_at, e.starts_at) > now())
-    group by e.id
+    group by e.id, c.event_id
     order by e.starts_at`);
 }
 
@@ -67,14 +75,14 @@ export async function publicUpcomingEvents(collegeSlug?: string): Promise<{ coll
     if (!college) return { college: null, events: [] };
     const events = await tx<EventSummary[]>`
       select e.id, e.slug, e.name, e.category, e.venue, e.starts_at, e.ends_at, e.status, e.transfer_policy,
-             e.policy_source, e.is_fixture,
+             e.policy_source, e.is_fixture, null::int as cover_version, null as cover_blur,
              count(l.id)::int as available_listings,
              coalesce(sum(l.quantity), 0)::int as available_tickets,
              min(l.asking_price_paise)::int as lowest_price_paise
       from restix.events e
       left join restix.ticket_listings l on l.event_id = e.id and ${available(tx)}
       where e.college_id = ${college.id} and coalesce(e.ends_at, e.starts_at) > now()
-        and e.status <> 'cancelled'
+        and e.status <> 'cancelled' and ${resaleOk(tx)}
       group by e.id
       order by e.starts_at
       limit 8`;
@@ -87,6 +95,8 @@ export async function getEventBySlug(viewerId: string, slug: string): Promise<Ev
     const [event] = await tx<EventDetail[]>`
       select e.id, e.slug, e.name, e.category, e.venue, e.description, e.starts_at, e.ends_at, e.status,
              e.transfer_policy, e.policy_source, e.policy_updated_at, e.is_fixture,
+             (select version from restix.event_covers c where c.event_id = e.id) as cover_version,
+             (select blur from restix.event_covers c where c.event_id = e.id) as cover_blur,
              (select count(*)::int from restix.ticket_listings l where l.event_id = e.id and ${available(tx)}) as available_listings,
              (select coalesce(sum(l.quantity), 0)::int from restix.ticket_listings l where l.event_id = e.id and ${available(tx)}) as available_tickets,
              (select min(l.asking_price_paise)::int from restix.ticket_listings l where l.event_id = e.id and ${available(tx)}) as lowest_price_paise
@@ -99,14 +109,19 @@ export async function getEventBySlug(viewerId: string, slug: string): Promise<Ev
   });
 }
 
-/** Events a seller can currently list for, with their ticket types (for the listing form). */
-export async function listableEvents(viewerId: string): Promise<(EventSummary & { ticketTypes: TicketType[] })[]> {
+/**
+ * Events a seller can currently list for, with their ticket types (for the listing form). `include`
+ * keeps one more event in the list, so a listing made before its rules changed stays editable.
+ */
+export async function listableEvents(viewerId: string, include?: string): Promise<(EventSummary & { ticketTypes: TicketType[] })[]> {
   return asUser(viewerId, async (tx) => {
     const events = await tx<(EventSummary & { ticketTypes: TicketType[] })[]>`
       select e.id, e.slug, e.name, e.category, e.venue, e.starts_at, e.ends_at, e.status, e.transfer_policy,
-             e.policy_source, e.is_fixture, 0 as available_listings, 0 as available_tickets, null as lowest_price_paise
+             e.policy_source, e.is_fixture, 0 as available_listings, 0 as available_tickets, null as lowest_price_paise,
+             null::int as cover_version, null as cover_blur
       from restix.events e
       where e.college_id = restix.my_college_id() and coalesce(e.ends_at, e.starts_at) > now()
+        and ((e.status in ('scheduled', 'postponed') and ${resaleOk(tx)}) or e.id = ${include ?? null}::uuid)
       order by e.starts_at`;
     const types = await tx<(TicketType & { eventId: string })[]>`
       select id, event_id, name, face_value_paise from restix.ticket_types

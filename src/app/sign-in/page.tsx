@@ -16,14 +16,14 @@ import { CLIPS } from "@/components/landing-photos";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-function errorCopy(code: string | undefined, domains: string): { title: string; body: string } | null {
+function errorCopy(code: string | undefined): { title: string; body: string } | null {
   switch (code) {
     case undefined:
       return null;
     case "domain_not_allowed":
       return {
-        title: `That's not a ${domains} account`,
-        body: `ResTix is only for students with a ${domains} Google account. Sign in again and pick your college account in Google's account chooser.`,
+        title: "That college isn't on ResTix yet",
+        body: "ResTix only lets in college Google accounts from colleges it supports. Sign in again and pick your college account in Google's account chooser.",
       };
     case "unverified_email":
       return { title: "Email not verified", body: "Google didn't confirm this email address, so we can't let it in. Use your verified college account." };
@@ -56,8 +56,7 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
   if (viewer && !error && (viewer.access === "ok" || viewer.access === "restricted")) redirect(next);
 
   const { allowedDomains } = env();
-  const domains = allowedDomains.join(" or ");
-  const message = errorCopy(error, domains);
+  const message = errorCopy(error);
   const google = supabaseAuthConfigured();
   const dev = devAuthEnabled();
 
@@ -66,18 +65,19 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
       <PublicHeader />
       <main className="mx-auto grid w-full max-w-[1200px] flex-1 items-start gap-10 px-4 py-10 sm:px-6 md:grid-cols-[1fr_minmax(0,440px)] md:py-20">
         <div className="max-w-xl">
-          <h1 className="text-[clamp(2rem,5vw,3.5rem)] leading-[1.02] font-bold tracking-[-0.03em]">
-            Sign in with your campus account
+          <h1 className="font-display text-[clamp(2.4rem,5.5vw,4.25rem)] leading-[0.95] font-extrabold tracking-[-0.04em]">
+            sign in with your college email
           </h1>
           <p className="mt-5 max-w-md text-[17px] leading-relaxed text-muted">
-            Only verified {domains} students get in. That&apos;s the whole point: no randoms, no reposted screenshots, just people from your campus.
+            Only verified students get in. That&apos;s the whole point: no randoms, no reposted screenshots, just people like you.
           </p>
           <ul className="mt-8 flex flex-col gap-3 text-[15px]">
+            <li className="flex gap-3"><span className="mt-2 size-1.5 flex-none rounded-full bg-accent" />Your phone number stays private. It&apos;s shared with one person, only after a seller says yes.</li>
             <li className="flex gap-3"><span className="mt-2 size-1.5 flex-none rounded-full bg-accent" />We only see your name and college email. Your email is never shown to other students.</li>
             <li className="flex gap-3"><span className="mt-2 size-1.5 flex-none rounded-full bg-accent" />No passwords to remember, and no payment details, ever.</li>
           </ul>
-          {/* A band-shaped window onto a real night: the reason anyone signs in. */}
-          <LoopVideo src={CLIPS.blueStage.src} poster={CLIPS.blueStage.poster} className="relative mt-10 hidden aspect-[16/7] rounded-l-[32px] rounded-r-full bg-raised md:block" />
+          {/* A window onto a real night: the reason anyone signs in. */}
+          <LoopVideo src={CLIPS.blueStage.src} poster={CLIPS.blueStage.poster} className="relative mt-10 hidden aspect-[16/7] rounded-[28px] bg-raised md:block" />
         </div>
 
         <div className="flex flex-col gap-4">
@@ -93,7 +93,7 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
 
           <Panel className="p-6">
             <h2 className="text-lg font-semibold">Continue with Google</h2>
-            <p className="mt-1 text-sm text-muted">Use your {domains} account.</p>
+            <p className="mt-1 text-sm text-muted">Use your college Google account.</p>
             {google ? (
               <form action={signInWithGoogle} className="mt-5">
                 <input type="hidden" name="next" value={next} />

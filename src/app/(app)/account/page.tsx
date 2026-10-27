@@ -58,14 +58,14 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
       >
         <KeyValue
           items={[
-            { label: "Institutional email", value: viewer.emailVerifiedAt ? <VerifiedEmail college={viewer.collegeShortName} /> : "Not verified" },
+            { label: "Institutional email", value: viewer.emailVerifiedAt ? <VerifiedEmail /> : "Not verified" },
             { label: "Verified on", value: viewer.emailVerifiedAt ? formatLongDate(viewer.emailVerifiedAt) : "—" },
             { label: "College", value: viewer.collegeName },
             { label: "Account status", value: <Pill tone={viewer.status === "active" ? "positive" : "negative"}>{viewer.status === "active" ? "Active" : viewer.status === "restricted" ? "Restricted" : "Suspended"}</Pill> },
           ]}
         />
         <p className="mt-3 text-[13px] text-muted">
-          Verification means you control a {viewer.collegeShortName} Google account. It isn&apos;t proof of enrolment, and it never vouches for a ticket.
+          Verification means you control a college Google account. It isn&apos;t proof of enrolment, and it never vouches for a ticket.
         </p>
       </Section>
 

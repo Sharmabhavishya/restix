@@ -348,3 +348,33 @@ describe("analytics, rate limits and expiry", () => {
     expect(row.status).toBe("expired");
   });
 });
+
+describe("saved listings", () => {
+  const save = (userId: string, forUser: string, listingId: string) =>
+    asUser(userId, (tx) => tx`insert into restix.saved_listings (user_id, listing_id) values (${forUser}, ${listingId})`);
+
+  it("lets a student save someone else's live listing, and only they can see or remove it", async () => {
+    const seller = await makeUser();
+    const me = await makeUser();
+    const other = await makeUser();
+    const { listingId } = await makeListing(seller.id);
+    expect(await outcome(save(me.id, me.id, listingId))).toBe("ok");
+    for (const who of [seller, other]) {
+      expect(await asUser(who.id, (tx) => tx`select 1 from restix.saved_listings where listing_id = ${listingId}`)).toHaveLength(0);
+      await asUser(who.id, (tx) => tx`delete from restix.saved_listings where user_id = ${me.id}`);
+    }
+    expect(await asUser(me.id, (tx) => tx`select 1 from restix.saved_listings`)).toHaveLength(1);
+  });
+
+  it("refuses saving for someone else, your own listing, or a listing you can't see", async () => {
+    const seller = await makeUser();
+    const me = await makeUser();
+    const { listingId } = await makeListing(seller.id);
+    const draft = await makeListing(seller.id, { status: "draft" });
+    expect(await outcome(save(me.id, seller.id, listingId))).toBe("42501");
+    expect(await outcome(save(seller.id, seller.id, listingId))).toBe("42501");
+    expect(await outcome(save(me.id, me.id, draft.listingId))).toBe("42501");
+    const banned = await makeUser({ status: "suspended" });
+    expect(await outcome(save(banned.id, banned.id, listingId))).toBe("42501");
+  });
+});

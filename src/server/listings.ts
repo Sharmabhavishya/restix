@@ -4,6 +4,7 @@ import {
   type EventFacts, type ListingStatus, type SellerAction, type TicketFormat, type HandoverMethod,
 } from "@/lib/listing-rules";
 import type { ListingInput } from "@/lib/validation";
+import { MIN_MARKET_SAMPLE } from "@/lib/deal";
 import { asSystem, asUser, pgCode, PG, type Tx } from "./db";
 import { available } from "./events";
 import { track } from "./analytics";
@@ -26,6 +27,9 @@ export interface ListingCard {
   askingPricePaise: number;
   originalPricePaise: number | null;
   priceNegotiable: boolean;
+  /** Multi-ticket deal: this price per ticket when buying at least bulkMinQuantity. */
+  bulkMinQuantity: number | null;
+  bulkPricePaise: number | null;
   handoverMethod: HandoverMethod;
   meetupArea: string | null;
   status: ListingStatus;
@@ -35,6 +39,13 @@ export interface ListingCard {
   sellerId: string;
   sellerName: string;
   sellerVerified: boolean;
+  /** Median asking price of live listings for the same ticket type, and how many there are. */
+  marketMedianPaise?: number | null;
+  marketCount?: number | null;
+  /** The viewer saved it. */
+  saved?: boolean;
+  /** The event's cover image version, when it has one. */
+  eventCoverVersion?: number | null;
 }
 
 export interface ListingDetail extends ListingCard {
@@ -63,7 +74,7 @@ const CARD_COLUMNS = (tx: Tx) => tx`
   l.id, l.event_id, e.slug as event_slug, e.name as event_name, e.starts_at as event_starts_at,
   e.ends_at as event_ends_at, e.status as event_status, e.transfer_policy, e.is_fixture as event_is_fixture,
   t.name as ticket_type_name, t.face_value_paise, l.format, l.quantity, l.asking_price_paise, l.original_price_paise,
-  l.price_negotiable, l.handover_method, l.meetup_area, l.status, l.expires_at, l.published_at, l.created_at,
+  l.price_negotiable, l.bulk_min_quantity, l.bulk_price_paise, l.handover_method, l.meetup_area, l.status, l.expires_at, l.published_at, l.created_at,
   l.seller_id, p.display_name as seller_name, (p.email_verified_at is not null) as seller_verified`;
 
 const CARD_FROM = (tx: Tx) => tx`
@@ -71,6 +82,24 @@ const CARD_FROM = (tx: Tx) => tx`
   join restix.events e on e.id = l.event_id
   join restix.ticket_types t on t.id = l.ticket_type_id
   join restix.profiles p on p.id = l.seller_id`;
+
+// The going rate for the same ticket type (lib/deal.ts turns it into a price tier), plus whether
+// the viewer saved the listing. RLS scopes both to what the viewer can see.
+const MARKET_JOIN = (tx: Tx) => tx`
+  left join lateral (
+    select percentile_cont(0.5) within group (order by m.asking_price_paise) as median, count(*)::int as n
+    from restix.ticket_listings m
+    where m.event_id = l.event_id and m.ticket_type_id = l.ticket_type_id and m.status = 'active' and m.expires_at > now()
+  ) mk on true`;
+const MARKET_COLUMNS = (tx: Tx) => tx`
+  mk.median as market_median_paise, mk.n as market_count,
+  exists (select 1 from restix.saved_listings s where s.listing_id = l.id and s.user_id = auth.uid()) as saved`;
+
+// SQL twin of dealFor(...).alert: at least 10% under face value, or under the going rate.
+const IS_DEAL = (tx: Tx) => tx`(case
+  when t.face_value_paise > 0 then l.asking_price_paise <= t.face_value_paise * 0.9
+  when mk.n >= ${MIN_MARKET_SAMPLE} and mk.median > 0 then l.asking_price_paise <= round(mk.median) * 0.9
+  else false end)`;
 
 export const SORTS = {
   newest: "Newest",
@@ -90,6 +119,8 @@ export interface SearchFilters {
   from?: Date;
   to?: Date;
   offers?: boolean;
+  deals?: boolean;
+  saved?: boolean;
   sort?: SortKey;
   page?: number;
 }
@@ -113,7 +144,9 @@ function filterSql(tx: Tx, f: SearchFilters, includeFormat = true) {
     ${f.maxPaise !== undefined ? tx`and l.asking_price_paise <= ${f.maxPaise}` : tx``}
     ${f.from ? tx`and e.starts_at >= ${f.from}` : tx``}
     ${f.to ? tx`and e.starts_at < ${f.to}` : tx``}
-    ${f.offers ? tx`and l.price_negotiable` : tx``}`;
+    ${f.offers ? tx`and l.price_negotiable` : tx``}
+    ${f.deals ? tx`and ${IS_DEAL(tx)}` : tx``}
+    ${f.saved ? tx`and exists (select 1 from restix.saved_listings s where s.listing_id = l.id and s.user_id = auth.uid())` : tx``}`;
 }
 
 /** Available listings for the viewer's college, filtered and paged. RLS scopes the rows. */
@@ -128,9 +161,9 @@ export async function searchListings(viewerId: string, f: SearchFilters): Promis
       price_desc: tx`l.asking_price_paise desc, l.created_at desc`,
       soonest: tx`e.starts_at asc, l.asking_price_paise asc`,
     }[f.sort ?? "newest"];
-    const [{ total }] = await tx<{ total: number }[]>`select count(*)::int as total from ${CARD_FROM(tx)} where ${where}`;
+    const [{ total }] = await tx<{ total: number }[]>`select count(*)::int as total from ${CARD_FROM(tx)} ${MARKET_JOIN(tx)} where ${where}`;
     const items = await tx<ListingCard[]>`
-      select ${CARD_COLUMNS(tx)} from ${CARD_FROM(tx)} where ${where}
+      select ${CARD_COLUMNS(tx)}, ${MARKET_COLUMNS(tx)} from ${CARD_FROM(tx)} ${MARKET_JOIN(tx)} where ${where}
       order by ${order}, l.id
       limit ${PAGE_SIZE} offset ${(page - 1) * PAGE_SIZE}`;
     return { items, total, page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
@@ -141,7 +174,7 @@ export async function searchListings(viewerId: string, f: SearchFilters): Promis
 export async function formatCounts(viewerId: string, f: SearchFilters): Promise<Record<string, number>> {
   return asUser(viewerId, async (tx) => {
     const rows = await tx<{ format: string; n: number }[]>`
-      select l.format, count(*)::int as n from ${CARD_FROM(tx)}
+      select l.format, count(*)::int as n from ${CARD_FROM(tx)} ${MARKET_JOIN(tx)}
       where ${filterSql(tx, f, false)}
       group by l.format`;
     return Object.fromEntries(rows.map((r) => [r.format, r.n]));
@@ -157,21 +190,23 @@ export async function getListing(viewerId: string, id: string): Promise<ListingD
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   return asUser(viewerId, async (tx) => {
     const [row] = await tx<ListingDetail[]>`
-      select ${CARD_COLUMNS(tx)}, l.ticket_type_id, l.handover_notes, l.seller_notes, l.status_reason, l.reviewed_at,
+      select ${CARD_COLUMNS(tx)}, ${MARKET_COLUMNS(tx)},
+             (select version from restix.event_covers c where c.event_id = l.event_id) as event_cover_version,
+             l.ticket_type_id, l.handover_notes, l.seller_notes, l.status_reason, l.reviewed_at,
              l.version, l.updated_at, p.created_at as seller_member_since, e.venue as event_venue,
              (select count(*)::int from restix.ticket_listings x join restix.events xe on xe.id = x.event_id
                where x.seller_id = l.seller_id and x.status = 'active' and x.expires_at > now()
                  and coalesce(xe.ends_at, xe.starts_at) > now()) as seller_active_listings
-      from ${CARD_FROM(tx)} where l.id = ${id}`;
+      from ${CARD_FROM(tx)} ${MARKET_JOIN(tx)} where l.id = ${id}`;
     return row ?? null;
   });
 }
 
 export async function myListings(viewerId: string): Promise<(ListingCard & { openInquiries: number; version: number })[]> {
   return asUser(viewerId, (tx) => tx<(ListingCard & { openInquiries: number; version: number })[]>`
-    select ${CARD_COLUMNS(tx)}, l.version,
+    select ${CARD_COLUMNS(tx)}, ${MARKET_COLUMNS(tx)}, l.version,
            (select count(*)::int from restix.inquiries i where i.listing_id = l.id and i.status = 'pending') as open_inquiries
-    from ${CARD_FROM(tx)} where l.seller_id = ${viewerId}
+    from ${CARD_FROM(tx)} ${MARKET_JOIN(tx)} where l.seller_id = ${viewerId}
     order by l.updated_at desc`);
 }
 
@@ -224,10 +259,11 @@ export async function createListing(viewerId: string, input: ListingInput, inten
       }
       const [row] = await tx<{ id: string }[]>`
         insert into restix.ticket_listings (event_id, ticket_type_id, seller_id, format, quantity, asking_price_paise,
-          original_price_paise, price_negotiable, handover_method, meetup_area, handover_notes, seller_notes, status,
-          expires_at, published_at)
+          original_price_paise, price_negotiable, bulk_min_quantity, bulk_price_paise, handover_method, meetup_area,
+          handover_notes, seller_notes, status, expires_at, published_at)
         values (${event.id}, ${input.ticketTypeId}, ${viewerId}, ${input.format}, ${input.quantity}, ${input.askingPrice},
-          ${input.originalPrice}, ${input.priceNegotiable}, ${input.handoverMethod}, ${input.meetupArea},
+          ${input.originalPrice}, ${input.priceNegotiable}, ${input.bulkMinQuantity}, ${input.bulkPrice},
+          ${input.handoverMethod}, ${input.meetupArea},
           ${input.handoverNotes}, ${input.sellerNotes}, ${status}, ${expiresAt},
           ${status === "active" ? new Date() : null})
         returning id`;
@@ -275,6 +311,7 @@ export async function updateListing(viewerId: string, id: string, expectedVersio
           ticket_type_id = ${input.ticketTypeId}, format = ${input.format}, quantity = ${input.quantity},
           asking_price_paise = ${input.askingPrice}, original_price_paise = ${input.originalPrice},
           price_negotiable = ${input.priceNegotiable}, handover_method = ${input.handoverMethod},
+          bulk_min_quantity = ${input.bulkMinQuantity}, bulk_price_paise = ${input.bulkPrice},
           meetup_area = ${input.meetupArea}, handover_notes = ${input.handoverNotes}, seller_notes = ${input.sellerNotes},
           expires_at = ${expiresAt}, status = ${nextStatus}, version = version + 1
         where id = ${id} and version = ${expectedVersion}

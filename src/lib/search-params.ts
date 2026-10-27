@@ -1,6 +1,6 @@
 import { parseRupees } from "./money";
 import { fromLocalInput } from "./format";
-import type { TicketFormat } from "./listing-rules";
+import { parseFormat, type TicketFormat } from "./listing-rules";
 
 export type RawParams = Record<string, string | string[] | undefined>;
 
@@ -15,11 +15,14 @@ export interface ParsedFilters {
   to?: Date;
   /** Only listings marked "open to offers". */
   offers?: true;
+  /** Only listings priced as a good deal or a steal. */
+  deals?: true;
+  /** Only listings the viewer saved. */
+  saved?: true;
   sort: "newest" | "price_asc" | "price_desc" | "soonest";
   page: number;
 }
 
-const FORMATS = ["wristband", "digital", "paper", "other"] as const;
 const SORTS = ["newest", "price_asc", "price_desc", "soonest"] as const;
 const CATEGORIES = ["fest", "concert", "party", "prom", "workshop", "sports", "other"] as const;
 
@@ -49,13 +52,15 @@ export function parseFilters(sp: RawParams): ParsedFilters {
     q,
     event: event && /^[a-z0-9-]{2,80}$/.test(event) ? event : undefined,
     category: category && (CATEGORIES as readonly string[]).includes(category) ? category : undefined,
-    format: format && (FORMATS as readonly string[]).includes(format) ? (format as TicketFormat) : undefined,
+    format: parseFormat(format),
     minPaise,
     maxPaise: maxPaise !== undefined && minPaise !== undefined && maxPaise < minPaise ? undefined : maxPaise,
     from: fromDate,
     // "to" is inclusive of that whole day.
     to: toDate ? new Date(toDate.getTime() + 86_400_000) : undefined,
     offers: one(sp.offers) === "1" ? true : undefined,
+    deals: one(sp.deals) === "1" ? true : undefined,
+    saved: one(sp.saved) === "1" ? true : undefined,
     sort: sort && (SORTS as readonly string[]).includes(sort) ? (sort as ParsedFilters["sort"]) : "newest",
     page: Number.isInteger(page) && page >= 1 && page <= 500 ? page : 1,
   };
@@ -63,7 +68,7 @@ export function parseFilters(sp: RawParams): ParsedFilters {
 
 /** How many filters (besides sort and page) are in use. */
 export function activeFilterCount(f: ParsedFilters): number {
-  return [f.q, f.event, f.category, f.format, f.minPaise, f.maxPaise, f.from, f.to, f.offers].filter((v) => v !== undefined).length;
+  return [f.q, f.event, f.category, f.format, f.minPaise, f.maxPaise, f.from, f.to, f.offers, f.deals, f.saved].filter((v) => v !== undefined).length;
 }
 
 /** Builds a query string from the current params with some keys replaced or removed. */

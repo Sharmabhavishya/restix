@@ -6,7 +6,7 @@ test.describe("who gets in", () => {
     for (const email of ["someone@gmail.com", "x@snu.edu.in.evil.com", "x@evilsnu.edu.in"]) {
       await signIn(page, email);
       await expect(page).toHaveURL(/error=domain_not_allowed/);
-      await expect(page.getByText(/That's not a snu.edu.in account/)).toBeVisible();
+      await expect(page.getByText(/That college isn't on ResTix yet/)).toBeVisible();
     }
     await page.goto("/tickets");
     await expect(page).toHaveURL(/\/sign-in/);
@@ -44,30 +44,57 @@ test.describe("who gets in", () => {
 });
 
 test.describe("rules and states", () => {
-  test("prohibited events can't be listed; unknown ones go to review", async ({ browser }) => {
+  test("only events that allow resale show up, to browse or to sell", async ({ browser }) => {
     const { page, context } = await asFixture(browser, "Rohan M");
     await page.goto("/sell");
-    await selectByText(page, "Event", "Interface Design Workshop");
-    await expect(page.getByText(/don't allow these tickets to be resold/)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Publish listing" })).toBeDisabled();
-
-    await selectByText(page, "Event", "Senior Prom");
-    await page.getByLabel(/Asking price/).fill("900");
-    await page.getByRole("button", { name: "Send for review" }).click();
-    await expect(page.getByText(/Sent for a quick policy check/)).toBeVisible();
-    await expect(page.getByText("In review").first()).toBeVisible();
+    const options = await page.getByLabel("Event", { exact: true }).locator("option").allTextContents();
+    expect(options.some((o) => o.includes("Spring Fest: Night 2"))).toBe(true);
+    expect(options.some((o) => o.includes("Interface Design Workshop"))).toBe(false); // prohibited
+    expect(options.some((o) => o.includes("Senior Prom"))).toBe(false); // not confirmed yet
+    await page.goto("/events");
+    await expect(page.getByText("Spring Fest: Night 2")).toBeVisible();
+    await expect(page.getByText("Interface Design Workshop")).toHaveCount(0);
+    await expect(page.getByText("Senior Prom")).toHaveCount(0);
+    // No resale-policy talk for students.
+    await expect(page.getByText(/Resale allowed|Face value only|Policy unconfirmed/)).toHaveCount(0);
     await context.close();
   });
 
-  test("face-value events cap the price", async ({ browser }) => {
+  test("events have no price cap unless an admin sets one", async ({ browser }) => {
     const { page, context } = await asFixture(browser, "Rohan M");
     await page.goto("/sell");
     await selectByText(page, "Event", "Freshers' Party");
-    await page.getByLabel(/Asking price/).fill("650");
-    await page.getByLabel(/What you paid/).fill("500");
+    await page.getByLabel("Price", { exact: true }).fill("650"); // above the ₹500 face value
+    await expect(page.getByText(/above face value/i)).toBeVisible(); // a nudge, not a block
     await page.getByRole("button", { name: "Publish listing" }).click();
-    await expect(page.getByText(/at or below (the ticket's )?face value/).first()).toBeVisible();
+    await expect(page).toHaveURL(/\/listings\/[0-9a-f-]{36}\?saved=publish/);
     await context.close();
+  });
+
+  test("a student can add a missing event, and it stays hidden until an admin approves it", async ({ browser }) => {
+    const name = `Rooftop jam ${Date.now().toString(36)}`;
+    const student = await asFixture(browser, "Rohan M");
+    await student.page.goto("/sell");
+    await student.page.getByText("Can't find your event?").click();
+    await student.page.getByLabel("Event name").fill(name);
+    const soon = new Date(Date.now() + 6 * 86_400_000 + 5.5 * 3_600_000).toISOString().slice(0, 16);
+    await student.page.getByLabel("When it starts").fill(soon);
+    await student.page.getByRole("button", { name: "Send for approval" }).click();
+    await expect(student.page.getByText(/once it's approved it shows up for everyone/)).toBeVisible();
+    await student.page.goto("/events");
+    await expect(student.page.getByRole("link", { name: new RegExp(name) })).toHaveCount(0);
+
+    const mod = await asFixture(browser, "Meera (moderator)");
+    await mod.page.goto("/admin/events");
+    const row = mod.page.locator("li", { hasText: name });
+    await row.getByRole("button", { name: "Approve & publish" }).click();
+    await expect(mod.page).toHaveURL(/\/events\/rooftop-jam-/);
+    await expect(mod.page.getByRole("heading", { name, level: 1 })).toBeVisible();
+
+    await student.page.goto("/events");
+    await expect(student.page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
+    await student.context.close();
+    await mod.context.close();
   });
 
   test("cancelled events show as cancelled and can't be listed", async ({ browser }) => {

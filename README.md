@@ -1,8 +1,9 @@
 # ResTix
 
-**spare wristband? sorted.** A campus ticket exchange for verified students. List the fest
-wristband or ticket you can't use, find the one you need, sort the handover on campus. Built
-for Shiv Nadar University first; any college can be added through configuration.
+**spare ticket? sorted.** A ticket exchange for verified students. List the wristband, pass or
+e-ticket you can't use, find the one you need. Nobody's phone number is shared until a seller
+accepts a buyer; then both get one tap to WhatsApp. Any college can be added through
+configuration.
 
 ResTix connects people. It never handles money: no payments, no fees, no escrow, no refunds.
 
@@ -10,13 +11,20 @@ ResTix connects people. It never handles money: no payments, no fees, no escrow,
 
 - **Google sign-in, campus only.** Exact-domain allowlist enforced on the server on every
   request; verified email required. Email addresses are never shown to other students.
-- **Events with resale rules.** Moderators add events with a stated policy source: resale
-  allowed, face value only (price capped), not allowed (blocked), or unconfirmed (listings go to
-  review). Cancelled and finished events drop out automatically.
-- **Listings as wristbands.** Wristband, digital, paper or other; quantity, asking and original
-  price, handover method and a public meetup spot. Contact details are blocked from public text.
-- **Discovery.** Search, filters (event, kind, format, price, date, open to offers), sorting,
-  pagination. The sell form shows a live preview of your band as you type.
+- **Events open by default.** Resale is allowed unless a moderator sets a restriction (face
+  value only, no resale, or unconfirmed). Students only see events where resale is allowed or
+  capped at face value. Cancelled and finished events drop out automatically.
+- **Can't find your event?** Students can request it (name, start, venue, kind, details). It stays
+  private until a moderator approves and publishes it, edits it first, or declines.
+- **Listings drawn as the real ticket.** Wristband, paper, QR e-ticket, email, app transfer, pass
+  or lanyard, token or coupon, or other; quantity, asking and original price, handover method and
+  a public meetup spot. The listing form is three steps. Contact details are blocked from public
+  text.
+- **Multi-ticket deals and price signals.** Sellers can offer a lower per-ticket price for buying
+  several. Listings priced well under face value (or under the typical price for that ticket
+  type) get a "good deal" sticker; the seller's own "what I paid" is never used for this.
+- **Discovery.** Search, filters (event, kind, format, price, date, open to offers, good deals,
+  saved), sorting, pagination. Students can save listings to a private watchlist.
 - **Requests, not chat.** A buyer asks; the seller accepts and chooses what to share (their
   WhatsApp or a note) with that buyer only. Both sides can record how it went.
 - **Bargaining in the app.** On "open to offers" listings the buyer can send an offer with the
@@ -27,8 +35,8 @@ ResTix connects people. It never handles money: no payments, no fees, no escrow,
   opens a chat with the first message written (which ticket, the listed and agreed price).
   Sellers get a ready-made post for their group chats. Numbers are never public.
 - **Feels like campus.** Event tints, a countdown to the next event, casual copy where it fits
-  and plain words for money, safety and errors. Light and dark mode.
-- **Own photos, watermarked.** `npm run photos` stamps the ResTix mark on event photos and
+  and plain words for money, safety and errors. Light and dark mode. A wordmark logo with a ticket for the dot of the i.
+- **Own photos, watermarked.** `npm run photos` stamps the restix wordmark on event photos and
   strips their metadata (GPS, device) before they go on the site.
 - **Trust and safety.** Reports with priorities, a moderation queue, hide/remove/restore,
   restrict/suspend/reinstate, appeals, and an append-only audit log.

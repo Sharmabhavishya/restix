@@ -12,10 +12,12 @@ Postgres. Source of truth: `supabase/migrations/*.sql`, applied in filename orde
 | `profiles` | Public profile: display name, college, `email_verified_at`, status | PK = `auth.users.id` (cascade delete) |
 | `profile_private` | Email, optional WhatsApp | Owner and moderators only |
 | `admin_roles` | `moderator` / `admin` | Written by admins or `scripts/grant-role.ts` |
-| `events` | Event, schedule, status, **transfer policy** + source | `is_fixture` marks sample data |
+| `events` | Event, schedule, status, **transfer policy** + source | `is_fixture` marks sample data. `transfer_policy` defaults to `allowed`; the policy source is optional |
 | `ticket_types` | Per-event ticket types with face value | |
-| `ticket_listings` | The listing: format, quantity, prices (paise), handover, status, expiry, `version` | |
-| `inquiries` | Buyer -> seller request; on accept the seller shares `seller_whatsapp` (E.164) and/or a `seller_contact_shared` note; `agreed_price_paise` once an offer is accepted | `seller_id` denormalised for RLS |
+| `ticket_listings` | The listing: format, quantity, prices (paise), optional multi-ticket deal (`bulk_min_quantity`, `bulk_price_paise`), handover, status, expiry, `version` | |
+| `saved_listings` | A student's private watchlist: `user_id`, `listing_id`, `created_at`; PK is both ids | Sellers never learn who saved their listing |
+| `event_covers` | One cover image per event: a WebP (max 1.5 MB, made by sharp, metadata stripped), its size, a tiny blurred data-URL placeholder and a version that busts caches | Read: same college. Write: moderators of the event's college. Served by `src/app/event-cover/[id]/route.ts` |
+| `inquiries` | Buyer -> seller request; on accept the seller shares `seller_whatsapp` (E.164) and/or a `seller_contact_shared` note, and the database copies the buyer's number into `buyer_whatsapp` if `buyer_shares_whatsapp` (chosen when asking); `agreed_price_paise` once an offer is accepted | `seller_id` denormalised for RLS; `buyer_whatsapp` has no column grant and is set only by the `inquiries_whatsapp_handoff` trigger |
 | `offers` | Bargaining on an inquiry: who offered how much, and what happened (`open/accepted/declined/superseded/withdrawn`) | one open offer per inquiry; parties (and that college's moderators) read |
 | `transaction_confirmations` | Each party's private outcome | one per party per inquiry |
 | `reports` | Reports with a snapshot of the listing at report time | priority set by trigger |
@@ -23,7 +25,7 @@ Postgres. Source of truth: `supabase/migrations/*.sql`, applied in filename orde
 | `appeals` | Appeals against moderation | |
 | `analytics_events` | First-party events | purged after 18 months |
 | `rate_limits` | Fixed-window counters | no client access |
-| `event_suggestions` | Students suggest missing events; moderators mark them added/declined | college set by trigger; never creates an event itself |
+| `event_suggestions` | Students request a missing event (name, `starts_at`, `venue`, `category`, details); moderators approve, edit first, or decline | college set by trigger; private until a moderator approves; a student's request never creates an event itself, approval does (`approveSuggestion` in `src/server/event-admin.ts`) |
 
 ## Constraints worth knowing
 
@@ -33,6 +35,25 @@ Postgres. Source of truth: `supabase/migrations/*.sql`, applied in filename orde
 - `reports_one_open_listing` / `_user`: one open report per reporter per target.
 - `appeals_one_open`: one open appeal per user per moderation action.
 - Events: `ends_at > starts_at`; unique `(college_id, slug)`.
+- `ticket_listings_format_check`: format is one of `wristband, paper, qr, email, app, pass, token,
+  other`. The old value `digital` was migrated to `qr`; the app still accepts `digital` from old
+  links and forms and treats it as `qr` (`parseFormat`).
+- `ticket_listings_handover_fits_format`: physical formats (`wristband, paper, pass, token`) must
+  be `in_person`; `app` must be `digital_transfer`; other formats may use either. Added `NOT VALID`,
+  so it applies to every new or changed row and older rows are not checked. The quick listing form
+  leaves handover out and the server picks `defaultHandover(format)`.
+- `ticket_listings_bulk_check`: `bulk_min_quantity` and `bulk_price_paise` are both set or both
+  null. When set: threshold 2-10 and not above `quantity`; price 0 to 10,000,000 and below
+  `asking_price_paise`. Written with explicit `is not null` tests because a CHECK that evaluates
+  to NULL passes.
+- `saved_listings`: the server caps a user at 100 saves (`MAX_SAVED`, not a DB constraint).
+
+## Which events students see
+
+`transfer_policy` still has four values (`allowed, face_value_only, not_allowed, unknown`), but the
+app only shows students events that are `allowed` or `face_value_only` (the `resaleOk` filter in
+`src/server/events.ts`: event lists, the sell form and the landing page counts). Restrictions are
+optional and set by moderators; the database triggers keep enforcing whichever policy an event has.
 
 ## Moderator scope
 
@@ -60,12 +81,16 @@ All tables have RLS enabled. Policies use helper functions (SECURITY DEFINER, fi
 | analytics_events | admins | server only |
 | rate_limits | none | server only (via `hit_rate_limit`) |
 | event_suggestions | suggester, moderators of that college | insert: eligible student as themselves, `open` only; update: moderators of that college |
+| saved_listings | the user's own rows only | insert: yourself, only while `can_browse()`, and only for an `active` listing you can see that isn't yours; delete: your own rows; no update |
 
 ## Guard triggers
 
 - `guard_listing_update`: seller, event and creation time are immutable; `version` must increase
   by exactly one; non-moderators can't set `removed`/`rejected`, restore a removed listing,
   publish from review, or touch review fields.
+- `guard_listing_update` also treats `bulk_min_quantity` and `bulk_price_paise` as listing details:
+  a restricted seller can't change them (they can still pause or close). Sellers can edit both
+  columns (column grant).
 - `guard_listing_insert`: new listings start as draft/pending/active only.
 - `guard_inquiry_update`: content immutable; buyers may only withdraw; sellers may only
   accept/decline/close; withdrawn/declined can't reopen; only the seller sets `seller_whatsapp`;

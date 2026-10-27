@@ -26,7 +26,8 @@ const nextConfig: NextConfig = {
     },
   },
   experimental: {
-    serverActions: { bodySizeLimit: "256kb" },
+    // Room for an event cover (shrunk in the browser to ~1600px WebP; capped again on the server).
+    serverActions: { bodySizeLimit: "1.5mb" },
   },
   // Free-tier friendly: free hosts meter image transformations, so ask for few sizes, one
   // modern format, and keep each result cached for a month. Our photos never change in place

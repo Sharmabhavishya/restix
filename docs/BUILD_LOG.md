@@ -69,7 +69,7 @@ ResTix). Update after every milestone; newest log entries last.
 3. Institutional review of privacy and terms templates.
 4. Manual screen-reader pass (NVDA/VoiceOver).
 5. Optional: email notifications for new requests (needs a provider; not built, no claims made).
-6. Optional: event requests from students (currently moderators add all events).
+6. Event requests from students: built 2026-10-27 (see the log).
 7. Analytics are deployment-wide if more than one college is added (see SECURITY.md).
 
 ## Log
@@ -133,3 +133,59 @@ ResTix). Update after every milestone; newest log entries last.
   leftover in-memory test database still running from an earlier E2E run; stopped it.
 - "Open to offers" search filter and band label; offers waiting on you count in the inbox badge
   ("Things to answer"); the agreed price pops in once.
+
+### 2026-10-27: formats, deals, saves, event requests, new brand
+
+- **Ticket formats:** wristband, paper, QR e-ticket, email, app transfer, pass or lanyard, token
+  or coupon, other. Old `digital` rows became `qr`; old links and forms with `digital` still work.
+  A constraint (`ticket_listings_handover_fits_format`, `NOT VALID`) ties physical formats to
+  in-person handover and `app` to digital transfer. The quick listing form omits handover and the
+  server picks `defaultHandover(format)`.
+- **Multi-ticket deal:** optional `bulk_min_quantity` (2-10, not above quantity) and
+  `bulk_price_paise` (below the asking price), both or neither. Sellers can edit them; a
+  restricted seller can't. Buyers see the per-ticket deal price once they pick enough tickets.
+- **Saved listings:** `saved_listings` table with RLS (own rows only; insert only for active
+  listings you can see that aren't yours). 100 per user, rate limit `save` 120/hour, analytics
+  event `listing_saved`, "Saved" filter on `/tickets`.
+- **Price tiers and good-deal alert** (`src/lib/deal.ts`): steal, good, fair, high, steep against
+  face value, or the median of live listings of the same ticket type when there are at least 3.
+  "What I paid" is never used. "Good deals" filter on `/tickets`.
+- **Events and resale rules:** students only see events that are `allowed` or `face_value_only`.
+  New events default to `allowed`; restrictions and the policy source are optional and set by
+  moderators in a collapsed section of the admin event form. Resale-policy pills and panels were
+  removed from student pages.
+- **Event requests:** students can add a missing event (name, start, venue, kind, details) from
+  `/sell` or `/events`. Moderators see them in `/admin/events` and can "Approve & publish"
+  (creates the event as sent, resale allowed, with a "General" ticket type, logged as
+  `create_event`), "Edit first" (prefilled new-event form that links the request on save) or
+  "Decline". The nav shows a count of open requests.
+- **Brand and design:** new wordmark logo (Bricolage Grotesque 800, tilted ticket as the dot of
+  the i), no monogram, lone-ticket favicon, Bricolage for headings and DM Sans for body. Ticket
+  cards draw each format as its own shape. Deep-green buy button. `MotionRoot` reveals sections in
+  every browser; the tape strip is a ticker. Details in docs/DESIGN.md.
+- **Watermark:** `scripts/watermark.ts` now composites the wordmark image
+  (`scripts/assets/watermark.png`) bottom-right; `stamp: false` makes clean copies, used for video
+  posters. Photo captions were removed from the landing page.
+- **Copy** no longer names a college or an email domain in student-facing text.
+- **Forms:** the listing form is three steps (event, kind of ticket, how many and price) with
+  collapsed optional sections. The buy box is a quantity stepper with a live total and one green
+  "Request this ticket" button; note and offer are optional.
+- **Private until accepted (WhatsApp handoff):** the core promise. Nobody's number is visible
+  while listing or asking. When a seller accepts, the seller gets "WhatsApp {buyer}" and the buyer
+  gets "WhatsApp {seller}", each opening a chat with a written first message (tickets, event, the
+  agreed or deal price with total, a next step that fits the ticket format) signed "Sent via
+  ResTix". Buyers choose on the request whether the seller gets their number and can add one
+  there. Migration `20261027080000_whatsapp_handoff.sql`. The "share in your WhatsApp groups"
+  link was removed. The promise is stated in the hero, tagline, ticker, safety tiles, how it
+  works, FAQ, sign-in and sell pages.
+- **Event posters and covers:** moderators can upload a cover in the event form (shrunk in the
+  browser, re-encoded and checked on the server, stored in `event_covers`). Events show as
+  posters: the cover when there is one, otherwise a bold gradient in the event's colour with
+  the kind of event set large, a date stub, and a green "tickets from ₹" chip. The event page
+  opens with a full-width poster; listing pages carry the cover as a banner. Migration
+  `20261027090000_event_covers.sql`.
+- Tests added: `src/lib/deal.test.ts`, `tests/integration/formats-deals-saves.test.ts`,
+  `tests/integration/covers.test.ts`,
+  `tests/integration/handoff.test.ts`, new cases in `src/lib/whatsapp.test.ts`,
+  `src/lib/validation.test.ts`, `tests/integration/suggestions.test.ts`, `tests/integration/rls.test.ts`,
+  `tests/e2e/access.spec.ts` and `tests/e2e/bargain.spec.ts`.

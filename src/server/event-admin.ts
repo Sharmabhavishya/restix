@@ -6,8 +6,9 @@ import { fromLocalInput } from "@/lib/format";
 import { asUser, pgCode, PG } from "./db";
 import { allow } from "./rate-limit";
 
-// Event management for moderators. Events and their resale policy are the basis of
-// every listing decision, so each change is written to the moderation log.
+// Event management for moderators. Events are open to resale at any price by default; a
+// moderator can add a restriction (face value only, or no resale) per event. Every change is
+// written to the moderation log.
 
 export const EVENT_CATEGORIES = { fest: "Fest", concert: "Concert", party: "Party", prom: "Prom", workshop: "Workshop", sports: "Sports", other: "Other" } as const;
 
@@ -30,7 +31,8 @@ export const eventInput = z
       return d;
     }),
     status: z.enum(["scheduled", "postponed", "cancelled", "completed"]),
-    transferPolicy: z.enum(["allowed", "face_value_only", "prohibited", "unknown"]),
+    // Optional in the form: no restriction chosen means resale is allowed at any price.
+    transferPolicy: z.preprocess((v) => v || "allowed", z.enum(["allowed", "face_value_only", "prohibited", "unknown"])),
     policySource: z.string().transform(cleanText).pipe(z.string().max(300)).optional().transform((v) => v || null),
     ticketTypes: z.string().optional().transform((v, ctx) => {
       // One per line: "Night pass, 800" (face value optional)
@@ -48,11 +50,7 @@ export const eventInput = z
     }),
     reason: z.string().transform(cleanText).pipe(z.string().min(3, "Say briefly why (it goes in the moderation log).").max(1000)),
   })
-  .refine((v) => !v.endsAt || v.endsAt > v.startsAt, { path: ["endsAt"], message: "The end must be after the start." })
-  .refine((v) => v.transferPolicy === "unknown" || v.policySource, {
-    path: ["policySource"],
-    message: "Say where the resale policy comes from (who confirmed it, and when).",
-  });
+  .refine((v) => !v.endsAt || v.endsAt > v.startsAt, { path: ["endsAt"], message: "The end must be after the start." });
 export type EventInput = z.output<typeof eventInput>;
 
 type Result = { ok: true; id: string } | { ok: false; error: string };
@@ -122,8 +120,10 @@ export async function eventForEdit(modId: string, id: string) {
     const [e] = await tx<{
       id: string; name: string; slug: string; category: string; venue: string | null; description: string | null;
       startsAt: Date; endsAt: Date | null; status: string; transferPolicy: string; policySource: string | null; isFixture: boolean;
-    }[]>`select id, name, slug, category, venue, description, starts_at, ends_at, status, transfer_policy, policy_source, is_fixture
-         from restix.events where id = ${id}`;
+      coverVersion: number | null;
+    }[]>`select id, name, slug, category, venue, description, starts_at, ends_at, status, transfer_policy, policy_source, is_fixture,
+           (select version from restix.event_covers c where c.event_id = e.id) as cover_version
+         from restix.events e where e.id = ${id}`;
     if (!e) return null;
     const types = await tx<{ name: string; faceValuePaise: number | null }[]>`
       select name, face_value_paise from restix.ticket_types where event_id = ${id} order by sort_order, name`;
@@ -150,17 +150,27 @@ export async function allEvents(modId: string) {
 
 export const suggestionInput = z.object({
   name: z.string().transform(cleanText).pipe(z.string().min(2, "Name the event.").max(120)),
-  happensOn: z
+  startsAt: z
     .string()
     .optional()
     .transform((v, ctx) => {
       if (!v) return null;
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-        ctx.addIssue({ code: "custom", message: "Pick a date." });
+      const d = fromLocalInput(v);
+      if (!d) {
+        ctx.addIssue({ code: "custom", message: "Pick the date and time." });
         return z.NEVER;
       }
-      return v;
+      if (d.getTime() < Date.now() - 3600_000) {
+        ctx.addIssue({ code: "custom", message: "That's already happened. Pick an upcoming date." });
+        return z.NEVER;
+      }
+      return d;
     }),
+  venue: z.string().transform(cleanText).pipe(z.string().max(120)).optional().transform((v) => v || null),
+  category: z
+    .string()
+    .optional()
+    .transform((v) => (v && v in EVENT_CATEGORIES ? (v as keyof typeof EVENT_CATEGORIES) : null)),
   details: z.string().transform(cleanText).pipe(z.string().max(1000)).optional().transform((v) => v || null),
 });
 
@@ -168,8 +178,9 @@ export async function suggestEvent(viewerId: string, input: z.output<typeof sugg
   if (!(await allow("report", `suggest:${viewerId}`))) return { ok: false, error: "You've suggested a lot of events today. Moderators will get to them." };
   try {
     await asUser(viewerId, (tx) => tx`
-      insert into restix.event_suggestions (suggested_by, name, happens_on, details)
-      values (${viewerId}, ${input.name}, ${input.happensOn}, ${input.details})`);
+      insert into restix.event_suggestions (suggested_by, name, starts_at, happens_on, venue, category, details)
+      values (${viewerId}, ${input.name}, ${input.startsAt}, ${input.startsAt ? istDate(input.startsAt) : null},
+              ${input.venue}, ${input.category}, ${input.details})`);
     return { ok: true };
   } catch (err) {
     if (pgCode(err) === PG.insufficientPrivilege) return { ok: false, error: "Your account can't suggest events right now." };
@@ -181,6 +192,9 @@ export async function suggestEvent(viewerId: string, input: z.output<typeof sugg
 export interface Suggestion {
   id: string;
   name: string;
+  startsAt: Date | null;
+  venue: string | null;
+  category: string | null;
   happensOn: string | null;
   details: string | null;
   status: "open" | "added" | "declined";
@@ -191,16 +205,16 @@ export interface Suggestion {
 
 export async function mySuggestions(viewerId: string): Promise<Suggestion[]> {
   return asUser(viewerId, (tx) => tx<Suggestion[]>`
-    select s.id, s.name, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details, s.status, s.moderator_note,
-           null as suggested_by_name, s.created_at
+    select s.id, s.name, s.starts_at, s.venue, s.category, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details,
+           s.status, s.moderator_note, null as suggested_by_name, s.created_at
     from restix.event_suggestions s where s.suggested_by = ${viewerId}
     order by s.created_at desc limit 10`);
 }
 
 export async function openSuggestions(modId: string): Promise<Suggestion[]> {
   return asUser(modId, (tx) => tx<Suggestion[]>`
-    select s.id, s.name, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details, s.status, s.moderator_note,
-           p.display_name as suggested_by_name, s.created_at
+    select s.id, s.name, s.starts_at, s.venue, s.category, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details,
+           s.status, s.moderator_note, p.display_name as suggested_by_name, s.created_at
     from restix.event_suggestions s left join restix.profiles p on p.id = s.suggested_by
     where s.status = 'open' and s.college_id = restix.my_college_id()
     order by s.created_at limit 50`);
@@ -220,4 +234,69 @@ export async function decideSuggestion(
     console.error("decide suggestion failed", err instanceof Error ? err.message : err);
     return { ok: false, error: "That didn't save because of a server error." };
   }
+}
+
+/** The calendar date in India for a moment, as YYYY-MM-DD. */
+function istDate(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(d);
+}
+
+export function slugFor(name: string): string {
+  const base = name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70) || "event";
+  return `${base.length < 2 ? "event" : base}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+/**
+ * Publishes a student's event request as it stands: the event goes live (resale allowed, no
+ * restrictions) with a "General" ticket type, the request is marked added, and the moderation
+ * log records who approved it. Returns the new event's slug.
+ */
+export async function approveSuggestion(modId: string, id: string, note: string | null): Promise<{ ok: true; slug: string } | { ok: false; error: string }> {
+  try {
+    return await asUser(modId, async (tx) => {
+      const [sg] = await tx<{ collegeId: string; name: string; startsAt: Date | null; happensOn: string | null; venue: string | null; category: string | null; details: string | null; status: string }[]>`
+        select college_id, name, starts_at, to_char(happens_on, 'YYYY-MM-DD') as happens_on, venue, category, details, status
+        from restix.event_suggestions where id = ${id} for update`;
+      if (!sg) return { ok: false as const, error: "Request not found." };
+      if (sg.status !== "open") return { ok: false as const, error: "This request was already handled." };
+      // No time given: assume 7 pm in India on the day they named.
+      const startsAt = sg.startsAt ?? (sg.happensOn ? fromLocalInput(`${sg.happensOn}T19:00`) : null);
+      if (!startsAt) return { ok: false as const, error: "This request has no date. Use “Edit first” to add one." };
+      if (startsAt.getTime() <= Date.now()) return { ok: false as const, error: "This event's date has passed. Decline it, or use “Edit first” to fix the date." };
+      const slug = slugFor(sg.name);
+      const [ev] = await tx<{ id: string }[]>`
+        insert into restix.events (college_id, slug, name, category, venue, description, starts_at, status, transfer_policy, created_by)
+        values (${sg.collegeId}, ${slug}, ${sg.name}, ${sg.category ?? "other"}, ${sg.venue}, ${sg.details}, ${startsAt},
+                'scheduled', 'allowed', ${modId})
+        returning id`;
+      await tx`insert into restix.ticket_types (event_id, name) values (${ev.id}, 'General')`;
+      await tx`update restix.event_suggestions
+               set status = 'added', event_id = ${ev.id}, moderator_note = ${note}, decided_by = ${modId}, decided_at = now()
+               where id = ${id}`;
+      await tx`insert into restix.moderation_actions (actor_id, action, reason, event_id, metadata)
+               values (${modId}, 'create_event', ${"Approved a student's event request"}, ${ev.id},
+                       ${tx.json({ suggestionId: id } as never)})`;
+      return { ok: true as const, slug };
+    });
+  } catch (err) {
+    if (pgCode(err) === PG.insufficientPrivilege) return { ok: false, error: "You don't have permission to do that." };
+    console.error("approve suggestion failed", err instanceof Error ? err.message : err);
+    return { ok: false, error: "That didn't save because of a server error." };
+  }
+}
+
+/** Marks a request done once a moderator has published it through the full event editor. */
+export async function linkSuggestion(modId: string, id: string, eventId: string): Promise<void> {
+  await asUser(modId, (tx) => tx`
+    update restix.event_suggestions set status = 'added', event_id = ${eventId}, decided_by = ${modId}, decided_at = now()
+    where id = ${id} and status = 'open'`);
+}
+
+export async function suggestionById(modId: string, id: string): Promise<Suggestion | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const [row] = await asUser(modId, (tx) => tx<Suggestion[]>`
+    select s.id, s.name, s.starts_at, s.venue, s.category, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details,
+           s.status, s.moderator_note, null as suggested_by_name, s.created_at
+    from restix.event_suggestions s where s.id = ${id}`);
+  return row ?? null;
 }

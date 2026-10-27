@@ -5,25 +5,16 @@ import { CalendarDays, MapPin } from "lucide-react";
 import { requireBrowser } from "@/server/auth/viewer";
 import { getEventBySlug } from "@/server/events";
 import { displayStatus, searchListings } from "@/server/listings";
-import { EVENT_CATEGORIES } from "@/server/event-admin";
-import { formatDateTime, formatLongDate, formatTime } from "@/lib/format";
+import { formatDateTime, formatTime } from "@/lib/format";
 import { formatPaise } from "@/lib/money";
-import { bandStyle } from "@/lib/tint";
-import { Wristband } from "@/components/wristband";
-import { FixtureTag, PolicyPill } from "@/components/listing-bits";
-import { EmptyState, Notice, Panel, Pill } from "@/components/ui/bits";
-import { ButtonLink } from "@/components/ui/button";
+import { TicketCard } from "@/components/ticket-card";
+import { EmptyState, Notice, Panel } from "@/components/ui/bits";
 import { TrackView } from "@/components/track";
 import { ShareButton } from "@/components/share-button";
+import { EventPoster } from "@/components/event-poster";
+import { SaveButton } from "@/components/save-button";
 
 export const metadata: Metadata = { title: "Event" };
-
-const POLICY_TEXT = {
-  allowed: "The organisers allow tickets to be resold or transferred.",
-  face_value_only: "Tickets may be resold at face value or less. Listings asking more are blocked.",
-  prohibited: "The organisers don't allow resale or transfer. ResTix doesn't accept listings for this event.",
-  unknown: "Nobody has confirmed the resale rules yet. Listings are checked by a moderator before they go live.",
-} as const;
 
 export default async function EventPage({ params }: PageProps<"/events/[slug]">) {
   const { slug } = await params;
@@ -32,8 +23,8 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
   const event = await getEventBySlug(viewer.id, slug);
   if (!event) notFound();
   const { items, total } = await searchListings(viewer.id, { event: slug, sort: "price_asc" });
-  const canList = event.transferPolicy !== "prohibited" && (event.status === "scheduled" || event.status === "postponed") && (event.endsAt ?? event.startsAt) > new Date();
-  const style = bandStyle(event.id) as React.CSSProperties;
+  const resaleOk = event.transferPolicy === "allowed" || event.transferPolicy === "face_value_only";
+  const canList = resaleOk && (event.status === "scheduled" || event.status === "postponed") && (event.endsAt ?? event.startsAt) > new Date();
 
   return (
     <>
@@ -42,26 +33,25 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
         <nav aria-label="Breadcrumb" className="text-sm text-muted">
           <Link href="/events" className="hover:text-ink">Events</Link>
         </nav>
-        <ShareButton path={`/events/${event.slug}`} title={`${event.name} on ResTix`} text={`Tickets for ${event.name} on ResTix. Campus sign-in needed.`} />
+        <ShareButton path={`/events/${event.slug}`} title={`${event.name} on ResTix`} text={`Tickets for ${event.name} on ResTix. Student sign-in needed.`} />
       </div>
-      <header style={style} className="mb-6 rounded-[var(--radius-card)] bg-[var(--band)] px-5 py-6 sm:px-7">
-        <div className="flex flex-wrap items-center gap-2">
-          <PolicyPill policy={event.transferPolicy} />
-          {event.status === "cancelled" && <Pill tone="negative">Cancelled</Pill>}
-          {event.status === "postponed" && <Pill tone="warning">Postponed</Pill>}
-          {event.isFixture && <FixtureTag />}
-        </div>
-        <h1 className="mt-3 text-2xl font-bold tracking-[-0.01em] sm:text-[32px]">{event.name}</h1>
-        <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-[var(--band-ink)]">
+      <div className="mb-6">
+        <EventPoster event={event} size="hero">
+          {canList && (
+            <Link href={`/sell?event=${event.slug}`} className="inline-flex h-8 items-center rounded-full bg-white px-3.5 text-[13px] font-semibold text-[#111827] transition-transform hover:scale-[1.03]">
+              Sell yours
+            </Link>
+          )}
+        </EventPoster>
+        <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 px-1 text-sm text-muted">
           <li className="flex items-center gap-1.5">
             <CalendarDays className="size-4" aria-hidden />
             {formatDateTime(event.startsAt)}{event.endsAt ? ` – ${formatTime(event.endsAt)}` : ""}
           </li>
           {event.venue && <li className="flex items-center gap-1.5"><MapPin className="size-4" aria-hidden />{event.venue}</li>}
-          <li>{EVENT_CATEGORIES[event.category as keyof typeof EVENT_CATEGORIES] ?? event.category}</li>
         </ul>
-        {event.description && <p className="mt-4 max-w-2xl text-[15px] leading-relaxed">{event.description}</p>}
-      </header>
+        {event.description && <p className="mt-3 max-w-2xl px-1 text-[15px] leading-relaxed whitespace-pre-line text-ink-soft">{event.description}</p>}
+      </div>
 
       {event.status === "cancelled" && (
         <Notice tone="error" className="mb-6" title="This event was cancelled">
@@ -80,17 +70,22 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
             <h2 id="listings-heading" className="text-lg font-semibold">
               {total ? `${total} ${total === 1 ? "listing" : "listings"}, cheapest first` : "Listings"}
             </h2>
-            {canList && <ButtonLink href={`/sell?event=${event.slug}`} size="sm">Sell yours</ButtonLink>}
           </div>
           {items.length === 0 ? (
             <EmptyState title={canList ? "no one's selling yet" : "no listings"}>
-              {canList ? "If you've got a spare, you'd be the first." : "Tickets for this event can't be listed on ResTix."}
+              {canList ? "If you've got a spare, you'd be the first." : "Listings for this event aren't open on ResTix."}
             </EmptyState>
           ) : (
-            <ul className="flex flex-col gap-2.5">
+            <ul className="flex flex-col gap-4">
               {items.map((l) => (
                 <li key={l.id}>
-                  <Wristband listing={l} status={displayStatus(l)} href={`/listings/${l.id}`} showEvent={false} />
+                  <TicketCard
+                    listing={l}
+                    status={displayStatus(l)}
+                    href={`/listings/${l.id}`}
+                    showEvent={false}
+                    aside={l.sellerId === viewer.id ? undefined : <SaveButton listingId={l.id} saved={Boolean(l.saved)} />}
+                  />
                 </li>
               ))}
             </ul>
@@ -98,16 +93,6 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
         </section>
 
         <aside className="flex flex-col gap-4">
-          <Panel className="p-5">
-            <h2 className="font-semibold">Resale rules</h2>
-            <p className="mt-2 text-sm leading-relaxed">{POLICY_TEXT[event.transferPolicy]}</p>
-            {event.policySource && (
-              <p className="mt-2 text-[13px] text-muted">
-                Source: {event.policySource}
-                {event.policyUpdatedAt ? ` (updated ${formatLongDate(event.policyUpdatedAt)})` : ""}
-              </p>
-            )}
-          </Panel>
           {event.ticketTypes.length > 0 && (
             <Panel className="p-5">
               <h2 className="font-semibold">Ticket types</h2>

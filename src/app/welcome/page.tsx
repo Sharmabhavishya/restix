@@ -21,7 +21,7 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center px-4 py-12">
-      <Wordmark className="mb-8 text-lg" />
+      <Wordmark className="mb-8 text-[28px]" />
       {/* The band you just got: a slice of the night, cut like a wristband. */}
       <div className="relative mb-8 aspect-[16/7] overflow-hidden rounded-[var(--radius-card)] bg-raised">
         <Image src={co2Jets} alt="" placeholder="blur" priority sizes="(min-width: 512px) 480px, 100vw" className="size-full object-cover" />
@@ -31,7 +31,7 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
         Pick the name people see when you sell or ask about a ticket.
       </p>
       <div className="mt-4">
-        <VerifiedEmail college={viewer.collegeShortName} />
+        <VerifiedEmail />
       </div>
       <Panel className="mt-8 p-6">
         <ProfileForm displayName={viewer.displayName} whatsapp={priv?.whatsappNumber ?? null} onboarding next={next} />
