@@ -1,6 +1,7 @@
 // Every event gets a stable identity tint, like the coloured wristbands each fest prints.
 // Pale, never the accent, never violet/indigo (house rule). Identity, not data.
-const HUES = [350, 28, 62, 142, 188, 212] as const;
+// Spaced 60-130 degrees apart so neighbouring events read as different bands.
+const HUES = [350, 75, 150, 215] as const;
 
 function hash(s: string): number {
   let h = 2166136261;

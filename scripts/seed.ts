@@ -53,7 +53,9 @@ export async function seed(databaseUrl: string, log: (msg: string) => void = con
 
       const ids: Record<string, { id: string; types: string[] }> = {};
       for (const e of events) {
-        const starts = new Date(now + e.days * DAY + 19 * 60 * 60 * 1000);
+        // 7 pm campus time (13:30 UTC), e.days from today.
+        const day = new Date(now + e.days * DAY);
+        const starts = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), 13, 30));
         const [row] = await tx<{ id: string }[]>`
           insert into restix.events (college_id, slug, name, category, venue, starts_at, ends_at, status,
                                      transfer_policy, policy_source, policy_updated_at, is_fixture, description)

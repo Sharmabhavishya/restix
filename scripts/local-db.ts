@@ -46,11 +46,13 @@ export async function startLocalDb(opts: { dataDir?: string; port?: number; seed
 }
 
 if (process.argv[1]?.endsWith("local-db.ts")) {
-  const dataDir = path.join(process.cwd(), ".data", "pglite");
+  // --memory: throwaway database (used by the end-to-end tests).
+  const memory = process.argv.includes("--memory");
+  const dataDir = memory ? undefined : path.join(process.cwd(), ".data", "pglite");
   const reset = process.argv.includes("--reset");
   (async () => {
-    if (reset) await rm(dataDir, { recursive: true, force: true });
-    await mkdir(path.dirname(dataDir), { recursive: true });
+    if (dataDir && reset) await rm(dataDir, { recursive: true, force: true });
+    if (dataDir) await mkdir(path.dirname(dataDir), { recursive: true });
     const port = Number(process.env.LOCAL_DB_PORT ?? 54329);
     const { url, stop } = await startLocalDb({ dataDir, port, seed: true });
     console.log(`\nLocal database ready: ${url}\nPress Ctrl+C to stop.`);

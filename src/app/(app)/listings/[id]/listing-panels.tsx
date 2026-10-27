@@ -67,7 +67,7 @@ export function OwnerActions({ listingId, version, status }: { listingId: string
         {actions
           .filter((a) => a !== "delete")
           .map((a) => (
-            <SubmitButton key={a} name="action" value={a} variant={a === "mark_sold" || a === "publish" || a === "resume" ? "primary" : "secondary"} pendingLabel="Saving…">
+            <SubmitButton key={a} name="action" value={a} variant={a === (actions.includes("resume") ? "resume" : actions.includes("publish") ? "publish" : "mark_sold") ? "primary" : "secondary"} pendingLabel="Saving…">
               {ACTION_LABEL[a]}
             </SubmitButton>
           ))}

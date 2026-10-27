@@ -77,8 +77,8 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
           </Link>
         ))}
         <form method="get" className="flex flex-wrap items-center gap-2">
-          <Input type="date" name="from" aria-label="From" defaultValue={toLocalInput(from).slice(0, 10)} className="h-8 w-40 text-sm" />
-          <Input type="date" name="to" aria-label="To" defaultValue={toLocalInput(new Date(to.getTime() - DAY)).slice(0, 10)} className="h-8 w-40 text-sm" />
+          <div className="w-40"><Input type="date" name="from" aria-label="From" defaultValue={toLocalInput(from).slice(0, 10)} className="h-8 text-sm" /></div>
+          <div className="w-40"><Input type="date" name="to" aria-label="To" defaultValue={toLocalInput(new Date(to.getTime() - DAY)).slice(0, 10)} className="h-8 text-sm" /></div>
           <button className={buttonClass("secondary", "sm")}>Apply</button>
         </form>
       </div>

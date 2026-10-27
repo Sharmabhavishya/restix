@@ -134,7 +134,10 @@ export async function computeMetrics(adminId: string, range: Range): Promise<Met
       )
       select to_char(d.day, 'YYYY-MM-DD') as day,
              (select count(*)::int from ${real} where l.published_at >= d.day and l.published_at < d.day + interval '1 day') as listings,
-             (select count(*)::int from restix.inquiries i where i.created_at >= d.day and i.created_at < d.day + interval '1 day') as inquiries
+             (select count(*)::int from restix.inquiries i
+               join restix.ticket_listings l on l.id = i.listing_id
+               join restix.events e on e.id = l.event_id and not e.is_fixture
+               where i.created_at >= d.day and i.created_at < d.day + interval '1 day') as inquiries
       from days d order by d.day`;
 
     return {
