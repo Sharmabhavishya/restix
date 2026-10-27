@@ -164,6 +164,15 @@ test.describe("endpoints", () => {
     expect(res.headers()["x-powered-by"]).toBeUndefined();
   });
 
+  test("link previews have an image", async ({ page, request }) => {
+    await page.goto("/");
+    const og = await page.locator('meta[property="og:image"]').getAttribute("content");
+    expect(og).toContain("/opengraph-image");
+    const img = await request.get(new URL(og!).pathname + (new URL(og!).search || ""));
+    expect(img.status()).toBe(200);
+    expect(img.headers()["content-type"]).toContain("image/png");
+  });
+
   test("public pages are indexable, private ones are not", async ({ page, request }) => {
     const robots = await (await request.get("/robots.txt")).text();
     expect(robots).toContain("Disallow: /admin");

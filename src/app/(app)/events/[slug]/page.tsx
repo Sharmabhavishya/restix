@@ -14,6 +14,7 @@ import { FixtureTag, PolicyPill } from "@/components/listing-bits";
 import { EmptyState, Notice, Panel, Pill } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/button";
 import { TrackView } from "@/components/track";
+import { ShareButton } from "@/components/share-button";
 
 export const metadata: Metadata = { title: "Event" };
 
@@ -37,9 +38,12 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
   return (
     <>
       <TrackView name="event_viewed" eventId={event.id} />
-      <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted">
-        <Link href="/events" className="hover:text-ink">Events</Link>
-      </nav>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <nav aria-label="Breadcrumb" className="text-sm text-muted">
+          <Link href="/events" className="hover:text-ink">Events</Link>
+        </nav>
+        <ShareButton path={`/events/${event.slug}`} title={`${event.name} on ResTix`} text={`Tickets for ${event.name} on ResTix. Campus sign-in needed.`} />
+      </div>
       <header style={style} className="mb-6 rounded-[var(--radius-card)] bg-[var(--band)] px-5 py-6 sm:px-7">
         <div className="flex flex-wrap items-center gap-2">
           <PolicyPill policy={event.transferPolicy} />

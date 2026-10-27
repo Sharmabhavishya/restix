@@ -14,6 +14,7 @@ import { FixtureTag, PolicyPill, StatusPill, VerifiedEmail } from "@/components/
 import { KeyValue, Notice, Panel } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/button";
 import { TrackView } from "@/components/track";
+import { ShareButton } from "@/components/share-button";
 
 export const metadata: Metadata = { title: "Listing" };
 
@@ -41,11 +42,20 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
   return (
     <>
       {!mine && <TrackView name="listing_viewed" listingId={listing.id} eventId={listing.eventId} />}
-      <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted">
-        <Link href="/tickets" className="hover:text-ink">Tickets</Link>
-        <span aria-hidden> / </span>
-        <Link href={`/events/${listing.eventSlug}`} className="hover:text-ink">{listing.eventName}</Link>
-      </nav>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <nav aria-label="Breadcrumb" className="min-w-0 truncate text-sm text-muted">
+          <Link href="/tickets" className="hover:text-ink">Tickets</Link>
+          <span aria-hidden> / </span>
+          <Link href={`/events/${listing.eventSlug}`} className="hover:text-ink">{listing.eventName}</Link>
+        </nav>
+        {status === "active" && (
+          <ShareButton
+            path={`/listings/${listing.id}`}
+            title={`${listing.eventName} on ResTix`}
+            text={`${listing.ticketTypeName} for ${listing.eventName}, ${formatPaise(listing.askingPricePaise)}${listing.quantity > 1 ? " each" : ""}. Campus sign-in needed to see it.`}
+          />
+        )}
+      </div>
 
       {saved && mine && <Notice tone="success" className="mb-5">{saved}</Notice>}
 
