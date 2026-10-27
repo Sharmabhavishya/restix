@@ -90,8 +90,10 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
 
   // Both sides record the outcome.
   await buyer.page.goto("/inquiries?tab=sent");
-  await buyer.page.getByRole("button", { name: "Done, ticket handed over" }).click();
-  await expect(buyer.page.getByText(/You marked this handed over/)).toBeVisible();
+  // Scoped to this conversation: the fixture buyer has others from earlier specs.
+  const thread = buyer.page.locator("article", { hasText: "Hey! Can we meet at the library at 6?" });
+  await thread.getByRole("button", { name: "Done, ticket handed over" }).click();
+  await expect(thread.getByText(/You marked this handed over/)).toBeVisible();
 
   // 8. The buyer reports a suspicious listing (a seeded one by Asha).
   await buyer.page.goto("/tickets?q=Indie");

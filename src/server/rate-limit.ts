@@ -9,6 +9,7 @@ export const LIMITS = {
   inquiryBurst: { limit: 4, windowSeconds: 10 * 60 },
   report: { limit: 8, windowSeconds: 24 * 3600 },
   respond: { limit: 60, windowSeconds: 3600 },
+  offer: { limit: 40, windowSeconds: 3600 },
   track: { limit: 120, windowSeconds: 3600 },
   devSignIn: { limit: 30, windowSeconds: 600 },
   profile: { limit: 20, windowSeconds: 3600 },

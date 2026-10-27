@@ -6,6 +6,7 @@ import type { ListingStatus } from "@/lib/listing-rules";
 import { Wristband } from "@/components/wristband";
 import { EmptyState, Notice, PageTitle } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/button";
+import { CountTile } from "@/components/ui/count-tile";
 
 export const metadata: Metadata = { title: "My listings" };
 
@@ -31,7 +32,7 @@ export default async function SellingPage({ searchParams }: PageProps<"/selling"
     <>
       <PageTitle
         title="My listings"
-        sub={waiting > 0 ? `${waiting} ${waiting === 1 ? "person is" : "people are"} waiting on a reply.` : listings.length ? "Everything you've listed, in one place." : undefined}
+        sub={waiting > 0 ? `${waiting} ${waiting === 1 ? "person is" : "people are"} waiting on a reply.` : listings.length ? "everything you've listed, in one place." : undefined}
         actions={
           <>
             {waiting > 0 && <ButtonLink href="/inquiries" variant="secondary">Answer requests</ButtonLink>}
@@ -42,7 +43,7 @@ export default async function SellingPage({ searchParams }: PageProps<"/selling"
       {sp.deleted && <Notice tone="success" className="mb-5">Listing deleted.</Notice>}
 
       {listings.length === 0 ? (
-        <EmptyState title="nothing listed yet" action={<ButtonLink href="/sell">List a ticket</ButtonLink>}>
+        <EmptyState title="your shelf's empty" action={<ButtonLink href="/sell">List a ticket</ButtonLink>}>
           Got a wristband you can&apos;t use? Someone on campus probably wants it.
         </EmptyState>
       ) : (
@@ -51,17 +52,7 @@ export default async function SellingPage({ searchParams }: PageProps<"/selling"
             {GROUPS.map((g) => {
               const selected = g.key === tab;
               return (
-                <Link
-                  key={g.key}
-                  href={`/selling?tab=${g.key}`}
-                  aria-current={selected ? "page" : undefined}
-                  className={`flex min-w-32 flex-none flex-col rounded-[var(--radius-card)] border px-3 py-2.5 transition-colors sm:min-w-0 ${
-                    selected ? "border-accent bg-accent-soft ring-[0.5px] ring-accent" : "border-border bg-surface hover:border-control"
-                  }`}
-                >
-                  <span className={`text-[13px] ${selected ? "text-accent-ink" : "text-muted"}`}>{g.label}</span>
-                  <span className="num text-base font-semibold">{counts[g.key]}</span>
-                </Link>
+                <CountTile key={g.key} href={`/selling?tab=${g.key}`} label={g.label} count={counts[g.key]} selected={selected} className="min-w-32" />
               );
             })}
           </nav>

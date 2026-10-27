@@ -51,3 +51,6 @@ next-env.d.ts
 
 # taste-skill downloads (originals; resized copies live in src/assets/photos)
 /assets/*.jpg
+
+# originals dropped in by the owner; optimised copies go to src/assets/photos
+/photos-incoming/

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, Clock, MapPin } from "lucide-react";
+import { CalendarDays, Clock, MapPin, MessageCircle } from "lucide-react";
 import { requireBrowser } from "@/server/auth/viewer";
 import { displayStatus, getListing } from "@/server/listings";
 import { myInquiryFor } from "@/server/inquiries";
@@ -12,7 +12,9 @@ import { bandStyle } from "@/lib/tint";
 import { ContactForm, OwnerActions, ReportForm } from "./listing-panels";
 import { FixtureTag, PolicyPill, StatusPill, VerifiedEmail } from "@/components/listing-bits";
 import { KeyValue, Notice, Panel } from "@/components/ui/bits";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, buttonClass } from "@/components/ui/button";
+import { env } from "@/server/env";
+import { sellerShare, waLink } from "@/lib/whatsapp";
 import { TrackView } from "@/components/track";
 import { ShareButton } from "@/components/share-button";
 
@@ -38,6 +40,13 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
   const saved = typeof sp.saved === "string" ? SAVED[sp.saved] : undefined;
   const style = bandStyle(listing.eventId) as React.CSSProperties;
   const savings = listing.originalPricePaise !== null ? listing.originalPricePaise - listing.askingPricePaise : null;
+  // Sellers post their listing to group chats; the link still needs a campus sign-in to open.
+  const shareHref = mine
+    ? waLink(null, sellerShare({
+        eventName: listing.eventName, ticketTypeName: listing.ticketTypeName, askingPricePaise: listing.askingPricePaise,
+        quantity: listing.quantity, url: `${env().APP_URL}/listings/${listing.id}`, college: viewer.collegeShortName,
+      }))
+    : null;
 
   return (
     <>
@@ -156,6 +165,11 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
                     <ButtonLink href={`/listings/${listing.id}/edit`} variant="secondary">Edit details</ButtonLink>
                   )}
                   <OwnerActions listingId={listing.id} version={listing.version} status={status} />
+                  {status === "active" && shareHref && (
+                    <a href={shareHref} target="_blank" rel="noopener noreferrer" className={buttonClass("secondary", "md")}>
+                      <MessageCircle className="size-4" aria-hidden /> Share in your WhatsApp groups
+                    </a>
+                  )}
                 </div>
               ) : inquiry && (inquiry.status === "pending" || inquiry.status === "accepted") ? (
                 <Notice tone={inquiry.status === "accepted" ? "success" : "info"} title={inquiry.status === "accepted" ? "The seller said yes" : "Request sent"}>
@@ -167,7 +181,13 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
               ) : viewer.access !== "ok" ? (
                 <Notice tone="warning">Your account can&apos;t contact sellers right now. See your account page.</Notice>
               ) : (
-                <ContactForm listingId={listing.id} maxQuantity={listing.quantity} sellerName={listing.sellerName} />
+                <ContactForm
+                  listingId={listing.id}
+                  maxQuantity={listing.quantity}
+                  sellerName={listing.sellerName}
+                  negotiable={listing.priceNegotiable}
+                  askingPricePaise={listing.askingPricePaise}
+                />
               )}
             </div>
           </Panel>

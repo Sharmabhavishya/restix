@@ -17,6 +17,9 @@ import { Reveal } from "@/components/reveal";
 import { ALL_PHOTOS, BAND_PHOTOS, CLOSING_PHOTO } from "@/components/landing-photos";
 import Image from "next/image";
 
+// The tape strip under the hero: the rules, said the way people say them.
+const TAPE = ["spare band? sorted", "face value, fr", "₹0 fees. no cap.", "verified campus emails only", "meet somewhere public", "check the band before you pay", "report anything sus"];
+
 // One size for every section heading below the hero.
 const H2 = "text-[clamp(2rem,4vw,3.25rem)] leading-[0.95] font-bold tracking-[-0.03em] text-balance";
 
@@ -113,7 +116,10 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
           {/* The band: flat accent, bleeding off the right edge, with its snap. */}
           <div className="relative rounded-l-[48px] bg-accent py-8 pr-6 pl-6 sm:py-10 sm:pl-10 md:rounded-r-none md:pr-[max(24px,calc((100vw-1200px)/2+24px))]">
             <span aria-hidden className="absolute top-1/2 left-5 hidden size-5 -translate-y-1/2 rounded-full border-[3px] border-accent-soft/70 sm:block" />
-            <div data-ui className="rounded-[var(--radius-card)] bg-surface p-5 shadow-[0_18px_40px_-24px_rgba(56,10,30,0.55)] sm:ml-6">
+            <div data-ui className="relative rounded-[var(--radius-card)] bg-surface p-5 shadow-[0_18px_40px_-24px_rgba(56,10,30,0.55)] sm:ml-6">
+              <span className="absolute -top-4 -right-3 z-10 rotate-[8deg] rounded-full bg-sticker px-3.5 py-1.5 text-sm font-bold whitespace-nowrap text-sticker-ink sm:-right-5">
+                free. no cap.
+              </span>
               <div className="flex items-baseline justify-between gap-4">
                 <h2 className="text-base font-semibold">On the exchange right now</h2>
                 <span className="num text-[13px] text-muted">
@@ -157,8 +163,24 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
         </div>
       </section>
 
+      {/* Tape strip: the house rules as a band of sticker tape, sliding with the scroll. */}
+      <div aria-hidden className="-mx-4 -rotate-2 bg-primary py-4 text-on-primary sm:py-5">
+        <div className="tape-track flex w-max bg-primary">
+          {[0, 1].map((copy) => (
+            <div key={copy} className="flex items-center">
+              {TAPE.map((t) => (
+                <span key={t} className="flex items-center text-[clamp(1.25rem,2.6vw,2rem)] font-bold tracking-[-0.02em] whitespace-nowrap">
+                  <span className="px-6 sm:px-8">{t}</span>
+                  <span className="size-3 rounded-full border-[3px] border-accent" />
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* The fest world: real bands and real campus nights, laid end to end like one band. */}
-      <section aria-labelledby="fest-heading" className="mx-auto max-w-[1200px] px-4 pb-20 sm:px-6 md:pb-28">
+      <section aria-labelledby="fest-heading" className="mx-auto max-w-[1200px] px-4 pt-20 pb-20 sm:px-6 md:pt-28 md:pb-28">
         <div className="grid gap-5 md:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] md:items-end">
           <h2 id="fest-heading" className={H2}>every fest runs on a band.</h2>
           <p className="max-w-[42ch] text-lg leading-relaxed text-ink-soft">

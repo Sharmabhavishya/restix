@@ -99,13 +99,15 @@ export async function contactSeller(_prev: ActionState, formData: FormData): Pro
     listingId: formData.get("listingId"),
     quantity: formData.get("quantity"),
     message: formData.get("message") ?? "",
+    offer: formData.get("offer") ?? undefined,
   });
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: formValues(formData) };
-  const result = await sendInquiry(viewer!.id, parsed.data);
+  const { offer, ...rest } = parsed.data;
+  const result = await sendInquiry(viewer!.id, { ...rest, offerPaise: offer });
   if (!result.ok) return { error: result.error, values: formValues(formData) };
   revalidatePath(`/listings/${parsed.data.listingId}`);
   revalidatePath("/inquiries");
-  return { ok: true, message: "Sent. You'll see the seller's reply in Inquiries." };
+  return { ok: true, message: offer ? "Sent, with your offer. The seller can take it, counter or pass." : "Sent. You'll see the seller's reply in Inquiries." };
 }
 
 export async function reportListing(_prev: ActionState, formData: FormData): Promise<ActionState> {

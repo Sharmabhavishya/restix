@@ -16,8 +16,11 @@ Admins see aggregates at `/admin/analytics`. Code: `src/server/analytics.ts` (re
 | `listing_published` | server | listing went live or to review | whether review was needed |
 | `listing_edited` | server | seller edited | |
 | `listing_closed` | server | marked sold/unavailable or deleted | action |
-| `inquiry_created` | server | buyer's request recorded | quantity |
+| `inquiry_created` | server | buyer's request recorded | quantity, whether it came with an offer |
 | `inquiry_accepted` | server | seller shared contact | |
+| `offer_made` | server | an offer or counter was recorded | amount (paise) |
+| `offer_accepted` | server | an offer was accepted (price agreed) | amount (paise) |
+| `listing_shared` | not recorded | name reserved in the database; the WhatsApp share is a plain link and sends nothing | none |
 | `outcome_confirmed` | server | a party recorded an outcome | party, outcome |
 | `report_submitted` | server | report recorded | reason |
 | `report_resolved` | server | moderator resolved/dismissed | outcome |

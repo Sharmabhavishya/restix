@@ -55,11 +55,24 @@ export function Notice({ tone = "info", title, children, className = "" }: { ton
   );
 }
 
+/** A lone wristband, dropped at an angle: the empty-state mark. */
+function LooseBand() {
+  return (
+    <div aria-hidden className="mx-auto mb-5 flex h-9 w-40 -rotate-6 gap-[3px] motion-safe:animate-[band-float_5s_ease-in-out_infinite]">
+      <div className="flex-1 rounded-l-[var(--radius-card)] bg-accent-track" />
+      <div className="relative w-12 rounded-r-full bg-accent-field">
+        <span className="absolute top-1/2 right-2.5 size-2.5 -translate-y-1/2 rounded-full border-2 border-accent-ink/50" />
+      </div>
+    </div>
+  );
+}
+
 /** An empty block keeps its frame and says what to do next. */
 export function EmptyState({ title, children, action, className = "" }: { title: string; children?: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-[var(--radius-card)] border border-dashed border-control px-5 py-8 text-center ${className}`}>
-      <p className="font-semibold">{title}</p>
+    <div className={`rounded-[var(--radius-card)] border border-border bg-surface px-5 py-10 text-center ${className}`}>
+      <LooseBand />
+      <p className="text-lg font-semibold tracking-[-0.01em]">{title}</p>
       {children && <div className="mx-auto mt-1.5 max-w-md text-sm text-muted">{children}</div>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}
     </div>
@@ -70,8 +83,8 @@ export function PageTitle({ title, sub, actions }: { title: string; sub?: ReactN
   return (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-[-0.01em] sm:text-[32px] sm:leading-[1.15]">{title}</h1>
-        {sub && <p className="mt-1.5 max-w-2xl text-[15px] text-muted">{sub}</p>}
+        <h1 className="text-[28px] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-[40px] sm:leading-[1.05]">{title}</h1>
+        {sub && <p className="mt-2 max-w-2xl text-[15px] text-muted">{sub}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </header>

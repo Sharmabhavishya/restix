@@ -8,7 +8,9 @@ import { FORMAT_LABEL, type TicketFormat } from "@/lib/listing-rules";
 import { formatDate, relativeTime } from "@/lib/format";
 import { formatPaise } from "@/lib/money";
 import { bandStyle } from "@/lib/tint";
-import { OutcomeForm, RespondForm, SharedContact, SmallAction } from "./inquiry-panels";
+import { Bargain, OutcomeForm, RespondForm, SharedContact, SmallAction, WhatsAppSeller, type OfferView } from "./inquiry-panels";
+import { offersFor } from "@/server/offers";
+import { buyerOpener, waLink } from "@/lib/whatsapp";
 import { EmptyState, PageTitle, Panel, Pill, type Tone } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/button";
 
@@ -37,12 +39,13 @@ export default async function InquiriesPage({ searchParams }: PageProps<"/inquir
   // Opening "You asked" counts the seller replies there as seen (clears the nav badge).
   const unseen = sent.filter((r) => r.respondedAt && (r.status === "accepted" || r.status === "declined") && !r.buyerSeenAt).length;
   if (tab === "sent" && unseen > 0) await markRepliesSeen(viewer.id);
+  const offers = await offersFor(viewer.id, list.map((r) => r.id));
 
   return (
     <>
       <PageTitle
         title="Inquiries"
-        sub={waiting ? `${waiting} ${waiting === 1 ? "buyer is" : "buyers are"} waiting on you. A quick yes or no helps.` : "Requests about your listings, and the ones you've sent."}
+        sub={waiting ? `${waiting} ${waiting === 1 ? "buyer is" : "buyers are"} waiting on you. A quick yes or no helps.` : "requests about your listings, and the ones you've sent."}
       />
       <div role="tablist" aria-label="Inquiries" className="mb-5 flex gap-1 border-b border-border">
         {([["received", `For your listings (${received.length})`], ["sent", `You asked (${sent.length})${unseen && tab !== "sent" ? ` · ${unseen} new` : ""}`]] as const).map(([key, label]) => (
@@ -60,7 +63,7 @@ export default async function InquiriesPage({ searchParams }: PageProps<"/inquir
 
       {list.length === 0 ? (
         tab === "received" ? (
-          <EmptyState title="no requests yet" action={<ButtonLink href="/sell" variant="secondary">List a ticket</ButtonLink>}>
+          <EmptyState title="no one's asked yet" action={<ButtonLink href="/sell" variant="secondary">List a ticket</ButtonLink>}>
             When someone asks about one of your listings, it shows up here.
           </EmptyState>
         ) : (
@@ -70,7 +73,12 @@ export default async function InquiriesPage({ searchParams }: PageProps<"/inquir
         <ul className="flex flex-col gap-3" role="tabpanel">
           {list.map((r) => (
             <li key={r.id}>
-              <InquiryCard row={r} hasWhatsapp={Boolean(priv?.whatsappNumber)} />
+              <InquiryCard
+                row={r}
+                hasWhatsapp={Boolean(priv?.whatsappNumber)}
+                viewerName={viewer.displayName}
+                offers={(offers.get(r.id) ?? []).map((o) => ({ id: o.id, amountPaise: o.amountPaise, status: o.status, mine: o.fromUser === viewer.id }))}
+              />
             </li>
           ))}
         </ul>
@@ -79,7 +87,17 @@ export default async function InquiriesPage({ searchParams }: PageProps<"/inquir
   );
 }
 
-function InquiryCard({ row: r, hasWhatsapp }: { row: InquiryRow; hasWhatsapp: boolean }) {
+function InquiryCard({ row: r, hasWhatsapp, viewerName, offers }: { row: InquiryRow; hasWhatsapp: boolean; viewerName: string; offers: OfferView[] }) {
+  const live = r.status === "pending" || r.status === "accepted";
+  // Buyers open bargaining only on "open to offers" listings, unless the seller already made an offer.
+  const canOffer = live && r.agreedPricePaise === null && (r.role === "seller" || r.priceNegotiable || offers.some((o) => !o.mine));
+  const chat = r.role === "buyer" && r.status === "accepted" && r.sellerWhatsapp
+    ? buyerOpener({
+        buyerName: viewerName, sellerName: r.counterpartName, eventName: r.eventName, ticketTypeName: r.ticketTypeName,
+        quantity: r.quantityRequested, askingPricePaise: r.askingPricePaise, agreedPricePaise: r.agreedPricePaise,
+      })
+    : null;
+  const chatHref = chat ? waLink(r.sellerWhatsapp, chat) : null;
   const [label, tone] = STATUS[r.status];
   const style = bandStyle(r.eventId) as React.CSSProperties;
   const showOutcome = (r.status === "accepted" || r.status === "closed") && r.respondedAt && !r.myOutcome;
@@ -107,12 +125,23 @@ function InquiryCard({ row: r, hasWhatsapp }: { row: InquiryRow; hasWhatsapp: bo
           <p className="mt-1.5 text-[15px] leading-relaxed whitespace-pre-line">{r.message}</p>
         </div>
 
+        <Bargain
+          inquiryId={r.id}
+          offers={offers}
+          otherName={r.counterpartName.split(/\s+/)[0]}
+          agreedPricePaise={r.agreedPricePaise}
+          canOffer={canOffer}
+          askingPricePaise={r.askingPricePaise}
+        />
+
         {r.role === "seller" && r.status === "pending" && <RespondForm inquiryId={r.id} hasWhatsapp={hasWhatsapp} />}
 
-        {r.status === "accepted" && r.sellerContactShared && (
-          <div className="flex flex-col gap-2">
+        {r.status === "accepted" && (r.sellerContactShared || r.sellerWhatsapp) && (
+          <div className="flex flex-col gap-3">
             <p className="text-sm font-medium">{r.role === "buyer" ? "How to reach the seller" : "You shared"}</p>
-            <SharedContact text={r.sellerContactShared} />
+            {chatHref && chat && <WhatsAppSeller href={chatHref} preview={chat} />}
+            {r.role === "seller" && r.sellerWhatsapp && <p className="text-[15px] text-positive-ink">Your WhatsApp number, with this buyer only.</p>}
+            {r.sellerContactShared && <SharedContact text={r.sellerContactShared} />}
             {r.role === "buyer" && (
               <p className="text-[13px] text-muted">Meet somewhere public on campus. Check the ticket before you pay. ResTix can&apos;t recover money sent in advance.</p>
             )}

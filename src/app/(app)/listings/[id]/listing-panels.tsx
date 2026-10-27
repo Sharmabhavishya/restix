@@ -9,8 +9,9 @@ import { Field, Select, Textarea, Input, describedBy } from "@/components/ui/fie
 import { Notice } from "@/components/ui/bits";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { buttonClass } from "@/components/ui/button";
+import { formatPaise } from "@/lib/money";
 
-export function ContactForm({ listingId, maxQuantity, sellerName }: { listingId: string; maxQuantity: number; sellerName: string }) {
+export function ContactForm({ listingId, maxQuantity, sellerName, negotiable, askingPricePaise }: { listingId: string; maxQuantity: number; sellerName: string; negotiable: boolean; askingPricePaise: number }) {
   const [state, action] = useActionState(contactSeller, initialState);
   const fe = state.fieldErrors ?? {};
   if (state.ok) {
@@ -37,6 +38,17 @@ export function ContactForm({ listingId, maxQuantity, sellerName }: { listingId:
         </Field>
       )}
       {maxQuantity === 1 && <input type="hidden" name="quantity" value="1" />}
+      {negotiable && (
+        <Field
+          label="Make an offer (₹)"
+          htmlFor="offer"
+          optional
+          error={fe.offer}
+          hint={`Per ticket. Leave it blank to ask at ${formatPaise(askingPricePaise)}. Can't go above the asking price.`}
+        >
+          <Input id="offer" name="offer" inputMode="decimal" placeholder={String(Math.round((askingPricePaise * 0.9) / 100))} defaultValue={state.values?.offer ?? ""} className="w-36" {...describedBy("offer", fe.offer, true)} />
+        </Field>
+      )}
       <SubmitButton size="lg" pendingLabel="Sending…">Ask the seller</SubmitButton>
     </form>
   );

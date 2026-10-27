@@ -40,7 +40,9 @@ export default defineConfig({
       timeout: 120_000,
       env: {
         DATABASE_URL: `postgres://postgres:postgres@127.0.0.1:${DB_PORT}/postgres`,
-        DB_POOL_MAX: "4",
+        // PGlite is a single session behind the socket; one pooled connection keeps concurrent
+        // transactions from interleaving there (real Postgres doesn't need this).
+        DB_POOL_MAX: "1",
         APP_URL: `http://localhost:${APP_PORT}`,
         AUTH_MODE: "dev",
         RESTIX_LOCAL_PROD_TEST: "1",

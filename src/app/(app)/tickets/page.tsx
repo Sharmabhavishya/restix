@@ -7,13 +7,14 @@ import { listUpcomingEvents } from "@/server/events";
 import { activeFilterCount, parseFilters, withParams, type RawParams } from "@/lib/search-params";
 import { FORMAT_LABEL } from "@/lib/listing-rules";
 import { paiseToInput } from "@/lib/money";
-import { toLocalInput } from "@/lib/format";
+import { firstName, toLocalInput } from "@/lib/format";
 import { EVENT_CATEGORIES } from "@/server/event-admin";
 import { Wristband } from "@/components/wristband";
 import { EmptyState, PageTitle } from "@/components/ui/bits";
 import { ButtonLink, buttonClass } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { TrackView } from "@/components/track";
+import { CountTile } from "@/components/ui/count-tile";
 
 export const metadata: Metadata = { title: "Find tickets" };
 
@@ -40,8 +41,8 @@ export default async function TicketsPage({ searchParams }: PageProps<"/tickets"
         title="Find tickets"
         sub={
           totalAll === 0 && filters === 0
-            ? "Nothing listed right now. Check back closer to the next fest."
-            : `${totalAll.toLocaleString("en-IN")} ${totalAll === 1 ? "listing" : "listings"} live from ${viewer.collegeShortName} students.`
+            ? `hey ${firstName(viewer.displayName)}, nothing's listed rn. check back closer to the next fest.`
+            : `hey ${firstName(viewer.displayName)}, ${totalAll.toLocaleString("en-IN")} ${totalAll === 1 ? "listing is" : "listings are"} live from ${viewer.collegeShortName} students rn.`
         }
         actions={<ButtonLink href="/sell">Sell a ticket</ButtonLink>}
       />
@@ -55,17 +56,13 @@ export default async function TicketsPage({ searchParams }: PageProps<"/tickets"
           const selected = (f.format ?? "") === value;
           const count = value ? counts[value] ?? 0 : totalAll;
           return (
-            <Link
+            <CountTile
               key={label}
               href={`/tickets${withParams(sp, { format: value || undefined, page: undefined })}`}
-              aria-current={selected ? "page" : undefined}
-              className={`flex min-w-28 flex-none flex-col justify-center rounded-[var(--radius-card)] border px-3 py-2.5 transition-colors duration-150 sm:min-w-0 ${
-                selected ? "border-accent bg-accent-soft ring-[0.5px] ring-accent" : "border-border bg-surface hover:border-control"
-              }`}
-            >
-              <span className={`text-[13px] ${selected ? "text-accent-ink" : "text-muted"}`}>{label}</span>
-              <span className="num text-base font-semibold">{count.toLocaleString("en-IN")}</span>
-            </Link>
+              label={label}
+              count={count}
+              selected={selected}
+            />
           );
         })}
       </nav>
@@ -113,7 +110,7 @@ export default async function TicketsPage({ searchParams }: PageProps<"/tickets"
                 Try fewer filters, or check the event page; new listings show up there first.
               </EmptyState>
             ) : (
-              <EmptyState title="no tickets up right now" action={<ButtonLink href="/sell">List yours</ButtonLink>}>
+              <EmptyState title="it's quiet. too quiet." action={<ButtonLink href="/sell">List yours</ButtonLink>}>
                 Got a spare wristband or ticket you can&apos;t use? Be the first to list it.
               </EmptyState>
             )

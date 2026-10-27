@@ -4,6 +4,7 @@ import { asUser, pgCode, PG } from "./db";
 import { track } from "./analytics";
 import { allow } from "./rate-limit";
 import { displayStatus, getListing } from "./listings";
+import { insertOffer, offerError } from "./offers";
 
 export type InquiryStatus = "pending" | "accepted" | "declined" | "withdrawn" | "closed";
 export type Outcome = "completed" | "not_completed" | "disputed";
@@ -19,6 +20,10 @@ export interface InquiryRow {
   quantityRequested: number;
   status: InquiryStatus;
   sellerContactShared: string | null;
+  /** Seller's number in E.164, set only when they chose to share it on accepting. */
+  sellerWhatsapp: string | null;
+  agreedPricePaise: number | null;
+  priceNegotiable: boolean;
   createdAt: Date;
   respondedAt: Date | null;
   buyerSeenAt: Date | null;
@@ -34,7 +39,7 @@ export interface InquiryRow {
 
 type Result = { ok: true; message?: string } | { ok: false; error: string };
 
-export async function sendInquiry(viewerId: string, input: { listingId: string; quantity: number; message: string }): Promise<Result> {
+export async function sendInquiry(viewerId: string, input: { listingId: string; quantity: number; message: string; offerPaise?: number | null }): Promise<Result> {
   if (!(await allow("inquiryBurst", viewerId)) || !(await allow("inquiry", viewerId))) {
     return { ok: false, error: "You've contacted a lot of sellers in a short time. Please wait a while before sending another." };
   }
@@ -46,12 +51,19 @@ export async function sendInquiry(viewerId: string, input: { listingId: string; 
     return { ok: false, error: `The seller is offering ${listing.quantity} ticket${listing.quantity === 1 ? "" : "s"}.` };
   }
   try {
-    await asUser(viewerId, (tx) => tx`
-      insert into restix.inquiries (listing_id, buyer_id, seller_id, message, quantity_requested)
-      values (${listing.id}, ${viewerId}, ${listing.sellerId}, ${input.message}, ${input.quantity})`);
-    await track("inquiry_created", { userId: viewerId, listingId: listing.id, eventId: listing.eventId, props: { quantity: input.quantity } });
+    await asUser(viewerId, async (tx) => {
+      const [row] = await tx<{ id: string }[]>`
+        insert into restix.inquiries (listing_id, buyer_id, seller_id, message, quantity_requested)
+        values (${listing.id}, ${viewerId}, ${listing.sellerId}, ${input.message}, ${input.quantity}) returning id`;
+      // An opening offer goes in the same transaction: if it breaks a rule, nothing is sent.
+      if (input.offerPaise) await insertOffer(tx, viewerId, row.id, input.offerPaise);
+    });
+    await track("inquiry_created", { userId: viewerId, listingId: listing.id, eventId: listing.eventId, props: { quantity: input.quantity, with_offer: Boolean(input.offerPaise) } });
+    if (input.offerPaise) await track("offer_made", { userId: viewerId, listingId: listing.id, props: { amount_paise: input.offerPaise } });
     return { ok: true };
   } catch (err) {
+    const why = offerError(err);
+    if (why) return { ok: false, error: why };
     if (pgCode(err) === PG.uniqueViolation) return { ok: false, error: "You've already contacted this seller about this listing. Check your inquiries." };
     if (pgCode(err) === PG.insufficientPrivilege) return { ok: false, error: "This listing isn't available any more." };
     console.error("inquiry failed", err instanceof Error ? err.message : err);
@@ -65,7 +77,8 @@ export async function inbox(viewerId: string): Promise<InquiryRow[]> {
            case when i.seller_id = ${viewerId} then 'seller' else 'buyer' end as role,
            case when i.seller_id = ${viewerId} then b.display_name else s.display_name end as counterpart_name,
            case when i.seller_id = ${viewerId} then i.buyer_id else i.seller_id end as counterpart_id,
-           i.message, i.quantity_requested, i.status, i.seller_contact_shared, i.created_at, i.responded_at,
+           i.message, i.quantity_requested, i.status, i.seller_contact_shared, i.seller_whatsapp, i.agreed_price_paise,
+           l.price_negotiable, i.created_at, i.responded_at,
            case when i.buyer_id = ${viewerId} and (i.buyer_seen_at is null or i.buyer_seen_at < i.responded_at) then null else coalesce(i.buyer_seen_at, i.created_at) end as buyer_seen_at,
            e.name as event_name, e.starts_at as event_starts_at, t.name as ticket_type_name, l.format,
            l.asking_price_paise,
@@ -94,11 +107,6 @@ export async function myInquiryFor(viewerId: string, listingId: string) {
   return row ?? null;
 }
 
-export function whatsappLink(e164: string, listingLabel: string): string {
-  const text = encodeURIComponent(`Hi! About your ResTix listing: ${listingLabel}`);
-  return `https://wa.me/${e164.replace(/^\+/, "")}?text=${text}`;
-}
-
 export async function respondToInquiry(
   viewerId: string,
   input: { inquiryId: string; decision: "accept" | "decline"; shareWhatsapp: boolean; note: string | null },
@@ -106,13 +114,10 @@ export async function respondToInquiry(
   if (!(await allow("respond", viewerId))) return { ok: false, error: "Too many responses in a short time. Wait a few minutes." };
   try {
     const result = await asUser(viewerId, async (tx): Promise<Result & { listingId?: string }> => {
-      const [inq] = await tx<{ status: InquiryStatus; sellerId: string; listingId: string; eventName: string; ticketTypeName: string; whatsapp: string | null }[]>`
-        select i.status, i.seller_id, i.listing_id, e.name as event_name, t.name as ticket_type_name,
+      const [inq] = await tx<{ status: InquiryStatus; sellerId: string; listingId: string; whatsapp: string | null }[]>`
+        select i.status, i.seller_id, i.listing_id,
                (select whatsapp_number from restix.profile_private where user_id = ${viewerId}) as whatsapp
         from restix.inquiries i
-        join restix.ticket_listings l on l.id = i.listing_id
-        join restix.events e on e.id = l.event_id
-        join restix.ticket_types t on t.id = l.ticket_type_id
         where i.id = ${input.inquiryId} for update of i`;
       if (!inq || inq.sellerId !== viewerId) return { ok: false, error: "Inquiry not found." };
       if (inq.status !== "pending") return { ok: false, error: "This inquiry has already been answered or closed." };
@@ -121,14 +126,14 @@ export async function respondToInquiry(
         await tx`update restix.inquiries set status = 'declined', responded_at = now() where id = ${input.inquiryId}`;
         return { ok: true };
       }
-      const parts: string[] = [];
-      if (input.shareWhatsapp) {
-        if (!inq.whatsapp) return { ok: false, error: "Add your WhatsApp number on your account page first, or write how to reach you instead." };
-        parts.push(whatsappLink(inq.whatsapp, `${inq.eventName} (${inq.ticketTypeName})`));
+      if (input.shareWhatsapp && !inq.whatsapp) {
+        return { ok: false, error: "Add your WhatsApp number on your account page first, or write how to reach you instead." };
       }
-      if (input.note) parts.push(input.note);
-      if (parts.length === 0) return { ok: false, error: "Share your WhatsApp or write how the buyer can reach you." };
-      await tx`update restix.inquiries set status = 'accepted', seller_contact_shared = ${parts.join("\n")}, responded_at = now()
+      // The number is stored on its own; the chat link and its opening message are built when shown.
+      const whatsapp = input.shareWhatsapp ? inq.whatsapp : null;
+      if (!whatsapp && !input.note) return { ok: false, error: "Share your WhatsApp or write how the buyer can reach you." };
+      await tx`update restix.inquiries
+               set status = 'accepted', seller_whatsapp = ${whatsapp}, seller_contact_shared = ${input.note}, responded_at = now()
                where id = ${input.inquiryId}`;
       return { ok: true, listingId: inq.listingId };
     });

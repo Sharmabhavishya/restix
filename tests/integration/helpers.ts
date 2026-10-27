@@ -55,14 +55,14 @@ export async function makeEvent(over: { policy?: string; status?: string; colleg
   });
 }
 
-export async function makeListing(sellerId: string, over: { status?: string; eventId?: string; ticketTypeId?: string } = {}) {
+export async function makeListing(sellerId: string, over: { status?: string; eventId?: string; ticketTypeId?: string; negotiable?: boolean } = {}) {
   const ev = over.eventId ? { eventId: over.eventId, ticketTypeId: over.ticketTypeId! } : await makeEvent();
   return db.asSystem(async (tx) => {
     const [l] = await tx<{ id: string }[]>`
       insert into restix.ticket_listings (event_id, ticket_type_id, seller_id, format, quantity, asking_price_paise,
-        handover_method, status, expires_at)
+        handover_method, status, expires_at, price_negotiable)
       values (${ev.eventId}, ${ev.ticketTypeId}, ${sellerId}, 'wristband', 1, 50000, 'in_person',
-              ${over.status ?? "active"}, now() + interval '5 days')
+              ${over.status ?? "active"}, now() + interval '5 days', ${over.negotiable ?? false})
       returning id`;
     return { listingId: l.id, ...ev };
   });

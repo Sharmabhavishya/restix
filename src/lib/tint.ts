@@ -1,7 +1,8 @@
 // Every event gets a stable identity tint, like the coloured wristbands each fest prints.
 // Pale, never the accent, never violet/indigo (house rule). Identity, not data.
-// Spaced 60-130 degrees apart so neighbouring events read as different bands.
-const HUES = [350, 75, 150, 215] as const;
+// Six hues (pink, coral, butter, mint, aqua, sky) so a week of events reads like a stack of
+// different bands rather than two colours taking turns.
+const HUES = [350, 30, 85, 150, 190, 230] as const;
 
 function hash(s: string): number {
   let h = 2166136261;
@@ -20,8 +21,8 @@ export function eventHue(eventId: string): number {
 export function bandStyle(eventId: string): Record<string, string> {
   const h = eventHue(eventId);
   return {
-    "--band": `light-dark(oklch(0.962 0.03 ${h}), oklch(0.25 0.035 ${h}))`,
-    "--band-strong": `light-dark(oklch(0.905 0.06 ${h}), oklch(0.32 0.06 ${h}))`,
+    "--band": `light-dark(oklch(0.96 0.038 ${h}), oklch(0.25 0.04 ${h}))`,
+    "--band-strong": `light-dark(oklch(0.9 0.075 ${h}), oklch(0.33 0.07 ${h}))`,
     "--band-ink": `light-dark(oklch(0.36 0.07 ${h}), oklch(0.84 0.06 ${h}))`,
   };
 }

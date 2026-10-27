@@ -96,6 +96,24 @@ export const listingInput = z
   });
 export type ListingInput = z.output<typeof listingInput>;
 
+// An offer in rupees, per ticket. Blank means "no offer" where the field is optional.
+const offerAmount = (required: boolean) =>
+  z
+    .string()
+    .optional()
+    .transform((v, ctx) => {
+      if (!v || !v.trim()) {
+        if (required) ctx.addIssue({ code: "custom", message: "Enter your offer in rupees, like 750." });
+        return null;
+      }
+      const paise = parseRupees(v);
+      if (paise === null || paise < 100) {
+        ctx.addIssue({ code: "custom", message: "Enter your offer in rupees, like 750." });
+        return z.NEVER;
+      }
+      return paise;
+    });
+
 export const inquiryInput = z.object({
   listingId: z.uuid(),
   quantity: z.coerce.number().int().min(1).max(10),
@@ -103,6 +121,12 @@ export const inquiryInput = z.object({
     .string()
     .transform(cleanText)
     .pipe(z.string().min(10, "Write at least a short note (10+ characters).").max(1000, "Keep it under 1000 characters.")),
+  offer: offerAmount(false),
+});
+
+export const offerInput = z.object({
+  inquiryId: z.uuid(),
+  amount: offerAmount(true),
 });
 
 export const REPORT_REASONS = {

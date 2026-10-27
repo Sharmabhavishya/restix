@@ -22,7 +22,7 @@ export default async function EventsPage() {
 
   return (
     <>
-      <PageTitle title="Events" sub={`What's coming up at ${viewer.collegeShortName}, and whether tickets can be resold.`} />
+      <PageTitle title="Events" sub={`what's coming up at ${viewer.collegeShortName}, and whether you can resell for it.`} />
       {events.length === 0 ? (
         <EmptyState title="no upcoming events yet">Moderators add events as they&apos;re announced. Check back soon.</EmptyState>
       ) : (

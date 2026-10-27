@@ -94,3 +94,20 @@ ResTix). Update after every milestone; newest log entries last.
   clipped text even when overflow is hidden.
 - Found my own UI promising a feature that didn't exist ("report a missing event"): built event
   suggestions (migration, RLS, student form, moderator queue, 3 integration tests).
+- Landing: credited open-licence fest photos as one band under the hero (to be replaced by the
+  owner's own concert photos), aligned safety tiles, a scroll-driven tape strip, a sticker.
+- UI pass for a Gen Z feel: six event tints, bigger titles and filled count tiles, hover lift on
+  bands, a dropped-band empty state, greetings, a "next up" countdown card in the sidebar.
+- Found in dev: the persistent local DB had missed two migrations (pages 500'd); applied them.
+- Bargaining (owner request): `offers` table with RLS and triggers (one open offer, never above
+  asking or face value, only the other side accepts, agreed price only via an accepted offer),
+  counters and deals in the inbox, an optional opening offer on the request. 6 integration
+  tests (mostly attacks) and an E2E.
+- WhatsApp hand-off (owner request): seller's number stored separately and only shared on accept;
+  the buyer's button opens a chat with the message pre-written; sellers get a group-chat post.
+- Watermark (owner request): `npm run photos` stamps the ResTix mark on the owner's photos and
+  strips EXIF/GPS. Tested on pixels and metadata.
+- E2E server now uses one DB connection: PGlite is one session, and concurrent transactions
+  through the pool occasionally interleaved (`UNSAFE_TRANSACTION`). Real Postgres unaffected.
+- axe caught two new contrast failures (tape strip text past its background; 85% white on the
+  accent tile); fixed.

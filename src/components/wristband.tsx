@@ -57,7 +57,7 @@ export function Wristband({
         </p>
         <p className="truncate text-[13px] text-[var(--band-ink)]">{meta.join(" · ")}</p>
       </div>
-      <div className="relative flex w-[7.5rem] flex-none flex-col items-end justify-center gap-0.5 rounded-r-full bg-[var(--band-strong)] py-3 pr-8 pl-4 transition-transform duration-200 ease-[var(--ease-out-expo)] group-hover:translate-x-1 sm:w-36">
+      <div className="relative flex w-[7.5rem] flex-none flex-col items-end justify-center gap-0.5 rounded-r-full bg-[var(--band-strong)] py-3 pr-8 pl-4 transition-transform duration-200 ease-[var(--ease-out-expo)] motion-safe:group-hover:translate-x-1 motion-safe:group-hover:-rotate-2 sm:w-36">
         {/* the snap */}
         <span aria-hidden className="absolute top-1/2 right-3 size-2.5 -translate-y-1/2 rounded-full border-2 border-[var(--band-ink)] opacity-50" />
         {status && status !== "active" ? (
@@ -80,7 +80,7 @@ export function Wristband({
         <Link
           href={href}
           style={style}
-          className="group flex min-w-0 flex-1 gap-[3px] rounded-[var(--radius-card)] focus-visible:outline-offset-4"
+          className="group flex min-w-0 flex-1 gap-[3px] rounded-[var(--radius-card)] transition-transform duration-200 ease-[var(--ease-out-expo)] focus-visible:outline-offset-4 motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.99]"
         >
           {body}
         </Link>

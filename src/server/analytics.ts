@@ -7,6 +7,7 @@ export const ANALYTICS_EVENTS = [
   "inquiry_started", "inquiry_created", "inquiry_accepted",
   "outcome_confirmed", "report_submitted", "report_resolved",
   "email_verified", "signed_in",
+  "offer_made", "offer_accepted", "listing_shared",
 ] as const;
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
 

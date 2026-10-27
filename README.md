@@ -18,6 +18,17 @@ ResTix connects people. It never handles money: no payments, no fees, no escrow,
 - **Discovery.** Search, filters (event, kind, format, price, date), sorting, pagination.
 - **Requests, not chat.** A buyer asks; the seller accepts and chooses what to share (their
   WhatsApp or a note) with that buyer only. Both sides can record how it went.
+- **Bargaining in the app.** On "open to offers" listings the buyer can send an offer with the
+  request; then either side counters, takes or passes until a price is agreed. Rules (never above
+  the asking price or face value, only the other side accepts) live in the database. It records a
+  number; money still changes hands in person.
+- **WhatsApp hand-off.** Once the seller shares their number, the buyer's "Message on WhatsApp"
+  opens a chat with the first message written (which ticket, the listed and agreed price).
+  Sellers get a ready-made post for their group chats. Numbers are never public.
+- **Feels like campus.** Event tints, a countdown to the next event, casual copy where it fits
+  and plain words for money, safety and errors. Light and dark mode.
+- **Own photos, watermarked.** `npm run photos` stamps the ResTix mark on event photos and
+  strips their metadata (GPS, device) before they go on the site.
 - **Trust and safety.** Reports with priorities, a moderation queue, hide/remove/restore,
   restrict/suspend/reinstate, appeals, and an append-only audit log.
 - **Honest analytics.** First-party events and an admin dashboard: adoption, listings,

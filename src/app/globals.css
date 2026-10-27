@@ -43,6 +43,9 @@
   --color-notice-soft: #fffbeb;
   --color-notice-line: #fde68a;
   --color-notice-ink: #92400e;
+  /* Stickers stay butter-yellow in both schemes, like the real thing. */
+  --color-sticker: #ffd84d;
+  --color-sticker-ink: #2e2300;
 
   --font-sans: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
 
@@ -216,6 +219,27 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   transform: none;
   transition: opacity 640ms var(--ease-out-expo), transform 760ms var(--ease-out-expo);
   transition-delay: calc(var(--i, 0) * 75ms);
+}
+
+/* The empty-state band bobs a little, like it was just dropped. */
+@keyframes band-float {
+  0%, 100% { transform: rotate(-6deg) translateY(0); }
+  50% { transform: rotate(-4deg) translateY(-4px); }
+}
+
+/* The landing's tape strip slides as the page scrolls (scroll-driven, so it never moves on its
+   own); browsers without scroll timelines show it still. */
+@keyframes tape {
+  to { transform: translateX(-50%); }
+}
+@supports (animation-timeline: scroll()) {
+  .tape-track {
+    animation: tape linear both;
+    animation-timeline: scroll(root);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tape-track { animation: none !important; }
 }
 
 /* Rows that arrive (a new inquiry, a saved listing) settle in; content is visible without it. */

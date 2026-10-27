@@ -15,7 +15,8 @@ Postgres. Source of truth: `supabase/migrations/*.sql`, applied in filename orde
 | `events` | Event, schedule, status, **transfer policy** + source | `is_fixture` marks sample data |
 | `ticket_types` | Per-event ticket types with face value | |
 | `ticket_listings` | The listing: format, quantity, prices (paise), handover, status, expiry, `version` | |
-| `inquiries` | Buyer -> seller request; `seller_contact_shared` on accept | `seller_id` denormalised for RLS |
+| `inquiries` | Buyer -> seller request; on accept the seller shares `seller_whatsapp` (E.164) and/or a `seller_contact_shared` note; `agreed_price_paise` once an offer is accepted | `seller_id` denormalised for RLS |
+| `offers` | Bargaining on an inquiry: who offered how much, and what happened (`open/accepted/declined/superseded/withdrawn`) | one open offer per inquiry; parties (and that college's moderators) read |
 | `transaction_confirmations` | Each party's private outcome | one per party per inquiry |
 | `reports` | Reports with a snapshot of the listing at report time | priority set by trigger |
 | `moderation_actions` | Append-only audit log | no update/delete grants |
@@ -67,7 +68,16 @@ All tables have RLS enabled. Policies use helper functions (SECURITY DEFINER, fi
   publish from review, or touch review fields.
 - `guard_listing_insert`: new listings start as draft/pending/active only.
 - `guard_inquiry_update`: content immutable; buyers may only withdraw; sellers may only
-  accept/decline/close; withdrawn/declined can't reopen.
+  accept/decline/close; withdrawn/declined can't reopen; only the seller sets `seller_whatsapp`;
+  `agreed_price_paise` only changes through an accepted offer (never written directly, no grant).
+- `prepare_offer` (before insert on `offers`): the maker is a party and offers in their own
+  name; the conversation is open, the listing active and no price agreed yet; the amount is at
+  most the asking price and, on face-value events, at most the face value; a buyer can only open
+  bargaining on a listing marked "open to offers" (a seller can always offer); the previous open
+  offer becomes `superseded`.
+- `guard_offer_update`: amounts and makers are immutable; only the other party accepts or
+  declines; only the maker withdraws; answered offers stay answered. `apply_accepted_offer`
+  copies an accepted amount onto the inquiry.
 - `guard_profile_update`: only moderators change status; nobody changes their own status.
 - `set_report_priority`: priority comes from the reason.
 

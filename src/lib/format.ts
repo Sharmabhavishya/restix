@@ -40,6 +40,25 @@ export function relativeTime(d: Date, now = new Date()): string {
   return "just now";
 }
 
+const hour24 = new Intl.DateTimeFormat("en-GB", { timeZone: TIME_ZONE, hour: "2-digit", hour12: false });
+const isoDay = new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" });
+
+/** Whole campus-calendar days from `now` to `d` (0 = same IST date). */
+export function daysUntil(d: Date, now = new Date()): number {
+  const day = (x: Date) => Date.parse(`${isoDay.format(x)}T00:00:00Z`);
+  return Math.round((day(d) - day(now)) / 86_400_000);
+}
+
+/** How soon an event is, said casually: "tonight", "tomorrow", "in 5 days", "in 3 weeks". */
+export function countdown(d: Date, now = new Date()): string {
+  if (d.getTime() <= now.getTime()) return "happening now";
+  const days = daysUntil(d, now);
+  if (days === 0) return Number(hour24.format(d)) >= 17 ? "tonight" : "today";
+  if (days === 1) return "tomorrow";
+  if (days < 14) return `in ${days} days`;
+  return `in ${Math.round(days / 7)} weeks`;
+}
+
 /** Value for <input type="datetime-local"> in campus time. */
 export function toLocalInput(d: Date | null | undefined): string {
   if (!d) return "";
@@ -55,6 +74,11 @@ export function fromLocalInput(value: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
   const d = new Date(`${value}:00+05:30`);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** First word of a display name, for greetings. */
+export function firstName(displayName: string): string {
+  return displayName.trim().split(/\s+/)[0] || "there";
 }
 
 export function plural(n: number, one: string, many = `${one}s`): string {

@@ -63,7 +63,16 @@ DENY, nosniff, Referrer-Policy, Permissions-Policy, COOP, HSTS when served over 
 **Privacy**
 Emails and WhatsApp numbers live in `profile_private` (owner + moderators of that college).
 Status reasons are owner/moderator only. Analytics hold no IPs, search text or names. Logs
-record error messages, not personal data.
+record error messages, not personal data. A seller's number reaches one buyer only, copied onto
+that inquiry when they accept with "share my WhatsApp" (`inquiries.seller_whatsapp`, readable by
+the two parties); chat links are built from it at render time and only for well-formed E.164
+numbers. Owner photos go through `npm run photos`, which drops EXIF (GPS, device, time).
+
+**Bargaining**
+Offers carry no payment and move no money. The database decides what's allowed (see
+DATABASE.md, `prepare_offer` / `guard_offer_update`): parties only, in their own name, never above
+the asking price or face value, one open offer, only the other side accepts, and the agreed price
+can't be written directly. Offers are rate limited (40/hour per account).
 
 ## Security review (27 Oct 2026)
 

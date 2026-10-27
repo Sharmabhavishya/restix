@@ -4,6 +4,8 @@ import type { Viewer } from "@/server/auth/viewer";
 import { pendingInquiryCount } from "@/server/profile";
 import { unseenReplies } from "@/server/inquiries";
 import { queueCounts } from "@/server/moderation";
+import { listUpcomingEvents } from "@/server/events";
+import { NextUp } from "./next-up";
 import { signOut } from "@/app/auth/actions";
 import { MobileBar, Sidebar, type NavGroup } from "./nav";
 import { Notice } from "../ui/bits";
@@ -67,9 +69,15 @@ function UserFooter({ viewer }: { viewer: Viewer }) {
 }
 
 export async function AppShell({ viewer, children }: { viewer: Viewer; children: ReactNode }) {
-  const groups = await navFor(viewer);
+  const [groups, upcoming] = await Promise.all([navFor(viewer), listUpcomingEvents(viewer.id).catch(() => [])]);
   const scope = `${viewer.collegeShortName || "Campus"} exchange`;
-  const footer = <UserFooter viewer={viewer} />;
+  const next = upcoming.find((e) => e.status === "scheduled" || e.status === "postponed");
+  const footer = (
+    <div className="flex flex-col gap-4">
+      {next && <NextUp event={next} />}
+      <UserFooter viewer={viewer} />
+    </div>
+  );
   return (
     <div className="flex min-h-dvh">
       <a href="#main" className="sr-only z-50 rounded bg-surface px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2">

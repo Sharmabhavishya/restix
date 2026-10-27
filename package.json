@@ -16,7 +16,8 @@
     "db:reset": "tsx scripts/local-db.ts --reset",
     "db:migrate": "tsx scripts/migrate.ts",
     "admin:grant": "tsx scripts/grant-role.ts",
-    "college:add": "tsx scripts/add-college.ts"
+    "college:add": "tsx scripts/add-college.ts",
+    "photos": "tsx scripts/import-photos.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

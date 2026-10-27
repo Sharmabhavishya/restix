@@ -9,7 +9,7 @@ export default defineConfig({
     projects: [
       {
         resolve: { alias },
-        test: { name: "unit", include: ["src/**/*.test.ts"], environment: "node" },
+        test: { name: "unit", include: ["src/**/*.test.ts", "scripts/**/*.test.ts"], environment: "node" },
       },
       {
         resolve: { alias },
