@@ -7,6 +7,8 @@ process.env.ALLOWED_EMAIL_DOMAINS = "snu.edu.in";
 process.env.AUTH_MODE = "dev";
 process.env.DEV_AUTH_SECRET = "test-secret-test-secret-test-secret-123";
 process.env.DB_POOL_MAX = "4";
+process.env.TEST_EMAILS = "tester.one@gmail.com";
+process.env.DEFAULT_COLLEGE_SLUG = "test-college";
 
 export const db = await import("@/server/db");
 

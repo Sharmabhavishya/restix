@@ -15,7 +15,7 @@ import { supabaseServer } from "@/server/auth/supabase";
 export async function signInWithGoogle(formData: FormData) {
   const next = safeNext(formData.get("next"));
   if (!supabaseAuthConfigured()) redirect("/sign-in?error=not_configured");
-  const { APP_URL, allowedDomains } = env();
+  const { APP_URL, allowedDomains, testEmails } = env();
   let url: string | null = null;
   try {
     const supabase = await supabaseServer();
@@ -25,7 +25,8 @@ export async function signInWithGoogle(formData: FormData) {
         redirectTo: `${APP_URL}/auth/callback?next=${encodeURIComponent(next)}`,
         // A hint that steers Google's account picker to the campus domain. It is not a
         // security boundary: the callback enforces the domain from Supabase's verified data.
-        queryParams: { prompt: "select_account", ...(allowedDomains.length === 1 ? { hd: allowedDomains[0] } : {}) },
+        // Not while testers are allowed in: the hint would hide their personal accounts.
+        queryParams: { prompt: "select_account", ...(allowedDomains.length === 1 && testEmails.length === 0 ? { hd: allowedDomains[0] } : {}) },
       },
     });
     if (!error) url = data.url;

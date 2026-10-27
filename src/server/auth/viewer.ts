@@ -79,7 +79,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
       status: "active", statusReason: null, onboarded: false, role: null, access: "no_profile" };
   }
   // Re-checked on every request, so removing a domain from the allowlist revokes access immediately.
-  const access: Access = !isAllowedEmail(identity.email, env().allowedDomains)
+  const access: Access = !isAllowedEmail(identity.email, env().allowedDomains, env().testEmails)
     ? "domain_not_allowed"
     : row.emailVerifiedAt === null
       ? "unverified"

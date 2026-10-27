@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { parseDomainList } from "@/lib/email-domain";
+import { parseDomainList, parseEmailList } from "@/lib/email-domain";
 
 const schema = z
   .object({
@@ -11,6 +11,8 @@ const schema = z
     NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
     ALLOWED_EMAIL_DOMAINS: z.string().min(1, "ALLOWED_EMAIL_DOMAINS is required"),
+    // Temporary: exact non-college addresses allowed in for testing (comma-separated). Delete to switch off.
+    TEST_EMAILS: z.string().optional(),
     DEFAULT_COLLEGE_SLUG: z.string().optional(),
     DEV_AUTH_SECRET: z.string().optional(),
     // Lets a local `next start` use dev sign-in for Lighthouse/E2E runs. Refused on Vercel.
@@ -22,7 +24,7 @@ const schema = z
     }
   });
 
-export type Env = z.infer<typeof schema> & { allowedDomains: string[] };
+export type Env = z.infer<typeof schema> & { allowedDomains: string[]; testEmails: string[] };
 
 let cached: Env | undefined;
 
@@ -34,7 +36,11 @@ export function env(): Env {
     const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new Error(`Invalid server configuration: ${issues}`);
   }
-  cached = { ...parsed.data, allowedDomains: parseDomainList(parsed.data.ALLOWED_EMAIL_DOMAINS) };
+  cached = {
+    ...parsed.data,
+    allowedDomains: parseDomainList(parsed.data.ALLOWED_EMAIL_DOMAINS),
+    testEmails: parseEmailList(parsed.data.TEST_EMAILS),
+  };
   return cached;
 }
 

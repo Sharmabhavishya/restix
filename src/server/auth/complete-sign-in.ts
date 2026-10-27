@@ -30,13 +30,16 @@ function defaultDisplayName(identity: ProviderIdentity): string {
  */
 export async function completeSignIn(identity: ProviderIdentity): Promise<SignInResult> {
   if (!identity.emailVerified) return { ok: false, reason: "unverified_email" };
-  if (!isAllowedEmail(identity.email, env().allowedDomains)) return { ok: false, reason: "domain_not_allowed" };
+  const { allowedDomains, testEmails, DEFAULT_COLLEGE_SLUG } = env();
+  if (!isAllowedEmail(identity.email, allowedDomains, testEmails)) return { ok: false, reason: "domain_not_allowed" };
   const domain = emailDomain(identity.email)!;
   const email = identity.email.trim().toLowerCase();
 
   const result = await asSystem(async (tx) => {
-    const [college] = await tx<{ collegeId: string }[]>`
-      select college_id from restix.college_email_domains where domain = ${domain}`;
+    // A tester's domain belongs to no college; they join the default one.
+    const [college] = allowedDomains.includes(domain)
+      ? await tx<{ collegeId: string }[]>`select college_id from restix.college_email_domains where domain = ${domain}`
+      : await tx<{ collegeId: string }[]>`select id as college_id from restix.colleges where slug = ${DEFAULT_COLLEGE_SLUG ?? ""}`;
     if (!college) return { ok: false as const, reason: "college_not_configured" as const };
 
     const [existing] = await tx<{ emailVerifiedAt: Date | null; onboardedAt: Date | null }[]>`

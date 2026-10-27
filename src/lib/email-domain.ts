@@ -25,7 +25,20 @@ export function emailDomain(email: string): string | null {
   return DOMAIN_RE.test(domain) ? domain : null;
 }
 
-export function isAllowedEmail(email: string, allowedDomains: readonly string[]): boolean {
+/**
+ * Exact addresses let in on top of the domains: temporary testers (TEST_EMAILS). Whole
+ * addresses only, compared after trimming and lower-casing; anything malformed is refused.
+ */
+export function parseEmailList(raw: string | undefined): string[] {
+  const emails = (raw ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+  for (const e of emails) {
+    if (!emailDomain(e)) throw new Error(`Invalid email in tester list: "${e}"`);
+  }
+  return [...new Set(emails)];
+}
+
+export function isAllowedEmail(email: string, allowedDomains: readonly string[], allowedEmails: readonly string[] = []): boolean {
   const domain = emailDomain(email);
-  return domain !== null && allowedDomains.includes(domain);
+  if (domain === null) return false;
+  return allowedDomains.includes(domain) || allowedEmails.includes(email.trim().toLowerCase());
 }

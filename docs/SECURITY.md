@@ -142,3 +142,9 @@ regression tests (`tests/integration/hardening.test.ts`, `review-fixes.test.ts`,
 
 Contact the ResTix maintainers privately (see the sign-in page of the deployment). Please don't
 open public issues for security problems.
+
+**Temporary testers (`TEST_EMAILS`)**
+An optional list of exact addresses let in alongside the college domains, for testing with
+people outside the college. Exact, lower-cased whole-address match only (no wildcards, no
+domains); they join `DEFAULT_COLLEGE_SLUG`'s college. While any are set, Google's `hd` hint is
+not sent, so their personal accounts appear in the picker. Remove the variable before a real launch.

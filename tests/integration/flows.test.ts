@@ -27,6 +27,15 @@ describe("sign-in completion", () => {
     expect(p.emailVerifiedAt).not.toBeNull();
   });
 
+  it("lets a listed tester in and puts them in the default college", async () => {
+    const collegeId = await import("./helpers").then((h) => h.college());
+    const id = crypto.randomUUID();
+    await db.asSystem((tx) => tx`insert into auth.users (id, email) values (${id}, 'tester.one@gmail.com')`);
+    expect(await completeSignIn({ id, email: "Tester.One@gmail.com", emailVerified: true, fullName: "Tess Ter" })).toMatchObject({ ok: true, isNew: true });
+    const [p] = await db.asSystem((tx) => tx`select college_id from restix.profiles where id = ${id}`);
+    expect(p.collegeId).toBe(collegeId);
+  });
+
   it("recognises a returning, onboarded student", async () => {
     const user = await makeUser();
     await db.asSystem((tx) => tx`update restix.profiles set onboarded_at = now() where id = ${user.id}`);

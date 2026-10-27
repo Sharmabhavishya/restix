@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emailDomain, isAllowedEmail, parseDomainList } from "./email-domain";
+import { emailDomain, isAllowedEmail, parseDomainList, parseEmailList } from "./email-domain";
 
 const allowed = ["snu.edu.in"];
 
@@ -45,5 +45,21 @@ describe("parseDomainList", () => {
     expect(() => parseDomainList(" , ")).toThrow();
     expect(() => parseDomainList("*.edu.in")).toThrow();
     expect(() => parseDomainList("@snu.edu.in")).toThrow();
+  });
+});
+
+describe("temporary testers", () => {
+  const testers = parseEmailList(" Friend.One@Gmail.com , friend.one@gmail.com,other@outlook.com ");
+  it("parses exact addresses, lower-cased and de-duplicated", () => {
+    expect(testers).toEqual(["friend.one@gmail.com", "other@outlook.com"]);
+    expect(parseEmailList(undefined)).toEqual([]);
+    expect(() => parseEmailList("gmail.com")).toThrow();
+  });
+  it("lets in only those exact addresses, alongside the college domain", () => {
+    expect(isAllowedEmail("FRIEND.ONE@gmail.com ", allowed, testers)).toBe(true);
+    expect(isAllowedEmail("asha.k@snu.edu.in", allowed, testers)).toBe(true);
+    for (const e of ["friend.two@gmail.com", "friend.one@gmail.com.evil.com", "xfriend.one@gmail.com", "friend.one@gmail.co"]) {
+      expect(isAllowedEmail(e, allowed, testers)).toBe(false);
+    }
   });
 });
