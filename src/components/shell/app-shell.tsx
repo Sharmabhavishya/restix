@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { LogOut } from "lucide-react";
 import type { Viewer } from "@/server/auth/viewer";
 import { pendingInquiryCount } from "@/server/profile";
+import { unseenReplies } from "@/server/inquiries";
 import { queueCounts } from "@/server/moderation";
 import { signOut } from "@/app/auth/actions";
 import { MobileBar, Sidebar, type NavGroup } from "./nav";
@@ -9,7 +10,12 @@ import { Notice } from "../ui/bits";
 import Link from "next/link";
 
 async function navFor(viewer: Viewer): Promise<NavGroup[]> {
-  const pending = await pendingInquiryCount(viewer.id).catch(() => 0);
+  const [pending, replies] = await Promise.all([
+    pendingInquiryCount(viewer.id).catch(() => 0),
+    unseenReplies(viewer.id).catch(() => 0),
+  ]);
+  const waiting = pending + replies;
+  const inboxLabel = pending && replies ? "Requests & replies" : pending ? "Requests to answer" : replies ? "New replies" : "Inquiries";
   const groups: NavGroup[] = [
     {
       items: [
@@ -17,7 +23,7 @@ async function navFor(viewer: Viewer): Promise<NavGroup[]> {
         { href: "/events", label: "Events", icon: "calendar" },
         { href: "/sell", label: "Sell a ticket", icon: "tag" },
         { href: "/selling", label: "My listings", icon: "list" },
-        { href: "/inquiries", label: pending ? "Requests to answer" : "Inquiries", icon: "inbox", count: pending },
+        { href: "/inquiries", label: inboxLabel, icon: "inbox", count: waiting },
         { href: "/account", label: "Account", icon: "user" },
       ],
     },

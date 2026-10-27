@@ -21,6 +21,7 @@ export interface InquiryRow {
   sellerContactShared: string | null;
   createdAt: Date;
   respondedAt: Date | null;
+  buyerSeenAt: Date | null;
   eventName: string;
   eventStartsAt: Date;
   ticketTypeName: string;
@@ -65,6 +66,7 @@ export async function inbox(viewerId: string): Promise<InquiryRow[]> {
            case when i.seller_id = ${viewerId} then b.display_name else s.display_name end as counterpart_name,
            case when i.seller_id = ${viewerId} then i.buyer_id else i.seller_id end as counterpart_id,
            i.message, i.quantity_requested, i.status, i.seller_contact_shared, i.created_at, i.responded_at,
+           case when i.buyer_id = ${viewerId} and (i.buyer_seen_at is null or i.buyer_seen_at < i.responded_at) then null else coalesce(i.buyer_seen_at, i.created_at) end as buyer_seen_at,
            e.name as event_name, e.starts_at as event_starts_at, t.name as ticket_type_name, l.format,
            l.asking_price_paise,
            case when l.status = 'active' and (l.expires_at <= now() or coalesce(e.ends_at, e.starts_at) <= now()) then 'expired'
@@ -179,5 +181,26 @@ export async function confirmOutcome(viewerId: string, input: { inquiryId: strin
     if (pgCode(err) === PG.uniqueViolation) return { ok: false, error: "You've already recorded an outcome for this one." };
     console.error("confirm outcome failed", err instanceof Error ? err.message : err);
     return { ok: false, error: "That didn't save because of a server error. Please try again." };
+  }
+}
+
+/** Seller replies (accept/decline) the buyer hasn't opened yet. */
+export async function unseenReplies(viewerId: string): Promise<number> {
+  const [row] = await asUser(viewerId, (tx) => tx<{ n: number }[]>`
+    select count(*)::int as n from restix.inquiries
+    where buyer_id = ${viewerId} and status in ('accepted', 'declined') and responded_at is not null
+      and (buyer_seen_at is null or buyer_seen_at < responded_at)`);
+  return row?.n ?? 0;
+}
+
+/** Called when the buyer opens their requests: everything answered so far counts as seen. */
+export async function markRepliesSeen(viewerId: string): Promise<void> {
+  try {
+    await asUser(viewerId, (tx) => tx`
+      update restix.inquiries set buyer_seen_at = now()
+      where buyer_id = ${viewerId} and responded_at is not null
+        and (buyer_seen_at is null or buyer_seen_at < responded_at)`);
+  } catch (err) {
+    console.error("mark seen failed", err instanceof Error ? err.message : err);
   }
 }

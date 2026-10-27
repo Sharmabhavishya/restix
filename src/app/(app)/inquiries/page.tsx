@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireBrowser } from "@/server/auth/viewer";
-import { inbox, type InquiryRow, type InquiryStatus } from "@/server/inquiries";
+import { inbox, markRepliesSeen, type InquiryRow, type InquiryStatus } from "@/server/inquiries";
+import { STATUS_LABEL } from "@/lib/listing-rules";
 import { privateProfile } from "@/server/profile";
 import { FORMAT_LABEL, type TicketFormat } from "@/lib/listing-rules";
 import { formatDate, relativeTime } from "@/lib/format";
@@ -30,8 +31,12 @@ export default async function InquiriesPage({ searchParams }: PageProps<"/inquir
   const received = rows.filter((r) => r.role === "seller");
   const sent = rows.filter((r) => r.role === "buyer");
   const waiting = received.filter((r) => r.status === "pending").length;
-  const tab = sp.tab === "sent" ? "sent" : sp.tab === "received" ? "received" : waiting > 0 || sent.length === 0 ? "received" : "sent";
+  const newReplies = sent.filter((r) => r.respondedAt && (r.status === "accepted" || r.status === "declined") && !r.buyerSeenAt).length;
+  const tab = sp.tab === "sent" ? "sent" : sp.tab === "received" ? "received" : waiting > 0 || (sent.length === 0 && newReplies === 0) ? "received" : "sent";
   const list = tab === "received" ? received : sent;
+  // Opening "You asked" counts the seller replies there as seen (clears the nav badge).
+  const unseen = sent.filter((r) => r.respondedAt && (r.status === "accepted" || r.status === "declined") && !r.buyerSeenAt).length;
+  if (tab === "sent" && unseen > 0) await markRepliesSeen(viewer.id);
 
   return (
     <>
@@ -40,7 +45,7 @@ export default async function InquiriesPage({ searchParams }: PageProps<"/inquir
         sub={waiting ? `${waiting} ${waiting === 1 ? "buyer is" : "buyers are"} waiting on you. A quick yes or no helps.` : "Requests about your listings, and the ones you've sent."}
       />
       <div role="tablist" aria-label="Inquiries" className="mb-5 flex gap-1 border-b border-border">
-        {([["received", `For your listings (${received.length})`], ["sent", `You asked (${sent.length})`]] as const).map(([key, label]) => (
+        {([["received", `For your listings (${received.length})`], ["sent", `You asked (${sent.length})${unseen && tab !== "sent" ? ` · ${unseen} new` : ""}`]] as const).map(([key, label]) => (
           <Link
             key={key}
             role="tab"
@@ -87,7 +92,12 @@ function InquiryCard({ row: r, hasWhatsapp }: { row: InquiryRow; hasWhatsapp: bo
             {" "}· {r.ticketTypeName} · {FORMAT_LABEL[r.format as TicketFormat]} · {formatPaise(r.askingPricePaise)} · {formatDate(r.eventStartsAt)}
           </span>
         </Link>
-        <Pill tone={tone}>{label}</Pill>
+        <div className="flex flex-wrap gap-2">
+          {r.listingStatus !== "active" && r.listingStatus !== "paused" && (
+            <Pill tone="neutral">Listing {STATUS_LABEL[r.listingStatus].toLowerCase()}</Pill>
+          )}
+          <Pill tone={tone}>{label}</Pill>
+        </div>
       </div>
       <div className="flex flex-col gap-4 px-5 py-4">
         <div>
