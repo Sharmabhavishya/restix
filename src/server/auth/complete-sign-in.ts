@@ -43,8 +43,10 @@ export async function completeSignIn(identity: ProviderIdentity): Promise<SignIn
       select email_verified_at, onboarded_at from restix.profiles where id = ${identity.id} for update`;
     if (!existing) {
       await tx`insert into restix.profiles (id, college_id, display_name, email_verified_at)
-               values (${identity.id}, ${college.collegeId},${defaultDisplayName(identity)}, now())`;
-      await tx`insert into restix.profile_private (user_id, email) values (${identity.id}, ${email})`;
+               values (${identity.id}, ${college.collegeId}, ${defaultDisplayName(identity)}, now())
+               on conflict (id) do nothing`;
+      await tx`insert into restix.profile_private (user_id, email) values (${identity.id}, ${email})
+               on conflict (user_id) do nothing`;
       return { ok: true as const, isNew: true, newlyVerified: true, onboarded: false };
     }
     await tx`update restix.profiles set email_verified_at = coalesce(email_verified_at, now()), last_seen_at = now()

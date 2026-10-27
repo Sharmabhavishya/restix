@@ -41,7 +41,7 @@ export default async function ReviewsPage() {
                   {l.sellerNotes && <p className="mt-2 text-sm whitespace-pre-line text-muted">{l.sellerNotes}</p>}
                 </div>
                 <ModForm
-                  hidden={{ listingId: l.id }}
+                  hidden={{ listingId: l.id, version: String(l.version) }}
                   compact
                   placeholder="e.g. Organisers confirmed transfers are fine"
                   ops={[

@@ -49,6 +49,8 @@ export const getIdentity = cache(async (): Promise<Identity | null> => {
     // getClaims() verifies the JWT signature; getSession() would trust the cookie blindly.
     const { data, error } = await supabase.auth.getClaims();
     if (error || !data?.claims?.sub || typeof data.claims.email !== "string") return null;
+    const appMeta = data.claims.app_metadata as { provider?: string; providers?: string[] } | undefined;
+    if (!(appMeta?.providers ?? [appMeta?.provider]).includes("google")) return null;
     return { id: data.claims.sub, email: data.claims.email };
   } catch (err) {
     console.error("auth: could not read session", err instanceof Error ? err.message : err);

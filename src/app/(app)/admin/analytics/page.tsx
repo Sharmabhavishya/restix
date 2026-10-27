@@ -48,7 +48,8 @@ function analyticsRange(sp: Record<string, string | string[] | undefined>) {
   const customFrom = typeof sp.from === "string" ? fromLocalInput(`${sp.from}T00:00`) : null;
   const customTo = typeof sp.to === "string" ? fromLocalInput(`${sp.to}T00:00`) : null;
   const to = customTo ? new Date(customTo.getTime() + DAY) : new Date(Math.ceil(Date.now() / DAY) * DAY);
-  const from = customFrom && customFrom < to ? customFrom : new Date(to.getTime() - days * DAY);
+  const earliest = new Date(to.getTime() - 366 * DAY);
+  const from = customFrom && customFrom < to ? (customFrom < earliest ? earliest : customFrom) : new Date(to.getTime() - days * DAY);
   return { days, customFrom, from, to };
 }
 

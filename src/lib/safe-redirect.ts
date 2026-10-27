@@ -10,7 +10,10 @@ export function safeNext(next: unknown, fallback = "/tickets"): string {
     const url = new URL(next, "http://restix.invalid");
     if (url.origin !== "http://restix.invalid") return fallback;
     if (url.pathname.startsWith("/auth/")) return fallback;
-    return `${url.pathname}${url.search}${url.hash}`;
+    const out = `${url.pathname}${url.search}${url.hash}`;
+    // Normalisation can turn "/.//evil.com" into "//evil.com": check the result again.
+    if (!out.startsWith("/") || out.startsWith("//") || out.startsWith("/\\")) return fallback;
+    return out;
   } catch {
     return fallback;
   }

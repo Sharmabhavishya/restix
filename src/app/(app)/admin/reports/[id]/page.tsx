@@ -83,7 +83,7 @@ export default async function ReportPage({ params }: PageProps<"/admin/reports/[
                 </div>
                 {!isOwn && (
                   <ModForm
-                    hidden={{ listingId: listing.id, reportId: report.id }}
+                    hidden={{ listingId: listing.id, reportId: report.id, version: String(listing.version) }}
                     reasonLabel="Reason for the listing action"
                     placeholder="e.g. Hidden while we check the payment-first request"
                     ops={

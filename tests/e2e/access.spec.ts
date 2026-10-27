@@ -104,9 +104,30 @@ test.describe("rules and states", () => {
 
 test.describe("endpoints", () => {
   test("analytics endpoint rejects junk and cross-site posts", async ({ request }) => {
-    expect((await request.post("/api/track", { data: { name: "drop_table" } })).status()).toBe(400);
-    expect((await request.post("/api/track", { data: { name: "listing_viewed", listingId: "not-a-uuid" } })).status()).toBe(400);
+    const headers = { origin: "http://localhost:3100" };
+    expect((await request.post("/api/track", { data: { name: "drop_table" }, headers })).status()).toBe(400);
+    expect((await request.post("/api/track", { data: { name: "listing_viewed", listingId: "not-a-uuid" }, headers })).status()).toBe(400);
     expect((await request.post("/api/track", { data: { name: "landing_viewed" }, headers: { origin: "https://evil.example" } })).status()).toBe(403);
+  });
+
+  test("analytics endpoint refuses requests that aren't from the site itself", async ({ request }) => {
+    // No Origin and no Sec-Fetch-Site: a script, not a browser on this site.
+    expect((await request.post("/api/track", { data: { name: "landing_viewed" } })).status()).toBe(403);
+  });
+
+  test("sign-in never redirects off-site, whatever ?next= says", async ({ browser }) => {
+    const { page, context } = await asFixture(browser, "Rohan M");
+    for (const next of ["/.//evil.example", "/..//evil.example", "/%2e%2e//evil.example", "//evil.example", "https://evil.example"]) {
+      await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
+      expect(new URL(page.url()).host).toBe("localhost:3100");
+    }
+    await context.close();
+  });
+
+  test("a content security policy is sent", async ({ request }) => {
+    const csp = (await request.get("/")).headers()["content-security-policy"] ?? "";
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("object-src 'none'");
   });
 
   test("maintenance cron needs its secret", async ({ request }) => {

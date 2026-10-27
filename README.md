@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ResTix
 
-## Getting Started
+**spare wristband? sorted.** A campus ticket exchange for verified students. List the fest
+wristband or ticket you can't use, find the one you need, sort the handover on campus. Built
+for Shiv Nadar University first; any college can be added through configuration.
 
-First, run the development server:
+ResTix connects people. It never handles money: no payments, no fees, no escrow, no refunds.
+
+## What it does
+
+- **Google sign-in, campus only.** Exact-domain allowlist enforced on the server on every
+  request; verified email required. Email addresses are never shown to other students.
+- **Events with resale rules.** Moderators add events with a stated policy source: resale
+  allowed, face value only (price capped), not allowed (blocked), or unconfirmed (listings go to
+  review). Cancelled and finished events drop out automatically.
+- **Listings as wristbands.** Wristband, digital, paper or other; quantity, asking and original
+  price, handover method and a public meetup spot. Contact details are blocked from public text.
+- **Discovery.** Search, filters (event, kind, format, price, date), sorting, pagination.
+- **Requests, not chat.** A buyer asks; the seller accepts and chooses what to share (their
+  WhatsApp or a note) with that buyer only. Both sides can record how it went.
+- **Trust and safety.** Reports with priorities, a moderation queue, hide/remove/restore,
+  restrict/suspend/reinstate, appeals, and an append-only audit log.
+- **Honest analytics.** First-party events and an admin dashboard: adoption, listings,
+  listing-to-request conversion, time to first request, report rates, moderation times and
+  self-reported outcomes. Sample data never counts. See docs/ANALYTICS.md.
+
+## Stack
+
+Next.js 16 (App Router, server actions) · TypeScript · Tailwind CSS v4 · Postgres (Supabase in
+production, PGlite locally) · Supabase Auth with Google · zod · Vitest · Playwright.
+
+## Run it locally (no Docker, no Supabase account)
+
+Prerequisites: Node 20.9+ (tested on 24), npm, Google Chrome (for E2E tests).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local          # defaults work for local dev
+npm run db                          # terminal 1: local Postgres (PGlite) on :54329, seeded
+npm run dev                         # terminal 2: http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sign in at `/sign-in` with the **Development sign-in** panel: three seeded students (one is an
+admin) or any email (try `someone@gmail.com` to see the rejection). Seeded events are labelled
+"Sample data". `npm run db:reset` starts over.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tests
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run typecheck
+npm run lint
+npm test                 # unit + integration (RLS attacks and server flows on PGlite)
+npm run build && npm run test:e2e   # Playwright against the production build
+```
 
-## Learn More
+Results of the latest run are in docs/TESTING.md.
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+docs/DEPLOYMENT.md walks through Supabase, the Google OAuth client, hosting (read the plan-terms
+note first), the first admin, the daily cron and backups.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Docs
 
-## Deploy on Vercel
+- docs/ARCHITECTURE.md: how it fits together and why
+- docs/DATABASE.md: schema, constraints, RLS, triggers
+- docs/SECURITY.md: threat model, controls, remaining risks
+- docs/ANALYTICS.md: events, metric definitions, limitations
+- docs/DEPLOYMENT.md: production setup
+- docs/TESTING.md: what was tested and the results
+- docs/DESIGN.md: visual direction and voice
+- docs/BUILD_LOG.md: build progress and decisions
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Status
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Release candidate. Not yet deployed; real Google sign-in has not been tested end to end (it
+needs the institution's OAuth setup). Privacy and terms are templates that need institutional
+review. See docs/BUILD_LOG.md for known limitations.

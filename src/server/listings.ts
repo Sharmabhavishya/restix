@@ -20,6 +20,7 @@ export interface ListingCard {
   transferPolicy: EventFacts["transferPolicy"];
   eventIsFixture: boolean;
   ticketTypeName: string;
+  faceValuePaise: number | null;
   format: TicketFormat;
   quantity: number;
   askingPricePaise: number;
@@ -47,7 +48,6 @@ export interface ListingDetail extends ListingCard {
   sellerMemberSince: Date;
   sellerActiveListings: number;
   eventVenue: string | null;
-  faceValuePaise: number | null;
 }
 
 export function eventFacts(l: Pick<ListingCard, "eventStatus" | "transferPolicy" | "eventStartsAt" | "eventEndsAt">): EventFacts {
@@ -62,7 +62,7 @@ export function displayStatus(l: ListingCard, now = new Date()): ListingStatus {
 const CARD_COLUMNS = (tx: Tx) => tx`
   l.id, l.event_id, e.slug as event_slug, e.name as event_name, e.starts_at as event_starts_at,
   e.ends_at as event_ends_at, e.status as event_status, e.transfer_policy, e.is_fixture as event_is_fixture,
-  t.name as ticket_type_name, l.format, l.quantity, l.asking_price_paise, l.original_price_paise,
+  t.name as ticket_type_name, t.face_value_paise, l.format, l.quantity, l.asking_price_paise, l.original_price_paise,
   l.price_negotiable, l.handover_method, l.meetup_area, l.status, l.expires_at, l.published_at, l.created_at,
   l.seller_id, p.display_name as seller_name, (p.email_verified_at is not null) as seller_verified`;
 
@@ -157,7 +157,6 @@ export async function getListing(viewerId: string, id: string): Promise<ListingD
     const [row] = await tx<ListingDetail[]>`
       select ${CARD_COLUMNS(tx)}, l.ticket_type_id, l.handover_notes, l.seller_notes, l.status_reason, l.reviewed_at,
              l.version, l.updated_at, p.created_at as seller_member_since, e.venue as event_venue,
-             t.face_value_paise,
              (select count(*)::int from restix.ticket_listings x join restix.events xe on xe.id = x.event_id
                where x.seller_id = l.seller_id and x.status = 'active' and x.expires_at > now()
                  and coalesce(xe.ends_at, xe.starts_at) > now()) as seller_active_listings
@@ -206,13 +205,13 @@ export async function createListing(viewerId: string, input: ListingInput, inten
     const result = await asUser(viewerId, async (tx): Promise<WriteResult> => {
       const loaded = await loadEventForListing(tx, input.eventId, input.ticketTypeId);
       if (!loaded) return { ok: false, error: "That event or ticket type isn't available.", field: "eventId" };
-      const { event } = loaded;
+      const { event, faceValuePaise } = loaded;
       const expiresAt = input.expiresAt ?? defaultExpiry(event);
       let status: ListingStatus = "draft";
       let message: string | undefined;
       if (intent === "publish") {
         const decision = publishDecision(
-          { status: "draft", expiresAt, askingPricePaise: input.askingPrice, originalPricePaise: input.originalPrice },
+          { status: "draft", expiresAt, askingPricePaise: input.askingPrice, originalPricePaise: input.originalPrice, faceValuePaise },
           event,
         );
         if (!decision.ok) return { ok: false, error: decision.reason };
@@ -260,7 +259,7 @@ export async function updateListing(viewerId: string, id: string, expectedVersio
       let nextStatus = current.status;
       if (status === "active" || status === "paused" || status === "pending_review") {
         const decision = publishDecision(
-          { status, expiresAt, askingPricePaise: input.askingPrice, originalPricePaise: input.originalPrice },
+          { status, expiresAt, askingPricePaise: input.askingPrice, originalPricePaise: input.originalPrice, faceValuePaise: loaded.faceValuePaise },
           loaded.event,
         );
         if (!decision.ok) return { ok: false, error: decision.reason };
@@ -329,7 +328,8 @@ export async function sellerAction(viewerId: string, id: string, expectedVersion
       if (action === "publish") {
         const decision = publishDecision(row, eventFacts(row));
         if (!decision.ok) return { ok: false, error: decision.reason };
-        next = decision.status;
+        // A moderator rejected it once: it goes back to them, never straight live.
+        next = status === "rejected" ? "pending_review" : decision.status;
       } else if (action === "resume") {
         const decision = publishDecision(row, eventFacts(row));
         if (!decision.ok) return { ok: false, error: decision.reason };

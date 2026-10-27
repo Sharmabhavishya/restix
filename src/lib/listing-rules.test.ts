@@ -72,6 +72,8 @@ describe("publishDecision", () => {
     expect(publishDecision(listing({ askingPricePaise: 40_000, originalPricePaise: 50_000 }), fv, now).ok).toBe(true);
     expect(publishDecision(listing({ askingPricePaise: 50_100, originalPricePaise: 50_000 }), fv, now).ok).toBe(false);
     expect(publishDecision(listing({ originalPricePaise: null }), fv, now).ok).toBe(false);
+    // A seller can't lift the cap by claiming they paid more than the published face value.
+    expect(publishDecision(listing({ askingPricePaise: 90_000, originalPricePaise: 90_000, faceValuePaise: 50_000 }), fv, now).ok).toBe(false);
   });
 
   it("blocks cancelled, finished or already-started-and-ended events", () => {

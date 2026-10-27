@@ -81,7 +81,6 @@ export function Wristband({
           href={href}
           style={style}
           className="group flex min-w-0 flex-1 gap-[3px] rounded-[var(--radius-card)] focus-visible:outline-offset-4"
-          aria-label={`${title}, ${meta.join(", ")}, ${formatPaise(listing.askingPricePaise)}${listing.quantity > 1 ? " each" : ""}`}
         >
           {body}
         </Link>

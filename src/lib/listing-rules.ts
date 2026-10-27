@@ -21,6 +21,8 @@ export interface ListingFacts {
   expiresAt: Date;
   askingPricePaise: number;
   originalPricePaise: number | null;
+  /** The ticket type's face value, when the organisers published one. */
+  faceValuePaise?: number | null;
 }
 
 /** The last moment a listing for this event may stay open. */
@@ -65,6 +67,9 @@ export function publishDecision(listing: ListingFacts, event: EventFacts, now = 
       }
       if (listing.askingPricePaise > listing.originalPricePaise) {
         return { ok: false, reason: "This event only allows resale at or below face value. Lower your asking price." };
+      }
+      if (listing.faceValuePaise != null && listing.askingPricePaise > listing.faceValuePaise) {
+        return { ok: false, reason: "This event only allows resale at or below the ticket's face value. Lower your asking price." };
       }
       return { ok: true, status: "active" };
     case "unknown":

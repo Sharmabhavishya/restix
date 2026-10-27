@@ -218,11 +218,14 @@ async function guarded(modId: string, fn: (tx: Tx) => Promise<Result>): Promise<
 
 export type ListingModAction = "approve" | "reject" | "hide" | "remove" | "restore";
 
-export async function moderateListing(modId: string, input: { listingId: string; action: ListingModAction; reason: string; reportId?: string | null }): Promise<Result> {
+export async function moderateListing(modId: string, input: { listingId: string; action: ListingModAction; reason: string; reportId?: string | null; version?: number }): Promise<Result> {
   return guarded(modId, async (tx) => {
-    const [l] = await tx<{ status: ListingStatus; expiresAt: Date; sellerId: string }[]>`
-      select status, expires_at, seller_id from restix.ticket_listings where id = ${input.listingId} for update`;
+    const [l] = await tx<{ status: ListingStatus; expiresAt: Date; sellerId: string; version: number }[]>`
+      select status, expires_at, seller_id, version from restix.ticket_listings where id = ${input.listingId} for update`;
     if (!l) return { ok: false, error: "Listing not found." };
+    if (input.version !== undefined && input.version !== l.version) {
+      return { ok: false, error: "The seller changed this listing after you opened it. Reload and check it again." };
+    }
     if (l.sellerId === modId) return { ok: false, error: "This is your own listing. Ask another moderator." };
     let next: ListingStatus;
     let auditAction: string;
@@ -274,6 +277,10 @@ export async function moderateUser(modId: string, input: { userId: string; actio
     if (u.status === next) return { ok: false, error: `The account is already ${next}.` };
     await tx`update restix.profiles set status = ${next}, status_reason = ${input.action === "reinstate" ? null : input.reason}
              where id = ${input.userId}`;
+    if (next === "restricted") {
+      await tx`update restix.ticket_listings set status = 'paused', status_reason = 'Paused while the seller account is restricted', version = version + 1
+               where seller_id = ${input.userId} and status = 'active'`;
+    }
     if (next === "suspended") {
       // A suspended seller's live listings come down while the decision stands.
       await tx`update restix.ticket_listings set status = 'removed', status_reason = 'Seller account suspended', version = version + 1
@@ -318,12 +325,9 @@ export async function updateReport(modId: string, input: { reportId: string; sta
 export async function submitAppeal(viewerId: string, input: { message: string; listingId?: string | null }): Promise<Result> {
   if (!(await allow("report", `appeal:${viewerId}`))) return { ok: false, error: "You've sent several appeals today. Please wait for a reply." };
   try {
-    await asUser(viewerId, async (tx) => {
-      const [last] = await tx<{ id: string }[]>`
-        select id from restix.moderation_actions where (user_id = ${viewerId}) order by created_at desc limit 1`;
-      await tx`insert into restix.appeals (user_id, moderation_action_id, listing_id, message)
-               values (${viewerId}, ${last?.id ?? null}, ${input.listingId ?? null}, ${input.message})`;
-    });
+    await asUser(viewerId, (tx) => tx`
+      insert into restix.appeals (user_id, moderation_action_id, listing_id, message)
+      values (${viewerId}, restix.my_latest_moderation_action(), ${input.listingId ?? null}, ${input.message})`);
     return { ok: true, message: "Appeal sent. A different moderator will look at it where possible." };
   } catch (err) {
     if (pgCode(err) === PG.uniqueViolation) return { ok: false, error: "You already have an open appeal." };

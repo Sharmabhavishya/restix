@@ -41,7 +41,10 @@ export async function moderate(_prev: ActionState, formData: FormData): Promise<
     const listingId = String(formData.get("listingId") ?? "");
     const action = op.slice(8) as ListingModAction;
     if (!uuid.safeParse(listingId).success || !["approve", "reject", "hide", "remove", "restore"].includes(action)) return { error: "Invalid request." };
-    result = await moderateListing(mod.id, { listingId, action, reason, reportId });
+    const v = formData.get("version");
+    const version = v === null || v === "" ? undefined : Number(v);
+    if (version !== undefined && !Number.isInteger(version)) return { error: "Invalid request." };
+    result = await moderateListing(mod.id, { listingId, action, reason, reportId, version });
   } else if (op.startsWith("user:")) {
     const userId = String(formData.get("userId") ?? "");
     const action = op.slice(5) as UserModAction;

@@ -7,24 +7,32 @@ import { allow } from "@/server/rate-limit";
 import { env } from "@/server/env";
 
 // Page-view style events reported by the browser. The account comes from the session,
-// never from the body, and only a fixed set of events and small, non-personal properties
-// are accepted. These counts are approximate by nature; outcome metrics use server-recorded events.
+// never from the body; only a fixed set of events is accepted, and the only properties kept
+// are two small numbers on searches. These counts are approximate by nature; outcome
+// metrics use server-recorded events.
 const body = z.object({
   name: z.enum(CLIENT_EVENTS),
   listingId: z.uuid().optional(),
   eventId: z.uuid().optional(),
-  props: z.record(z.string().max(32), z.union([z.number().finite(), z.boolean(), z.string().max(32)])).optional()
-    .refine((p) => !p || Object.keys(p).length <= 8, "too many props"),
+  props: z.record(z.string(), z.unknown()).optional(),
+});
+
+const searchProps = z.object({
+  filters: z.number().int().min(0).max(10),
+  results: z.number().int().min(0).max(100_000),
 });
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function POST(request: NextRequest) {
-  // Same-origin only: a cross-site page should not be able to inflate counts.
+function sameOrigin(request: NextRequest): boolean {
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(env().APP_URL).origin && origin !== request.nextUrl.origin) {
-    return new NextResponse(null, { status: 403 });
-  }
+  if (origin) return origin === new URL(env().APP_URL).origin || origin === request.nextUrl.origin;
+  // No Origin header: only accept what the browser itself marks as same-origin (curl sends neither).
+  return request.headers.get("sec-fetch-site") === "same-origin";
+}
+
+export async function POST(request: NextRequest) {
+  if (!sameOrigin(request)) return new NextResponse(null, { status: 403 });
   const parsed = body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return new NextResponse(null, { status: 400 });
 
@@ -36,14 +44,20 @@ export async function POST(request: NextRequest) {
   if (!userId && !anonId) return new NextResponse(null, { status: 204 });
   // Anonymous visitors only ever produce landing page views.
   if (!userId && parsed.data.name !== "landing_viewed") return new NextResponse(null, { status: 204 });
-  if (!(await allow("track", userId ?? anonId!))) return new NextResponse(null, { status: 429 });
 
+  // Anonymous ids are client-held, so anonymous traffic is also limited per network address.
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!(await allow("track", userId ?? `ip:${ip}`)) || (anonId && !(await allow("track", anonId)))) {
+    return new NextResponse(null, { status: 429 });
+  }
+
+  const props = parsed.data.name === "search_performed" ? searchProps.safeParse(parsed.data.props) : null;
   await track(parsed.data.name, {
     userId,
     anonId,
-    listingId: parsed.data.listingId ?? null,
-    eventId: parsed.data.eventId ?? null,
-    props: parsed.data.props,
+    listingId: userId ? parsed.data.listingId ?? null : null,
+    eventId: userId ? parsed.data.eventId ?? null : null,
+    props: props?.success ? props.data : undefined,
   });
   return new NextResponse(null, { status: 204 });
 }

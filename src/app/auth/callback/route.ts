@@ -30,6 +30,12 @@ export async function GET(request: NextRequest) {
 
   const user = data.user;
   const meta = user.user_metadata ?? {};
+  // Only Google identities are accepted, even if another Supabase provider gets enabled.
+  const providers: unknown = user.app_metadata?.providers ?? [user.app_metadata?.provider];
+  if (!Array.isArray(providers) || !providers.includes("google")) {
+    await supabase.auth.signOut();
+    return to("/sign-in?error=provider");
+  }
   const result = await completeSignIn({
     id: user.id,
     email: user.email ?? "",

@@ -36,6 +36,12 @@ export async function updateProfile(viewerId: string, input: { displayName: stri
 export async function deleteAccount(viewerId: string): Promise<Result> {
   const [profile] = await asSystem((tx) => tx<{ status: string }[]>`select status from restix.profiles where id = ${viewerId}`);
   if (!profile) return { ok: false, error: "Account not found." };
+  const [{ openReports }] = await asSystem((tx) => tx<{ openReports: number }[]>`
+    select count(*)::int as open_reports from restix.reports
+    where reported_user_id = ${viewerId} and status in ('open', 'in_review')`);
+  if (openReports > 0) {
+    return { ok: false, error: "There's an open report about your account, so it can't be deleted until a moderator has reviewed it. Email the ResTix team if you need help." };
+  }
   if (profile.status !== "active") {
     return {
       ok: false,
