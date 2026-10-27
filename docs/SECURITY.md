@@ -55,7 +55,8 @@ listings involve real money changing hands off-platform. Security is a release b
   appeal per person.
 
 **Headers**
-CSP (`default-src 'self'`, no objects, no framing, restricted form targets), X-Frame-Options
+Per-request nonce CSP from the proxy (`script-src 'self' 'nonce-…' 'strict-dynamic'`, no objects,
+no framing, restricted form targets), X-Frame-Options
 DENY, nosniff, Referrer-Policy, Permissions-Policy, COOP, HSTS when served over HTTPS,
 `X-Powered-By` removed.
 
@@ -82,7 +83,7 @@ regression tests (`tests/integration/hardening.test.ts`, `review-fixes.test.ts`,
 | Low | Analytics beacon flooding (no Origin, rotating anon ids, free-text props) | Same-origin required, per-IP limit, props allowlist |
 | Low | Account deletion could escape open reports | Blocked while reports are open |
 | Low | Any Supabase provider accepted | Google only, checked in callback and on every request |
-| Low | Supabase cookies not httpOnly; no CSP | Both added |
+| Low | Supabase cookies not httpOnly; no CSP | httpOnly cookies; nonce-based CSP with no inline scripts |
 | Low | Restricted sellers couldn't close listings; their listings stayed contactable | Restricted sellers may pause/close; restriction pauses live listings |
 | Low | Reports about other colleges' users | Same-college check in the report trigger |
 | Info | Unbounded analytics date range | Capped at 366 days |
@@ -90,9 +91,10 @@ regression tests (`tests/integration/hardening.test.ts`, `review-fixes.test.ts`,
 
 ## Remaining risks (accepted or out of scope)
 
-- **CSP allows inline scripts.** Next.js hydration needs a per-request nonce to drop
-  `'unsafe-inline'`; not done yet. XSS risk is low (no raw HTML, React escaping) but this is the
-  first header to tighten.
+- **Inline styles are allowed** (`style-src 'unsafe-inline'`) because per-event tints are set
+  with style attributes, which nonces can't cover. Scripts are strict: per-request nonce plus
+  `'strict-dynamic'`, no `'unsafe-inline'` (set in `src/proxy.ts`, verified by an E2E test that
+  fails on any CSP violation).
 - **Off-platform fraud.** ResTix cannot verify tickets, prevent payment scams, or recover money.
   The UI says so repeatedly; moderation is after the fact.
 - **Institutional account compromise.** A stolen campus Google account is a valid account until

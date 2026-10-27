@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { Mark } from "@/components/logo";
 import { ButtonLink } from "@/components/ui/button";
 
-export default function NotFound() {
+export default async function NotFound() {
+  // Rendered per request so the CSP nonce reaches its scripts.
+  await connection();
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center px-4 py-16">
       <Link href="/" aria-label="ResTix home" className="mb-12 inline-flex">

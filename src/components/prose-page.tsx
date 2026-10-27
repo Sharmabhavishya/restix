@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
+import { connection } from "next/server";
 import { PublicFooter, PublicHeader } from "./shell/public-header";
 
 /** Layout for public reading pages (safety, privacy, terms): one readable column. */
-export function ProsePage({ title, intro, updated, children }: { title: string; intro?: ReactNode; updated?: string; children: ReactNode }) {
+export async function ProsePage({ title, intro, updated, children }: { title: string; intro?: ReactNode; updated?: string; children: ReactNode }) {
+  // Rendered per request so the CSP nonce reaches its scripts.
+  await connection();
   return (
     <div className="flex min-h-dvh flex-col">
       <PublicHeader />

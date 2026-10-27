@@ -124,10 +124,30 @@ test.describe("endpoints", () => {
     await context.close();
   });
 
-  test("a content security policy is sent", async ({ request }) => {
+  test("a strict, nonce-based content security policy is sent", async ({ request }) => {
     const csp = (await request.get("/")).headers()["content-security-policy"] ?? "";
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("object-src 'none'");
+    expect(csp).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
+    expect(csp).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+  });
+
+  test("pages run without a single CSP violation", async ({ browser }) => {
+    const { page, context } = await asFixture(browser, "Asha K");
+    const violations: string[] = [];
+    page.on("console", (msg) => {
+      if (/Content Security Policy|Refused to (execute|load|apply)/i.test(msg.text())) violations.push(msg.text());
+    });
+    for (const path of ["/", "/tickets", "/sell", "/inquiries", "/account", "/safety", "/does-not-exist"]) {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+    }
+    // Interactivity proves hydration ran under the policy.
+    await page.goto("/sell");
+    await page.getByLabel("Event", { exact: true }).selectOption({ index: 1 });
+    await expect(page.getByRole("status").or(page.getByRole("alert")).first()).toBeVisible();
+    expect(violations).toEqual([]);
+    await context.close();
   });
 
   test("maintenance cron needs its secret", async ({ request }) => {
