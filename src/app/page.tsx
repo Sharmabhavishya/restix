@@ -86,7 +86,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
       )}
 
       {/* Hero: the wristband, enormous, carries the live exchange. */}
-      <section className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 pt-10 pb-20 sm:px-6 md:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] md:pt-16 md:pb-28">
+      <section className="mx-auto grid max-w-[1200px] grid-cols-[minmax(0,1fr)] items-center gap-10 px-4 pt-10 pb-20 sm:px-6 md:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] md:pt-16 md:pb-28">
         <div>
           <h1 className="text-[clamp(2.4rem,4.7vw,4.5rem)] leading-[0.95] font-bold tracking-[-0.045em] text-balance">
             spare wristband?<br /> sorted.
@@ -231,8 +231,10 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
               key={f.q}
               open={i === 0}
               data-reveal
-              style={{ "--i": i, marginLeft: `min(${i * 4}%, ${i * 32}px)` } as React.CSSProperties}
-              className={`group relative -mt-2 first:mt-0 ${i % 2 ? "bg-accent-track" : "bg-accent-soft"} rounded-[var(--radius-card)] rounded-tl-none`}
+              style={{ "--i": i, "--step": `${i * 32}px` } as React.CSSProperties}
+              // Each card's tab sits in the gap above it, so it never covers the card before;
+              // the cards step right like a filed drawer from tablet width up.
+              className={`group relative mt-9 first:mt-7 md:ml-[var(--step)] ${i % 2 ? "bg-accent-track" : "bg-accent-soft"} rounded-[var(--radius-card)] rounded-tl-none`}
             >
               <summary className="flex min-h-14 cursor-pointer list-none flex-col gap-1 px-5 py-4 [&::-webkit-details-marker]:hidden">
                 <span className={`absolute -top-7 left-0 inline-flex h-7 items-center rounded-t-[var(--radius-control)] px-4 text-[13px] font-medium text-accent-ink ${i % 2 ? "bg-accent-track" : "bg-accent-soft"}`}>

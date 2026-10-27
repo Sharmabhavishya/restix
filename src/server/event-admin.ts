@@ -4,6 +4,7 @@ import { cleanText } from "@/lib/validation";
 import { parseRupees } from "@/lib/money";
 import { fromLocalInput } from "@/lib/format";
 import { asUser, pgCode, PG } from "./db";
+import { allow } from "./rate-limit";
 
 // Event management for moderators. Events and their resale policy are the basis of
 // every listing decision, so each change is written to the moderation log.
@@ -141,4 +142,82 @@ export async function allEvents(modId: string) {
     from restix.events e
     where e.college_id = restix.my_college_id()
     order by (coalesce(e.ends_at, e.starts_at) < now()), e.starts_at`);
+}
+
+// ---------------------------------------------------------------------------
+// Event suggestions from students
+// ---------------------------------------------------------------------------
+
+export const suggestionInput = z.object({
+  name: z.string().transform(cleanText).pipe(z.string().min(2, "Name the event.").max(120)),
+  happensOn: z
+    .string()
+    .optional()
+    .transform((v, ctx) => {
+      if (!v) return null;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+        ctx.addIssue({ code: "custom", message: "Pick a date." });
+        return z.NEVER;
+      }
+      return v;
+    }),
+  details: z.string().transform(cleanText).pipe(z.string().max(1000)).optional().transform((v) => v || null),
+});
+
+export async function suggestEvent(viewerId: string, input: z.output<typeof suggestionInput>): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await allow("report", `suggest:${viewerId}`))) return { ok: false, error: "You've suggested a lot of events today. Moderators will get to them." };
+  try {
+    await asUser(viewerId, (tx) => tx`
+      insert into restix.event_suggestions (suggested_by, name, happens_on, details)
+      values (${viewerId}, ${input.name}, ${input.happensOn}, ${input.details})`);
+    return { ok: true };
+  } catch (err) {
+    if (pgCode(err) === PG.insufficientPrivilege) return { ok: false, error: "Your account can't suggest events right now." };
+    console.error("suggest event failed", err instanceof Error ? err.message : err);
+    return { ok: false, error: "That didn't send because of a server error. Try again." };
+  }
+}
+
+export interface Suggestion {
+  id: string;
+  name: string;
+  happensOn: string | null;
+  details: string | null;
+  status: "open" | "added" | "declined";
+  moderatorNote: string | null;
+  suggestedByName: string | null;
+  createdAt: Date;
+}
+
+export async function mySuggestions(viewerId: string): Promise<Suggestion[]> {
+  return asUser(viewerId, (tx) => tx<Suggestion[]>`
+    select s.id, s.name, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details, s.status, s.moderator_note,
+           null as suggested_by_name, s.created_at
+    from restix.event_suggestions s where s.suggested_by = ${viewerId}
+    order by s.created_at desc limit 10`);
+}
+
+export async function openSuggestions(modId: string): Promise<Suggestion[]> {
+  return asUser(modId, (tx) => tx<Suggestion[]>`
+    select s.id, s.name, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details, s.status, s.moderator_note,
+           p.display_name as suggested_by_name, s.created_at
+    from restix.event_suggestions s left join restix.profiles p on p.id = s.suggested_by
+    where s.status = 'open' and s.college_id = restix.my_college_id()
+    order by s.created_at limit 50`);
+}
+
+export async function decideSuggestion(
+  modId: string,
+  input: { id: string; status: "added" | "declined"; note: string | null },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const rows = await asUser(modId, (tx) => tx`
+      update restix.event_suggestions
+      set status = ${input.status}, moderator_note = ${input.note}, decided_by = ${modId}, decided_at = now()
+      where id = ${input.id} and status = 'open' returning id`);
+    return rows.length ? { ok: true } : { ok: false, error: "This suggestion was already handled." };
+  } catch (err) {
+    console.error("decide suggestion failed", err instanceof Error ? err.message : err);
+    return { ok: false, error: "That didn't save because of a server error." };
+  }
 }

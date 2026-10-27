@@ -22,6 +22,7 @@ Postgres. Source of truth: `supabase/migrations/*.sql`, applied in filename orde
 | `appeals` | Appeals against moderation | |
 | `analytics_events` | First-party events | purged after 18 months |
 | `rate_limits` | Fixed-window counters | no client access |
+| `event_suggestions` | Students suggest missing events; moderators mark them added/declined | college set by trigger; never creates an event itself |
 
 ## Constraints worth knowing
 
@@ -31,6 +32,12 @@ Postgres. Source of truth: `supabase/migrations/*.sql`, applied in filename orde
 - `reports_one_open_listing` / `_user`: one open report per reporter per target.
 - `appeals_one_open`: one open appeal per user per moderation action.
 - Events: `ends_at > starts_at`; unique `(college_id, slug)`.
+
+## Moderator scope
+
+Since the hardening migration, every moderator power is checked with `moderates(college_id)`:
+a moderator or admin acts only within their own college (listings via their event, profiles,
+events, ticket types, inquiries, reports, the audit log, appeals, roles).
 
 ## Row-level security
 
@@ -51,6 +58,7 @@ All tables have RLS enabled. Policies use helper functions (SECURITY DEFINER, fi
 | appeals | owner, moderators | insert: owner; update: moderators |
 | analytics_events | admins | server only |
 | rate_limits | none | server only (via `hit_rate_limit`) |
+| event_suggestions | suggester, moderators of that college | insert: eligible student as themselves, `open` only; update: moderators of that college |
 
 ## Guard triggers
 

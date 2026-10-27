@@ -89,3 +89,8 @@ ResTix). Update after every milestone; newest log entries last.
 - Independent security review: 1 High (open redirect), 5 Medium, 7 Low, 3 Info. All fixed with
   regression tests; hardening migration added. Then a nonce-based CSP with zero violations.
 - Lighthouse (mobile, prod build): 94-98 performance, 100 accessibility and best practices.
+- Phone review via headless screenshots: fixed landing hero overflowing 390px (grid track
+  min-width), FAQ tabs overlapping cards, 44px touch targets; strengthened the phone E2E to catch
+  clipped text even when overflow is hidden.
+- Found my own UI promising a feature that didn't exist ("report a missing event"): built event
+  suggestions (migration, RLS, student form, moderator queue, 3 integration tests).

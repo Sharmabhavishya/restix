@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireBrowser, writeBlockReason } from "@/server/auth/viewer";
 import { listableEvents } from "@/server/events";
 import { eventCloseTime } from "@/lib/listing-rules";
@@ -34,7 +35,7 @@ export default async function SellPage({ searchParams }: PageProps<"/sell">) {
             <Notice tone="warning" title="You can't list right now">{blocked}</Notice>
           ) : events.length === 0 ? (
             <EmptyState title="no upcoming events to list for">
-              Moderators add events as they&apos;re announced. If your event is missing, report it from the Events page so they can add it.
+              Moderators add events as they&apos;re announced. If yours is missing, <Link href="/events#suggest" className="underline">suggest it</Link> and they&apos;ll check the resale rules.
             </EmptyState>
           ) : (
             <ListingForm events={formEvents} defaults={{ eventId: preselect }} />

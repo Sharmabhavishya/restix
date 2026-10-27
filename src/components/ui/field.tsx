@@ -53,7 +53,7 @@ export function describedBy(id: string, error?: string, hint?: boolean) {
 }
 
 export function Input({ className = "", ...props }: ComponentProps<"input">) {
-  return <input className={`${controlClass} h-10 ${className}`} {...props} />;
+  return <input className={`${controlClass} h-11 sm:h-10 ${className}`} {...props} />;
 }
 
 export function Textarea({ className = "", ...props }: ComponentProps<"textarea">) {
@@ -62,7 +62,7 @@ export function Textarea({ className = "", ...props }: ComponentProps<"textarea"
 
 export function Select({ className = "", children, ...props }: ComponentProps<"select">) {
   return (
-    <select className={`${controlClass} h-10 appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%235f6672%22 stroke-width=%222%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:14px] bg-[right_12px_center] bg-no-repeat pr-9 ${className}`} {...props}>
+    <select className={`${controlClass} h-11 appearance-none sm:h-10 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%235f6672%22 stroke-width=%222%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:14px] bg-[right_12px_center] bg-no-repeat pr-9 ${className}`} {...props}>
       {children}
     </select>
   );

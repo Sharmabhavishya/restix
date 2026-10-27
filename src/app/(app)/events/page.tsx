@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireBrowser } from "@/server/auth/viewer";
 import { listUpcomingEvents } from "@/server/events";
-import { EVENT_CATEGORIES } from "@/server/event-admin";
+import { EVENT_CATEGORIES, mySuggestions } from "@/server/event-admin";
+import { SuggestForm } from "./suggest-form";
 import { formatTime, TIME_ZONE } from "@/lib/format";
 import { formatPaise } from "@/lib/money";
 import { bandStyle } from "@/lib/tint";
 import { FixtureTag, PolicyPill } from "@/components/listing-bits";
-import { EmptyState, PageTitle, Pill } from "@/components/ui/bits";
+import { EmptyState, PageTitle, Panel, Pill } from "@/components/ui/bits";
 
 export const metadata: Metadata = { title: "Events" };
 
@@ -17,7 +18,7 @@ const wdFmt = new Intl.DateTimeFormat("en-IN", { timeZone: TIME_ZONE, weekday: "
 
 export default async function EventsPage() {
   const viewer = await requireBrowser("/events");
-  const events = await listUpcomingEvents(viewer.id);
+  const [events, suggestions] = await Promise.all([listUpcomingEvents(viewer.id), mySuggestions(viewer.id)]);
 
   return (
     <>
@@ -65,6 +66,30 @@ export default async function EventsPage() {
           ))}
         </ul>
       )}
+      <section id="suggest" aria-labelledby="suggest-heading" className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div>
+          <h2 id="suggest-heading" className="text-lg font-semibold">event missing?</h2>
+          <p className="mt-1 max-w-md text-[15px] text-muted">
+            Tell the mods. They add events once they know the resale rules, so nobody lists tickets they shouldn&apos;t.
+          </p>
+          {suggestions.length > 0 && (
+            <ul className="mt-5 flex flex-col gap-2 text-sm">
+              {suggestions.map((s) => (
+                <li key={s.id} className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{s.name}</span>
+                  <Pill tone={s.status === "added" ? "positive" : s.status === "declined" ? "neutral" : "warning"}>
+                    {s.status === "open" ? "Waiting" : s.status === "added" ? "Added" : "Declined"}
+                  </Pill>
+                  {s.moderatorNote && <span className="text-muted">{s.moderatorNote}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <Panel className="p-5">
+          {viewer.access === "ok" ? <SuggestForm /> : <p className="text-sm text-muted">Your account can&apos;t suggest events right now.</p>}
+        </Panel>
+      </section>
     </>
   );
 }

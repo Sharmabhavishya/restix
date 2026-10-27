@@ -66,7 +66,7 @@ test.describe("rules and states", () => {
     await page.getByLabel(/Asking price/).fill("650");
     await page.getByLabel(/What you paid/).fill("500");
     await page.getByRole("button", { name: "Publish listing" }).click();
-    await expect(page.getByText(/at or below face value/)).toBeVisible();
+    await expect(page.getByText(/at or below (the ticket's )?face value/).first()).toBeVisible();
     await context.close();
   });
 
