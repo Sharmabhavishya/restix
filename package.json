@@ -6,7 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "playwright test",
+    "db": "tsx scripts/local-db.ts",
+    "db:reset": "tsx scripts/local-db.ts --reset",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "admin:grant": "tsx scripts/grant-role.ts",
+    "college:add": "tsx scripts/add-college.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

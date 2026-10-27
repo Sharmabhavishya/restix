@@ -3,14 +3,8 @@
 // analytics rows are seeded: dashboards only ever show recorded activity.
 import postgres from "postgres";
 
-export const DEV_COLLEGE = { slug: "snu", name: "Shiv Nadar University", shortName: "SNU", domain: "snu.edu.in" };
-
-// Fixed ids so dev sessions survive a reseed.
-export const DEV_USERS = [
-  { id: "00000000-0000-4000-8000-000000000001", email: "asha.k@snu.edu.in", name: "Asha K", role: null },
-  { id: "00000000-0000-4000-8000-000000000002", email: "rohan.m@snu.edu.in", name: "Rohan M", role: null },
-  { id: "00000000-0000-4000-8000-000000000003", email: "meera.mod@snu.edu.in", name: "Meera (moderator)", role: "admin" },
-] as const;
+import { DEV_COLLEGE, DEV_USERS } from "../src/server/dev-fixtures";
+export { DEV_COLLEGE, DEV_USERS };
 
 const DAY = 24 * 60 * 60 * 1000;
 

@@ -1,26 +1,167 @@
 @import "tailwindcss";
 
+/* ResTix tokens (docs/DESIGN.md): one ground, one ink, one raspberry hue on small marks,
+   its pale tints on areas. Everything downstream references these. */
+@theme {
+  --color-ground: #f9fafb;
+  --color-surface: #ffffff;
+  --color-raised: #f3f4f6;
+  --color-active: #ededed;
+  --color-border: #e5e7eb;
+  --color-rule: #f0f1f3;
+  --color-control: #d1d5db;
+  --color-ink: #111827;
+  --color-muted: #5f6672;
+  --color-primary: #1d1f20;
+
+  --color-accent: #b8336a;
+  --color-accent-hover: #a02a5b;
+  --color-accent-soft: #fdf2f7;
+  --color-accent-track: #f8dbe8;
+  --color-accent-ink: #6b1d3e;
+
+  --color-positive: #247b50;
+  --color-positive-soft: #dcfce7;
+  --color-positive-ink: #14532d;
+  --color-negative: #c4242a;
+  --color-negative-soft: #ffedea;
+  --color-negative-ink: #831c1e;
+  --color-notice-soft: #fffbeb;
+  --color-notice-line: #fde68a;
+  --color-notice-ink: #92400e;
+
+  --font-sans: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --radius-chip: 999px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --gap: 24px;
+  accent-color: var(--color-accent);
+  caret-color: var(--color-accent);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@media (max-width: 640px) {
+  :root { --gap: 16px; }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--color-accent-track);
+  color: var(--color-accent-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+a {
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+/* Thin, quiet scrollbars that belong to the palette. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-control) transparent;
+}
+
+/* Prices, counts, dates in tables: digits that line up. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+input, textarea, select, button {
+  font: inherit;
+}
+
+/* Native date-time pickers pick up the accent through accent-color. */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Long-form reading pages. */
+.prose-restix {
+  font-size: 16px;
+  line-height: 1.65;
+  color: #1f2430;
+}
+.prose-restix h2 {
+  margin-top: 2.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.375rem;
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+.prose-restix h3 {
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.prose-restix p { margin-top: 0.75rem; max-width: 68ch; }
+.prose-restix ul, .prose-restix ol { margin-top: 0.75rem; padding-left: 1.25rem; max-width: 66ch; }
+.prose-restix ul { list-style: disc; }
+.prose-restix ol { list-style: decimal; }
+.prose-restix li { margin-top: 0.4rem; }
+.prose-restix li::marker { color: var(--color-accent); }
+.prose-restix a { text-decoration: underline; }
+.prose-restix strong { font-weight: 600; color: var(--color-ink); }
+.prose-restix table { margin-top: 1rem; width: 100%; font-size: 15px; border-collapse: collapse; }
+.prose-restix th { text-align: left; font-weight: 500; color: var(--color-muted); font-size: 13px; padding: 0.5rem 0.75rem 0.5rem 0; }
+.prose-restix td { padding: 0.6rem 0.75rem 0.6rem 0; border-top: 1px solid var(--color-rule); vertical-align: top; }
+
+/* Landing entrances: only applied by <Reveal/> to elements still below the fold. */
+.reveal-pending {
+  opacity: 0;
+  transform: translateY(24px);
+}
+.reveal-in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 640ms var(--ease-out-expo), transform 760ms var(--ease-out-expo);
+  transition-delay: calc(var(--i, 0) * 75ms);
+}
+
+/* Rows that arrive (a new inquiry, a saved listing) settle in; content is visible without it. */
+@keyframes settle {
+  from { opacity: 0.4; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.settle {
+  animation: settle 320ms var(--ease-out-expo);
 }

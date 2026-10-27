@@ -327,6 +327,18 @@ describe("analytics, rate limits and expiry", () => {
     expect(await outcome(asUser(user.id, (tx) => tx`select restix.hit_rate_limit('x', 1, 60)`))).toBe("42501");
   });
 
+  it("purges analytics older than 18 months, and only the system can run it", async () => {
+    await asSystem((tx) => tx`insert into restix.analytics_events (name, occurred_at) values
+      ('landing_viewed', now() - interval '19 months'), ('landing_viewed', now() - interval '17 months')`);
+    const [{ result }] = await asSystem((tx) => tx<{ result: { analyticsDeleted?: number; analytics_deleted: number } }[]>`select restix.purge_old_data() as result`);
+    expect(result.analytics_deleted).toBeGreaterThanOrEqual(1);
+    const [{ old }] = await asSystem((tx) => tx<{ old: number }[]>`
+      select count(*)::int as old from restix.analytics_events where occurred_at < now() - interval '18 months'`);
+    expect(old).toBe(0);
+    const user = await makeUser({ role: "admin" });
+    expect(await outcome(asUser(user.id, (tx) => tx`select restix.purge_old_data()`))).toBe("42501");
+  });
+
   it("expires overdue listings", async () => {
     const seller = await makeUser();
     const { listingId } = await makeListing(seller.id);

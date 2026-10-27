@@ -39,7 +39,7 @@ export async function completeSignIn(identity: ProviderIdentity): Promise<SignIn
       select college_id from restix.college_email_domains where domain = ${domain}`;
     if (!college) return { ok: false as const, reason: "college_not_configured" as const };
 
-    const [existing] = await tx<{ email_verified_at: Date | null; onboarded_at: Date | null }[]>`
+    const [existing] = await tx<{ emailVerifiedAt: Date | null; onboardedAt: Date | null }[]>`
       select email_verified_at, onboarded_at from restix.profiles where id = ${identity.id} for update`;
     if (!existing) {
       await tx`insert into restix.profiles (id, college_id, display_name, email_verified_at)
@@ -50,7 +50,7 @@ export async function completeSignIn(identity: ProviderIdentity): Promise<SignIn
     await tx`update restix.profiles set email_verified_at = coalesce(email_verified_at, now()), last_seen_at = now()
              where id = ${identity.id}`;
     await tx`update restix.profile_private set email = ${email} where user_id = ${identity.id}`;
-    return { ok: true as const, isNew: false, newlyVerified: existing.email_verified_at === null, onboarded: existing.onboarded_at !== null };
+    return { ok: true as const, isNew: false, newlyVerified: existing.emailVerifiedAt === null, onboarded: existing.onboardedAt !== null };
   });
 
   if (!result.ok) return result;

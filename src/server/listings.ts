@@ -99,22 +99,27 @@ function likePattern(q: string): string {
   return `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 }
 
+/** The WHERE clause for browsing: available, in the viewer's college, plus the chosen filters. */
+function filterSql(tx: Tx, f: SearchFilters, includeFormat = true) {
+  return tx`
+    ${available(tx)}
+    and e.college_id = restix.my_college_id()
+    ${f.q ? tx`and (e.name ilike ${likePattern(f.q)} or t.name ilike ${likePattern(f.q)} or e.venue ilike ${likePattern(f.q)})` : tx``}
+    ${f.event ? tx`and e.slug = ${f.event}` : tx``}
+    ${f.category ? tx`and e.category = ${f.category}` : tx``}
+    ${includeFormat && f.format ? tx`and l.format = ${f.format}` : tx``}
+    ${f.minPaise !== undefined ? tx`and l.asking_price_paise >= ${f.minPaise}` : tx``}
+    ${f.maxPaise !== undefined ? tx`and l.asking_price_paise <= ${f.maxPaise}` : tx``}
+    ${f.from ? tx`and e.starts_at >= ${f.from}` : tx``}
+    ${f.to ? tx`and e.starts_at < ${f.to}` : tx``}`;
+}
+
 /** Available listings for the viewer's college, filtered and paged. RLS scopes the rows. */
 export async function searchListings(viewerId: string, f: SearchFilters): Promise<{ items: ListingCard[]; total: number; page: number; pages: number }> {
   await maybeExpire();
   const page = Math.max(1, Math.min(f.page ?? 1, 500));
   return asUser(viewerId, async (tx) => {
-    const where = tx`
-      ${available(tx)}
-      and e.college_id = restix.my_college_id()
-      ${f.q ? tx`and (e.name ilike ${likePattern(f.q)} or t.name ilike ${likePattern(f.q)} or e.venue ilike ${likePattern(f.q)})` : tx``}
-      ${f.event ? tx`and e.slug = ${f.event}` : tx``}
-      ${f.category ? tx`and e.category = ${f.category}` : tx``}
-      ${f.format ? tx`and l.format = ${f.format}` : tx``}
-      ${f.minPaise !== undefined ? tx`and l.asking_price_paise >= ${f.minPaise}` : tx``}
-      ${f.maxPaise !== undefined ? tx`and l.asking_price_paise <= ${f.maxPaise}` : tx``}
-      ${f.from ? tx`and e.starts_at >= ${f.from}` : tx``}
-      ${f.to ? tx`and e.starts_at < ${f.to}` : tx``}`;
+    const where = filterSql(tx, f);
     const order = {
       newest: tx`l.published_at desc nulls last, l.created_at desc`,
       price_asc: tx`l.asking_price_paise asc, l.created_at desc`,
@@ -127,6 +132,17 @@ export async function searchListings(viewerId: string, f: SearchFilters): Promis
       order by ${order}, l.id
       limit ${PAGE_SIZE} offset ${(page - 1) * PAGE_SIZE}`;
     return { items, total, page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
+  });
+}
+
+/** Available listings per format under the same filters (format excluded), for the filter cards. */
+export async function formatCounts(viewerId: string, f: SearchFilters): Promise<Record<string, number>> {
+  return asUser(viewerId, async (tx) => {
+    const rows = await tx<{ format: string; n: number }[]>`
+      select l.format, count(*)::int as n from ${CARD_FROM(tx)}
+      where ${filterSql(tx, f, false)}
+      group by l.format`;
+    return Object.fromEntries(rows.map((r) => [r.format, r.n]));
   });
 }
 

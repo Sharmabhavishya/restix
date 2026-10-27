@@ -27,6 +27,12 @@ describe("sign-in completion", () => {
     expect(p.emailVerifiedAt).not.toBeNull();
   });
 
+  it("recognises a returning, onboarded student", async () => {
+    const user = await makeUser();
+    await db.asSystem((tx) => tx`update restix.profiles set onboarded_at = now() where id = ${user.id}`);
+    expect(await completeSignIn({ id: user.id, email: user.email, emailVerified: true })).toEqual({ ok: true, isNew: false, onboarded: true });
+  });
+
   it("refuses other domains, lookalikes and unverified emails without creating a profile", async () => {
     for (const [email, verified, reason] of [
       ["someone@gmail.com", true, "domain_not_allowed"],

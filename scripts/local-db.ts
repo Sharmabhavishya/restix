@@ -4,7 +4,7 @@
 //
 //   npm run db          persistent database in .data/pglite on LOCAL_DB_PORT (default 54329)
 //   npm run db:reset    wipe .data/pglite first
-import { readFile, rm } from "node:fs/promises";
+import { mkdir, readFile, rm } from "node:fs/promises";
 import { createServer, type AddressInfo } from "node:net";
 import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
@@ -50,6 +50,7 @@ if (process.argv[1]?.endsWith("local-db.ts")) {
   const reset = process.argv.includes("--reset");
   (async () => {
     if (reset) await rm(dataDir, { recursive: true, force: true });
+    await mkdir(path.dirname(dataDir), { recursive: true });
     const port = Number(process.env.LOCAL_DB_PORT ?? 54329);
     const { url, stop } = await startLocalDb({ dataDir, port, seed: true });
     console.log(`\nLocal database ready: ${url}\nPress Ctrl+C to stop.`);

@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isAllowedEmail } from "@/lib/email-domain";
 import { asSystem } from "../db";
@@ -60,9 +60,9 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const identity = await getIdentity();
   if (!identity) return null;
   const [row] = await asSystem((tx) => tx<{
-    display_name: string; college_id: string; college_name: string; college_short: string;
-    email_verified_at: Date | null; status: Viewer["status"]; status_reason: string | null;
-    onboarded_at: Date | null; role: Viewer["role"];
+    displayName: string; collegeId: string; collegeName: string; collegeShort: string;
+    emailVerifiedAt: Date | null; status: Viewer["status"]; statusReason: string | null;
+    onboardedAt: Date | null; role: Viewer["role"];
   }[]>`
     select p.display_name, p.college_id, c.name as college_name, c.short_name as college_short,
            p.email_verified_at, p.status, p.status_reason, p.onboarded_at, r.role
@@ -79,7 +79,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   // Re-checked on every request, so removing a domain from the allowlist revokes access immediately.
   const access: Access = !isAllowedEmail(identity.email, env().allowedDomains)
     ? "domain_not_allowed"
-    : row.email_verified_at === null
+    : row.emailVerifiedAt === null
       ? "unverified"
       : row.status === "suspended"
         ? "suspended"
@@ -88,27 +88,28 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
           : "ok";
   return {
     ...base,
-    displayName: row.display_name,
-    collegeId: row.college_id,
-    collegeName: row.college_name,
-    collegeShortName: row.college_short,
-    emailVerifiedAt: row.email_verified_at,
+    displayName: row.displayName,
+    collegeId: row.collegeId,
+    collegeName: row.collegeName,
+    collegeShortName: row.collegeShort,
+    emailVerifiedAt: row.emailVerifiedAt,
     status: row.status,
-    statusReason: row.status_reason,
-    onboarded: row.onboarded_at !== null,
+    statusReason: row.statusReason,
+    onboarded: row.onboardedAt !== null,
     role: row.role,
     access,
   };
 });
 
-function signInPath(next?: string) {
+function signInPath(next?: string | null) {
   return next ? `/sign-in?next=${encodeURIComponent(next)}` : "/sign-in";
 }
 
 /** Any signed-in account (used by the account page, which must work even for restricted users). */
 export async function requireViewer(next?: string): Promise<Viewer> {
   const viewer = await getViewer();
-  if (!viewer) redirect(signInPath(next));
+  // The proxy records the requested path; safeNext() sanitises it again after sign-in.
+  if (!viewer) redirect(signInPath(next ?? (await headers()).get("x-restix-path")));
   if (viewer.access === "no_profile" || viewer.access === "domain_not_allowed" || viewer.access === "unverified") {
     redirect(`/sign-in?error=${viewer.access}`);
   }

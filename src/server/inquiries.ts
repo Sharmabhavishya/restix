@@ -11,6 +11,7 @@ export type Outcome = "completed" | "not_completed" | "disputed";
 export interface InquiryRow {
   id: string;
   listingId: string;
+  eventId: string;
   role: "buyer" | "seller";
   counterpartName: string;
   counterpartId: string;
@@ -59,7 +60,7 @@ export async function sendInquiry(viewerId: string, input: { listingId: string; 
 
 export async function inbox(viewerId: string): Promise<InquiryRow[]> {
   return asUser(viewerId, (tx) => tx<InquiryRow[]>`
-    select i.id, i.listing_id,
+    select i.id, i.listing_id, e.id as event_id,
            case when i.seller_id = ${viewerId} then 'seller' else 'buyer' end as role,
            case when i.seller_id = ${viewerId} then b.display_name else s.display_name end as counterpart_name,
            case when i.seller_id = ${viewerId} then i.buyer_id else i.seller_id end as counterpart_id,

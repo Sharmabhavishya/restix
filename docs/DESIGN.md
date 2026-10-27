@@ -47,6 +47,19 @@ fragments (`data-ui`), drawn at real size from real data.
 works (one wristband in four fields, further along each time) → what keeps it safe (close-ups
 board) → questions (tabbed index cards) → closing statement → footer (wristband mark built large).
 
+## Voice: Gen Z, but trustworthy (owner request, 2026-10-27)
+
+Write like a friend in your batch who actually reads the rules.
+- **Casual and short in product moments:** "got a spare wristband?", "someone's looking for this",
+  "no tickets here yet. be the first.", "sorted", "lowkey the safest way to resell".
+- **Lowercase is fine for tiny moments** (empty states, toasts, button sublines); headings and
+  buttons stay sentence case so they scan.
+- **Never slang where it matters:** errors, safety guidance, policy, privacy, moderation and anything
+  about money or handover are plain and exact. No jokes about scams.
+- No emoji in the UI (house rule), no "fam/bestie" overload, no fake hype or fake numbers.
+- Second person, active verbs, Indian campus context (fests, wristbands, hostel gates, UPI happens
+  between you two, not on ResTix).
+
 ## House rules kept everywhere
 No eyebrows, no monospace outside code, no 01/02/03, no gradients, no shadows at rest, no glass, no
 emoji, no icon-topped feature cards, headlines two lines or fewer, sentence case, one h1 per page.

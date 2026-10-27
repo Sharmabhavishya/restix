@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { parseRupees } from "./money";
+import { fromLocalInput } from "./format";
 
 // Strips control characters (keeping newlines and tabs) and trims. React escapes
 // output, so this is about tidy data, not HTML safety.
 export function cleanText(value: string): string {
-  // eslint-disable-next-line no-control-regex
   return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F​-‏‪-‮]/g, "").trim();
 }
 
@@ -82,8 +82,8 @@ export const listingInput = z
       .optional()
       .transform((v, ctx) => {
         if (!v) return null;
-        const d = new Date(v);
-        if (Number.isNaN(d.getTime())) {
+        const d = fromLocalInput(v);
+        if (!d) {
           ctx.addIssue({ code: "custom", message: "Enter a valid date and time." });
           return z.NEVER;
         }

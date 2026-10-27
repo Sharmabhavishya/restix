@@ -223,6 +223,7 @@ export async function moderateListing(modId: string, input: { listingId: string;
     const [l] = await tx<{ status: ListingStatus; expiresAt: Date; sellerId: string }[]>`
       select status, expires_at, seller_id from restix.ticket_listings where id = ${input.listingId} for update`;
     if (!l) return { ok: false, error: "Listing not found." };
+    if (l.sellerId === modId) return { ok: false, error: "This is your own listing. Ask another moderator." };
     let next: ListingStatus;
     let auditAction: string;
     switch (input.action) {
@@ -291,6 +292,7 @@ export async function updateReport(modId: string, input: { reportId: string; sta
     const [r] = await tx<{ status: ReportStatus; listingId: string | null; reportedUserId: string | null }[]>`
       select status, listing_id, reported_user_id from restix.reports where id = ${input.reportId} for update`;
     if (!r) return { ok: false, error: "Report not found." };
+    if (r.reportedUserId === modId) return { ok: false, error: "This report is about you. Ask another moderator." };
     if (r.status === "resolved" || r.status === "dismissed") return { ok: false, error: "This report is already closed." };
     const closing = input.status !== "in_review";
     await tx`update restix.reports set status = ${input.status},
@@ -388,4 +390,29 @@ export async function findUsers(modId: string, q: string) {
     left join restix.admin_roles r on r.user_id = p.id
     where ${q ? tx`(p.display_name ilike ${pattern} or pp.email ilike ${pattern})` : tx`p.status <> 'active' or exists (select 1 from restix.reports x where x.reported_user_id = p.id)`}
     order by p.created_at desc limit 50`);
+}
+
+// ---------------------------------------------------------------------------
+// Roles (admins only; RLS on admin_roles enforces it too)
+// ---------------------------------------------------------------------------
+
+export async function setRole(adminId: string, input: { userId: string; role: "moderator" | "admin" | null; reason: string }): Promise<Result> {
+  if (input.userId === adminId) return { ok: false, error: "You can't change your own role. Ask another admin." };
+  return guarded(adminId, async (tx) => {
+    const [me] = await tx<{ role: string }[]>`select role from restix.admin_roles where user_id = ${adminId}`;
+    if (me?.role !== "admin") return { ok: false, error: "Only admins can change roles." };
+    const [target] = await tx<{ status: string; role: string | null }[]>`
+      select p.status, r.role from restix.profiles p left join restix.admin_roles r on r.user_id = p.id where p.id = ${input.userId}`;
+    if (!target) return { ok: false, error: "Account not found." };
+    if (input.role && target.status !== "active") return { ok: false, error: "Only active accounts can be given a role." };
+    await tx`delete from restix.admin_roles where user_id = ${input.userId}`;
+    if (input.role) {
+      await tx`insert into restix.admin_roles (user_id, role, granted_by) values (${input.userId}, ${input.role}, ${adminId})`;
+    }
+    await audit(tx, adminId, {
+      action: input.role ? "grant_role" : "revoke_role", reason: input.reason, userId: input.userId,
+      metadata: { from: target.role, to: input.role },
+    });
+    return { ok: true };
+  });
 }

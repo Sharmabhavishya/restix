@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { cleanText } from "@/lib/validation";
 import { parseRupees } from "@/lib/money";
+import { fromLocalInput } from "@/lib/format";
 import { asUser, pgCode, PG } from "./db";
 
 // Event management for moderators. Events and their resale policy are the basis of
@@ -17,14 +18,14 @@ export const eventInput = z
     venue: z.string().transform(cleanText).pipe(z.string().max(120)).optional().transform((v) => v || null),
     description: z.string().transform(cleanText).pipe(z.string().max(2000)).optional().transform((v) => v || null),
     startsAt: z.string().transform((v, ctx) => {
-      const d = new Date(v);
-      if (!v || Number.isNaN(d.getTime())) { ctx.addIssue({ code: "custom", message: "Enter the start date and time." }); return z.NEVER; }
+      const d = fromLocalInput(v);
+      if (!d) { ctx.addIssue({ code: "custom", message: "Enter the start date and time." }); return z.NEVER; }
       return d;
     }),
     endsAt: z.string().optional().transform((v, ctx) => {
       if (!v) return null;
-      const d = new Date(v);
-      if (Number.isNaN(d.getTime())) { ctx.addIssue({ code: "custom", message: "Enter a valid end time." }); return z.NEVER; }
+      const d = fromLocalInput(v);
+      if (!d) { ctx.addIssue({ code: "custom", message: "Enter a valid end time." }); return z.NEVER; }
       return d;
     }),
     status: z.enum(["scheduled", "postponed", "cancelled", "completed"]),
