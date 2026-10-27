@@ -12,10 +12,10 @@ const base =
 const variants: Record<Variant, string> = {
   // The one filled style carries the full hue (docs/DESIGN.md).
   primary: "bg-accent text-white hover:bg-accent-hover",
-  dark: "bg-primary text-white hover:bg-black",
-  secondary: "border border-control bg-surface text-ink hover:border-[#b9bdc4] hover:bg-raised",
+  dark: "bg-primary text-on-primary hover:opacity-90",
+  secondary: "border border-control bg-surface text-ink hover:border-control-hover hover:bg-raised",
   ghost: "text-ink hover:bg-raised",
-  danger: "border border-[#f1b8b4] bg-surface text-negative hover:bg-negative-soft",
+  danger: "border border-negative-line bg-surface text-negative hover:bg-negative-soft",
 };
 
 const sizes: Record<Size, string> = {

@@ -4,7 +4,7 @@ import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 export type Tone = "neutral" | "accent" | "positive" | "negative" | "warning";
 
 const toneClass: Record<Tone, string> = {
-  neutral: "bg-raised text-[#374151]",
+  neutral: "bg-raised text-pill-neutral",
   accent: "bg-accent-soft text-accent-ink",
   positive: "bg-positive-soft text-positive-ink",
   negative: "bg-negative-soft text-negative-ink",
@@ -37,9 +37,9 @@ export function PanelHeader({ title, action, sub }: { title: ReactNode; action?:
 
 const noticeStyle = {
   info: { cls: "border-border bg-raised text-ink", Icon: Info },
-  success: { cls: "border-[#bbe5c8] bg-positive-soft text-positive-ink", Icon: CheckCircle2 },
+  success: { cls: "border-positive-line bg-positive-soft text-positive-ink", Icon: CheckCircle2 },
   warning: { cls: "border-notice-line bg-notice-soft text-notice-ink", Icon: AlertCircle },
-  error: { cls: "border-[#f5c2bd] bg-negative-soft text-negative-ink", Icon: AlertCircle },
+  error: { cls: "border-negative-line bg-negative-soft text-negative-ink", Icon: AlertCircle },
 } as const;
 
 export function Notice({ tone = "info", title, children, className = "" }: { tone?: keyof typeof noticeStyle; title?: ReactNode; children?: ReactNode; className?: string }) {

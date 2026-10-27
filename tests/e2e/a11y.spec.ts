@@ -5,6 +5,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { asFixture } from "./helpers";
 
 async function scan(page: Page, path: string) {
+  // Reduced motion keeps scroll-entrance content visible, so axe checks the whole page.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(path);
   await page.waitForLoadState("networkidle");
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
@@ -34,4 +36,23 @@ test("moderator pages", async ({ browser }) => {
     await scan(page, path);
   }
   await context.close();
+});
+
+test.describe("dark mode", () => {
+  test.use({ colorScheme: "dark" });
+
+  test("public and student pages keep contrast in dark mode", async ({ page, browser }) => {
+    for (const path of ["/", "/sign-in", "/safety"]) await scan(page, path);
+    const { page: student, context } = await asFixture(browser, "Asha K");
+    await student.emulateMedia({ colorScheme: "dark" });
+    for (const path of ["/tickets", "/events", "/sell", "/inquiries", "/account", "/selling"]) await scan(student, path);
+    await context.close();
+  });
+
+  test("moderator pages keep contrast in dark mode", async ({ browser }) => {
+    const { page, context } = await asFixture(browser, "Meera (moderator)");
+    await page.emulateMedia({ colorScheme: "dark" });
+    for (const path of ["/admin", "/admin/events", "/admin/analytics", "/admin/audit"]) await scan(page, path);
+    await context.close();
+  });
 });

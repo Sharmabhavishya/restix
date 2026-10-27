@@ -11,21 +11,35 @@
   --color-rule: #f0f1f3;
   --color-control: #d1d5db;
   --color-ink: #111827;
+  --color-ink-soft: #2b2f38;
   --color-muted: #5f6672;
+  --color-placeholder: #6b6b6b;
+  --color-nav: #4b5260;
+  --color-control-hover: #b9bdc4;
   --color-primary: #1d1f20;
+  --color-on-primary: #ffffff;
+  --color-chart-grid: #eceef1;
+  --color-chart-base: #c9ccd2;
+  --color-chart-muted: #9aa0a9;
+  --color-pill-neutral: #374151;
 
   --color-accent: #b8336a;
   --color-accent-hover: #a02a5b;
   --color-accent-soft: #fdf2f7;
   --color-accent-track: #f8dbe8;
   --color-accent-ink: #6b1d3e;
+  --color-accent-strong: #b8336a; /* accent used as text */
+  --color-accent-field: #f6e3ec;
+  --color-accent-deep: #6b1d3e; /* deep fields with white text */
 
   --color-positive: #247b50;
   --color-positive-soft: #dcfce7;
   --color-positive-ink: #14532d;
+  --color-positive-line: #bbe5c8;
   --color-negative: #c4242a;
   --color-negative-soft: #ffedea;
   --color-negative-ink: #831c1e;
+  --color-negative-line: #f5c2bd;
   --color-notice-soft: #fffbeb;
   --color-notice-line: #fde68a;
   --color-notice-ink: #92400e;
@@ -41,7 +55,7 @@
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   --gap: 24px;
   accent-color: var(--color-accent);
   caret-color: var(--color-accent);
@@ -49,6 +63,53 @@
 
 @media (max-width: 640px) {
   :root { --gap: 16px; }
+}
+
+/* Dark: true neutral darks (no navy or slate), the hue only on small marks, tints deepened.
+   Follows the system setting. Every value keeps text at 4.5:1 or better on its surface. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-ground: #0b0b0c;
+    --color-surface: #141416;
+    --color-raised: #1c1d20;
+    --color-active: #232428;
+    --color-border: #27282c;
+    --color-rule: #1f2023;
+    --color-control: #3b3c41;
+    --color-control-hover: #55565c;
+    --color-ink: #f2f2f3;
+    --color-ink-soft: #d6d6da;
+    --color-muted: #a3a3ab;
+    --color-placeholder: #8c8c94;
+    --color-nav: #b8b8c0;
+    --color-primary: #f2f2f3;
+    --color-on-primary: #111113;
+    --color-chart-grid: #232428;
+    --color-chart-base: #3b3c41;
+    --color-chart-muted: #6e6f76;
+    --color-pill-neutral: #d6d6da;
+
+    --color-accent: #c23b73;
+    --color-accent-hover: #d14a82;
+    --color-accent-soft: #2a1620;
+    --color-accent-track: #45192f;
+    --color-accent-ink: #f6bfd4;
+    --color-accent-strong: #ee7fab;
+    --color-accent-field: #3a1a2a;
+    --color-accent-deep: #3d1022;
+
+    --color-positive: #4ade80;
+    --color-positive-soft: #11261a;
+    --color-positive-ink: #a7f3c4;
+    --color-positive-line: #1f4a30;
+    --color-negative: #f87171;
+    --color-negative-soft: #2b1416;
+    --color-negative-ink: #fecaca;
+    --color-negative-line: #5c2327;
+    --color-notice-soft: #261e0c;
+    --color-notice-line: #5c4810;
+    --color-notice-ink: #fcd34d;
+  }
 }
 
 html {
@@ -115,7 +176,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .prose-restix {
   font-size: 16px;
   line-height: 1.65;
-  color: #1f2430;
+  color: var(--color-ink-soft);
 }
 .prose-restix h2 {
   margin-top: 2.75rem;

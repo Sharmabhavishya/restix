@@ -47,6 +47,14 @@ fragments (`data-ui`), drawn at real size from real data.
 works (one wristband in four fields, further along each time) → what keeps it safe (close-ups
 board) → questions (tabbed index cards) → closing statement → footer (wristband mark built large).
 
+## Dark mode (added after the first build)
+
+Follows the system setting (`prefers-color-scheme`). True neutral darks (`#0b0b0c` ground,
+`#141416` surface, no navy or slate), the raspberry lifted slightly for contrast and still only on
+small marks, event tints deepened through CSS `light-dark()`. Every colour is a token in
+`globals.css`; components never hard-code hex values. The axe suite scans the main pages in both
+schemes (with reduced motion so scroll-entrance content is included).
+
 ## Voice: Gen Z, but trustworthy (owner request, 2026-10-27)
 
 Write like a friend in your batch who actually reads the rules.

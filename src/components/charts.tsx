@@ -28,7 +28,7 @@ function Axes({ max, labels }: { max: number; labels: { x: number; text: string;
         const y = PAD.top + ih - (t / max) * ih;
         return (
           <g key={t}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y} y2={y} stroke={t === 0 ? "#c9ccd2" : "#eceef1"} strokeWidth={t === 0 ? 1.5 : 1} />
+            <line x1={PAD.left} x2={W - PAD.right} y1={y} y2={y} stroke={t === 0 ? "var(--color-chart-base)" : "var(--color-chart-grid)"} strokeWidth={t === 0 ? 1.5 : 1} />
             <text x={PAD.left - 6} y={y + 3.5} textAnchor="end" className="num">{Number.isInteger(t) ? t : t.toFixed(1)}</text>
           </g>
         );
@@ -103,7 +103,7 @@ export function BarList({ rows, empty }: { rows: { label: string; value: number 
             <span className="num font-medium">{r.value.toLocaleString("en-IN")}</span>
           </div>
           <div className="mt-1 h-[3px] rounded-full bg-rule">
-            <div className={`h-full rounded-full ${i === 0 ? "bg-accent" : "bg-[#9aa0a9]"}`} style={{ width: `${(r.value / max) * 100}%` }} />
+            <div className={`h-full rounded-full ${i === 0 ? "bg-accent" : "bg-chart-muted"}`} style={{ width: `${(r.value / max) * 100}%` }} />
           </div>
         </li>
       ))}

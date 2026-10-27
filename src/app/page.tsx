@@ -91,7 +91,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
           <h1 className="text-[clamp(2.4rem,4.7vw,4.5rem)] leading-[0.95] font-bold tracking-[-0.045em] text-balance">
             spare wristband?<br /> sorted.
           </h1>
-          <p className="mt-6 max-w-[34ch] text-lg leading-relaxed text-[#2b2f38]">
+          <p className="mt-6 max-w-[34ch] text-lg leading-relaxed text-ink-soft">
             ResTix is the ticket exchange for {college} students. List the fest wristband you can&apos;t use, find the one you need, sort the handover on campus. No WhatsApp-group chaos.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -157,21 +157,21 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
           { bg: "bg-accent-soft", ink: "text-accent-ink", clause: "First, list it.", body: "Event, ticket type, price, where you'll meet. A minute, tops.", tab: "₹800", state: "Available" },
           { bg: "bg-accent-track", ink: "text-accent-ink", clause: "Someone asks.", body: "A verified student sends a request. You see their name, not their email.", tab: "1 request", state: "Waiting" },
           { bg: "bg-accent", ink: "text-white", clause: "You say yes.", body: "Share your WhatsApp or a note, with that one buyer only.", tab: "Shared", state: "Contact shared" },
-          { bg: "bg-accent-ink", ink: "text-white", clause: "Swap on campus.", body: "Meet somewhere public, check the band, pay each other. Mark it done.", tab: "Sold", state: "Handed over" },
+          { bg: "bg-accent-deep", ink: "text-white", clause: "Swap on campus.", body: "Meet somewhere public, check the band, pay each other. Mark it done.", tab: "Sold", state: "Handed over" },
         ].map((f, i) => (
           <div key={f.clause} data-reveal style={{ "--i": i } as React.CSSProperties} className={`${f.bg} ${f.ink} flex min-h-[20rem] flex-col justify-between gap-10 px-5 py-8 sm:px-6 md:min-h-[28rem] lg:px-8`}>
             <div>
               {i === 0 && <h2 id="how-heading" className="mb-6 text-2xl font-bold tracking-[-0.02em]">How it works</h2>}
               <p className="text-[clamp(1.5rem,2.2vw,2rem)] leading-tight font-semibold tracking-[-0.02em]">{f.clause}</p>
-              <p className="mt-3 max-w-[30ch] text-[15px] leading-relaxed opacity-90">{f.body}</p>
+              <p className="mt-3 max-w-[30ch] text-[15px] leading-relaxed">{f.body}</p>
             </div>
             {/* The same wristband, a step further along in each field. */}
             <div data-ui aria-hidden className="flex gap-[3px] transition-transform duration-200 ease-[var(--ease-out-expo)] hover:-translate-y-1.5">
-              <div className="min-w-0 flex-1 rounded-l-[var(--radius-card)] bg-white px-3 py-2.5 text-ink">
+              <div className="min-w-0 flex-1 rounded-l-[var(--radius-card)] bg-surface px-3 py-2.5 text-ink">
                 <p className="truncate text-sm font-semibold">Spring Fest</p>
                 <p className="truncate text-[12px] text-muted">{f.state}</p>
               </div>
-              <div className="flex w-[5.5rem] flex-none items-center justify-end rounded-r-full bg-[#f6e3ec] py-2.5 pr-4 text-[13px] font-semibold whitespace-nowrap text-accent-ink">{f.tab}</div>
+              <div className="flex w-[5.5rem] flex-none items-center justify-end rounded-r-full bg-accent-field py-2.5 pr-4 text-[13px] font-semibold whitespace-nowrap text-accent-ink">{f.tab}</div>
             </div>
           </div>
         ))}
@@ -180,7 +180,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
       {/* What keeps it safe: close-ups of the real interface pieces. */}
       <section aria-labelledby="safe-heading" className="mx-auto max-w-[1200px] px-4 py-24 sm:px-6 md:py-36">
         <div className="grid gap-2 md:grid-cols-12">
-          <div data-reveal className="flex flex-col justify-end rounded-[var(--radius-card)] bg-ink p-6 text-white md:col-span-6 md:row-span-1 md:min-h-56">
+          <div data-reveal className="flex flex-col justify-end rounded-[var(--radius-card)] bg-primary p-6 text-on-primary md:col-span-6 md:row-span-1 md:min-h-56">
             <h2 id="safe-heading" className="text-[clamp(2rem,4vw,3.5rem)] leading-[0.95] font-bold tracking-[-0.03em]">no randoms. no screenshots.</h2>
           </div>
           <div data-reveal style={{ "--i": 1 } as React.CSSProperties} className="relative overflow-hidden rounded-[var(--radius-card)] bg-positive-soft p-6 md:col-span-6 md:min-h-56">
@@ -189,7 +189,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
             </div>
             <div className="relative mt-24 sm:mt-28">
               <h3 className="text-lg font-medium">Verified campus accounts</h3>
-              <p className="text-[15px] text-[#2b3a30]">Everyone signs in with a {domains} Google account. That proves the email; it doesn&apos;t vouch for the ticket.</p>
+              <p className="text-[15px] text-positive-ink">Everyone signs in with a {domains} Google account. That proves the email; it doesn&apos;t vouch for the ticket.</p>
             </div>
           </div>
           <div data-reveal style={{ "--i": 2 } as React.CSSProperties} className="relative overflow-hidden rounded-[var(--radius-card)] bg-accent-soft p-6 md:col-span-4 md:min-h-72">
@@ -242,7 +242,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
                 </span>
                 <span className="mt-1 text-lg font-medium text-ink">{f.q}</span>
               </summary>
-              <p className="max-w-[60ch] px-5 pb-6 text-base leading-relaxed text-[#3a2430]">{f.a}</p>
+              <p className="max-w-[60ch] px-5 pb-6 text-base leading-relaxed text-accent-ink">{f.a}</p>
             </details>
           ))}
         </div>
@@ -257,7 +257,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
       </section>
 
       {/* Footer: the mark, built large. */}
-      <footer className="bg-accent-ink text-white">
+      <footer className="bg-accent-deep text-white">
         <div className="mx-auto max-w-[1200px] px-4 pt-14 pb-10 sm:px-6">
           <div aria-hidden className="flex h-[22vw] max-h-56 min-h-28 items-stretch gap-1">
             <div className="flex-[5] rounded-l-[28px] bg-accent" />

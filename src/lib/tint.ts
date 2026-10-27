@@ -20,8 +20,8 @@ export function eventHue(eventId: string): number {
 export function bandStyle(eventId: string): Record<string, string> {
   const h = eventHue(eventId);
   return {
-    "--band": `oklch(0.962 0.03 ${h})`,
-    "--band-strong": `oklch(0.905 0.06 ${h})`,
-    "--band-ink": `oklch(0.36 0.07 ${h})`,
+    "--band": `light-dark(oklch(0.962 0.03 ${h}), oklch(0.25 0.035 ${h}))`,
+    "--band-strong": `light-dark(oklch(0.905 0.06 ${h}), oklch(0.32 0.06 ${h}))`,
+    "--band-ink": `light-dark(oklch(0.36 0.07 ${h}), oklch(0.84 0.06 ${h}))`,
   };
 }

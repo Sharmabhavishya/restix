@@ -49,10 +49,10 @@ function NavLinks({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () 
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={`flex h-10 items-center gap-3 rounded-[var(--radius-control)] px-3 text-sm transition-colors duration-150 md:h-8 ${
-                      active ? "bg-accent-soft font-medium text-accent-ink" : "text-[#4b5260] hover:bg-raised hover:text-ink"
+                      active ? "bg-accent-soft font-medium text-accent-ink" : "text-nav hover:bg-raised hover:text-ink"
                     }`}
                   >
-                    <Icon className={`size-4 flex-none ${active ? "text-accent" : ""}`} strokeWidth={1.75} aria-hidden />
+                    <Icon className={`size-4 flex-none ${active ? "text-accent-strong" : ""}`} strokeWidth={1.75} aria-hidden />
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.count ? (
                       <span className="num min-w-5 rounded-full bg-accent px-1.5 text-center text-[11px] leading-5 font-semibold text-white">

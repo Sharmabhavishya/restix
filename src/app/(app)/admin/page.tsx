@@ -66,7 +66,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin">)
                   <li key={href}>
                     <Link href={href} className="flex items-center justify-between gap-4 px-5 py-3.5 text-sm hover:bg-raised">
                       <span>{label}</span>
-                      <span className={`num font-semibold ${n > 0 ? "text-accent" : "text-muted"}`}>{n}</span>
+                      <span className={`num font-semibold ${n > 0 ? "text-accent-strong" : "text-muted"}`}>{n}</span>
                     </Link>
                   </li>
                 ))}

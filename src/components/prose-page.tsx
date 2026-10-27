@@ -11,7 +11,7 @@ export async function ProsePage({ title, intro, updated, children }: { title: st
       <PublicHeader />
       <main className="mx-auto w-full max-w-[760px] flex-1 px-4 pt-10 pb-20 sm:px-6 md:pt-16">
         <h1 className="text-[clamp(2.25rem,5vw,3.5rem)] leading-[1] font-bold tracking-[-0.035em]">{title}</h1>
-        {intro && <div className="mt-5 text-lg leading-relaxed text-[#2b2f38]">{intro}</div>}
+        {intro && <div className="mt-5 text-lg leading-relaxed text-ink-soft">{intro}</div>}
         {updated && <p className="mt-3 text-sm text-muted">Last updated {updated}</p>}
         <div className="prose-restix mt-10">{children}</div>
       </main>

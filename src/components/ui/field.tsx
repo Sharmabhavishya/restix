@@ -2,8 +2,8 @@ import type { ComponentProps, ReactNode } from "react";
 
 export const controlClass =
   "block w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-[15px] text-ink " +
-  "placeholder:text-[#6b6b6b] transition-[border-color,box-shadow] duration-150 " +
-  "hover:border-[#b9bdc4] focus:border-accent focus:outline-none focus:ring-3 focus:ring-accent-track " +
+  "placeholder:text-placeholder transition-[border-color,box-shadow] duration-150 " +
+  "hover:border-control-hover focus:border-accent focus:outline-none focus:ring-3 focus:ring-accent-track " +
   "aria-[invalid=true]:border-negative disabled:bg-raised disabled:text-muted";
 
 export function Field({

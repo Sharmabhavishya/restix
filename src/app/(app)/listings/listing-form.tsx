@@ -121,7 +121,7 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
               <label
                 key={f}
                 className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border px-3 py-2 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${
-                  format === f ? "border-accent bg-accent-soft font-medium text-accent-ink" : "border-control bg-surface hover:border-[#b9bdc4]"
+                  format === f ? "border-accent bg-accent-soft font-medium text-accent-ink" : "border-control bg-surface hover:border-control-hover"
                 }`}
               >
                 <input type="radio" name="format" value={f} checked={format === f} onChange={() => setFormat(f)} className="sr-only" />
