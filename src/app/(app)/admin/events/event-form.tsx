@@ -7,6 +7,7 @@ import { Field, Input, Select, Textarea, describedBy } from "@/components/ui/fie
 import { Notice } from "@/components/ui/bits";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { CoverPicker } from "./cover-picker";
+import { TicketTypesEditor } from "./ticket-types-editor";
 
 export interface EventDefaults {
   eventId?: string;
@@ -111,9 +112,7 @@ export function EventForm({ d = {} }: { d?: EventDefaults }) {
         </div>
       </details>
 
-      <Field label="Ticket types" htmlFor="ticketTypes" optional error={fe.ticketTypes} hint="One per line: name, face value in rupees. e.g. “Night pass, 800”. Existing types are kept.">
-        <Textarea id="ticketTypes" name="ticketTypes" rows={3} defaultValue={v?.ticketTypes ?? d.ticketTypes ?? ""} {...describedBy("ticketTypes", fe.ticketTypes, true)} />
-      </Field>
+      <TicketTypesEditor initial={v?.ticketTypes ?? d.ticketTypes} error={fe.ticketTypes} />
       <Field label="Reason for this change" htmlFor="reason" error={fe.reason} hint="Goes in the audit log.">
         <Input id="reason" name="reason" maxLength={1000} defaultValue={v?.reason ?? ""} placeholder={d.eventId ? "e.g. Moved to the main ground" : d.requestId ? "e.g. Student request, checked the poster" : "e.g. Announced on the cultural committee page"} {...describedBy("reason", fe.reason, true)} />
       </Field>

@@ -251,6 +251,9 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   .float-b { animation: float 8s ease-in-out -2.5s infinite reverse; }
   .float-c { animation: float 6s ease-in-out -4s infinite; }
 
+  /* "I want a ticket": the hand waves once. */
+  .want-wave { animation: wave 700ms var(--ease-out-expo); transform-origin: 70% 80%; }
+
   /* Saving a listing: the heart pops. */
   .save-pop { animation: heart-pop 420ms var(--ease-out-expo); }
 
@@ -303,6 +306,11 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-positive) 55%, transparent); }
   60% { box-shadow: 0 0 0 7px transparent; }
 }
+@keyframes wave {
+  0%, 100% { transform: none; }
+  25% { transform: rotate(-18deg); }
+  60% { transform: rotate(12deg); }
+}
 @keyframes heart-pop {
   0% { transform: scale(0.6); }
   50% { transform: scale(1.3); }
@@ -323,6 +331,16 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 @keyframes dot-bob {
   0%, 100% { transform: none; }
   50% { transform: translateY(-14%) rotate(8deg); }
+}
+
+/* Loading placeholders: a soft pulse (opacity only, so it never repaints the page). */
+.skeleton { background: var(--color-raised); }
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton { animation: skeleton 1.4s ease-in-out infinite; }
+}
+@keyframes skeleton {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 
 /* A tiny confetti pop when a price is agreed: twelve dots, one pass, then gone. */

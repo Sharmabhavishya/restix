@@ -18,7 +18,12 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   await mod.page.getByLabel(/^Ends/).fill(isoLocal(5.2));
   // No restriction chosen: open to resale at any price, the default.
   await expect(mod.page.getByLabel("Resale rule")).toBeHidden();
-  await mod.page.getByLabel(/^Ticket types/).fill("Day pass, 600");
+  // Ticket types: rows with presets. Start from the default row, check a preset adds one, then trim back.
+  await mod.page.getByLabel("Ticket type 1 name").fill("Day pass");
+  await mod.page.getByLabel(/Ticket type 1 face value/).fill("600");
+  await mod.page.getByRole("button", { name: "VIP" }).click();
+  await expect(mod.page.getByLabel("Ticket type 2 name")).toHaveValue("VIP");
+  await mod.page.getByRole("button", { name: "Remove ticket type 2" }).click();
   await mod.page.getByLabel("Reason for this change").fill("E2E test event");
   await mod.page.getByRole("button", { name: "Create event" }).click();
   await expect(mod.page.getByText(`Saved “${eventName}”.`)).toBeVisible();

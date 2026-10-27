@@ -5,7 +5,7 @@ import { pendingInquiryCount } from "@/server/profile";
 import { unseenReplies } from "@/server/inquiries";
 import { offersWaiting } from "@/server/offers";
 import { queueCounts } from "@/server/moderation";
-import { listUpcomingEvents } from "@/server/events";
+import { nextUpEvent } from "@/server/events";
 import { NextUp } from "./next-up";
 import { signOut } from "@/app/auth/actions";
 import { MobileBar, Sidebar, type NavGroup } from "./nav";
@@ -77,9 +77,8 @@ function UserFooter({ viewer }: { viewer: Viewer }) {
 }
 
 export async function AppShell({ viewer, children }: { viewer: Viewer; children: ReactNode }) {
-  const [groups, upcoming] = await Promise.all([navFor(viewer), listUpcomingEvents(viewer.id).catch(() => [])]);
+  const [groups, next] = await Promise.all([navFor(viewer), nextUpEvent(viewer.id).catch(() => null)]);
   const scope = "student ticket exchange";
-  const next = upcoming.find((e) => e.status === "scheduled" || e.status === "postponed");
   const footer = (
     <div className="flex flex-col gap-4">
       {next && <NextUp event={next} />}

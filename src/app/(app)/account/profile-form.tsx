@@ -6,6 +6,7 @@ import { initialState } from "@/lib/action-state";
 import { saveProfile } from "./actions";
 import { Checkbox, Field, Input, describedBy } from "@/components/ui/field";
 import { Notice } from "@/components/ui/bits";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 export function ProfileForm({
@@ -40,7 +41,7 @@ export function ProfileForm({
         error={fe.whatsapp}
         hint="Private. Only shared with a buyer if you choose to when you accept their request."
       >
-        <Input id="whatsapp" name="whatsapp" type="tel" inputMode="tel" defaultValue={v?.whatsapp ?? whatsapp ?? ""} placeholder="98765 43210" autoComplete="tel" {...describedBy("whatsapp", fe.whatsapp, true)} />
+        <PhoneInput id="whatsapp" name="whatsapp" defaultValue={v?.whatsapp ?? (whatsapp?.startsWith("+91") ? whatsapp.slice(3) : whatsapp) ?? ""} {...describedBy("whatsapp", fe.whatsapp, true)} />
       </Field>
 
       {onboarding && (

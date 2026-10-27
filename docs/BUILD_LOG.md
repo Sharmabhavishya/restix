@@ -189,3 +189,32 @@ ResTix). Update after every milestone; newest log entries last.
   `tests/integration/handoff.test.ts`, new cases in `src/lib/whatsapp.test.ts`,
   `src/lib/validation.test.ts`, `tests/integration/suggestions.test.ts`, `tests/integration/rls.test.ts`,
   `tests/e2e/access.spec.ts` and `tests/e2e/bargain.spec.ts`.
+
+### 2026-10-27 (later): speed, debugging, wants, trust, price drops
+
+- **Debugging:** a crawler signs in as a visitor, buyer, seller and admin and follows every
+  same-site link, recording server errors, console errors and phone-width overflow. Fixed: the
+  sign-in page and the admin audit table ran off phone screens; very long unbroken event names
+  pushed titles off screen. Worst-case data (120-character names, Hindi and emoji, ₹1,00,000,
+  10 tickets, long notes) was loaded into the dev database and checked on phone screenshots.
+  Found that `.env.local` let the dev server open 4 connections to the single-session local
+  database, which interleaves queries ("portal does not exist") and can hang requests; local
+  `DB_POOL_MAX` is now 1 and `.env.example` says why.
+- **Speed:** zod no longer ships to the browser (the report form imported the validation module;
+  report reasons moved to `src/lib/report-reasons.ts`), cutting about 120 KB from listing pages.
+  `(app)/loading.tsx` shows a skeleton the moment someone navigates and lets Next prefetch up to
+  it; measured on a production build, the URL changes in about 50 ms after a click. Trade-off:
+  inside the signed-in app a missing listing or event now answers 200 (the skeleton has already
+  streamed) with the not-found page and a `noindex` tag; public missing pages still return 404. The sidebar
+  and the filter menu use small dedicated queries (`nextUpEvent`, `eventOptions`) instead of the
+  full event list, and the browse counts skip the going-rate calculation unless "Good deals" is on.
+  Page titles use the display font.
+- **Features:** "I want a ticket" on event pages (counts shown on posters and to sellers in the
+  sell form; never names), seller track record on listings (handovers confirmed by both sides,
+  typical reply time), price-drop badges ("↓ was ₹X" for a week), and "More for this event" on
+  listing pages. Admin ticket types are now an editor with one-tap presets and a row per type.
+- **Bargaining:** on by default for new listings (sellers can untick it). It stays out of the
+  way until wanted: buyers see "Don't like the price? Make an offer", sellers "Counter offer".
+- **WhatsApp numbers:** fields show a fixed +91; numbers from abroad still work with their own +code.
+- Tests added: `tests/integration/signals.test.ts`; e2e updates in `journey.spec.ts` and
+  `bargain.spec.ts`.

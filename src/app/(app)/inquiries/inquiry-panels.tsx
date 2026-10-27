@@ -120,10 +120,12 @@ const OFFER_NOTE: Record<OfferView["status"], string> = {
 
 /**
  * The bargaining strip: each offer is a little price tab, newest last. Whoever didn't make the
- * open offer can take it, pass, or counter; whoever made it can pull it back.
+ * open offer can take it, pass, or counter; whoever made it can pull it back. Until someone
+ * actually wants to bargain it stays a single line ("Don't like the price?"), so the plain
+ * path stays plain.
  */
 export function Bargain({
-  inquiryId, offers, otherName, agreedPricePaise, canOffer, askingPricePaise,
+  inquiryId, offers, otherName, agreedPricePaise, canOffer, askingPricePaise, role,
 }: {
   inquiryId: string;
   offers: OfferView[];
@@ -132,15 +134,26 @@ export function Bargain({
   /** False when the conversation is closed or the buyer can't open bargaining on a fixed price. */
   canOffer: boolean;
   askingPricePaise: number;
+  role: "buyer" | "seller";
 }) {
   const [answerState, answerAction] = useActionState(answerOffer, initialState);
   const [offerState, offerAction] = useActionState(offer, initialState);
+  const [writing, setWriting] = useState(false);
   const open = offers.find((o) => o.status === "open");
   const theirs = open && !open.mine;
   const fe = offerState.fieldErrors ?? {};
   const fieldId = `amount-${inquiryId}`;
+  const showForm = writing || Boolean(fe.amount || offerState.error);
 
   if (offers.length === 0 && !canOffer && agreedPricePaise === null) return null;
+  // Nobody has bargained yet: just the invitation.
+  if (offers.length === 0 && agreedPricePaise === null && !showForm) {
+    return (
+      <button type="button" onClick={() => setWriting(true)} className="self-start text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline">
+        {role === "buyer" ? "Don't like the price? Make an offer" : "Want a different price? Suggest one"}
+      </button>
+    );
+  }
   return (
     <div className="flex flex-col gap-3 rounded-[var(--radius-control)] bg-raised p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -196,7 +209,12 @@ export function Bargain({
               )}
             </form>
           )}
-          {canOffer && !(open && open.mine) && (
+          {canOffer && !(open && open.mine) && !showForm && (
+            <button type="button" onClick={() => setWriting(true)} className="self-start text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline">
+              {theirs ? "Counter offer" : role === "buyer" ? "Make another offer" : "Suggest a price"}
+            </button>
+          )}
+          {canOffer && !(open && open.mine) && showForm && (
             <form action={offerAction} className="flex flex-wrap items-end gap-2" noValidate>
               <input type="hidden" name="inquiryId" value={inquiryId} />
               <div className="flex flex-col gap-1">
@@ -212,6 +230,7 @@ export function Bargain({
                 />
               </div>
               <SubmitButton variant="secondary" pendingLabel="Sending…">{theirs ? "Counter" : "Send offer"}</SubmitButton>
+              <button type="button" onClick={() => setWriting(false)} className={buttonClass("ghost", "md")}>Cancel</button>
               {fe.amount && <p id={`${fieldId}-error`} className="w-full text-[13px] font-medium text-negative">{fe.amount}</p>}
             </form>
           )}

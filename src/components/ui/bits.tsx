@@ -83,7 +83,7 @@ export function PageTitle({ title, sub, actions }: { title: string; sub?: ReactN
   return (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="min-w-0">
-        <h1 className="text-[28px] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-[40px] sm:leading-[1.05]">{title}</h1>
+        <h1 className="font-display text-[30px] leading-[1.05] font-extrabold tracking-[-0.035em] text-balance [overflow-wrap:anywhere] sm:text-[44px] sm:leading-[1]">{title}</h1>
         {sub && <p className="mt-2 max-w-2xl text-[15px] text-muted">{sub}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

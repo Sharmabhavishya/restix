@@ -143,6 +143,7 @@ function InquiryCard({ row: r, hasWhatsapp, viewerName, offers }: { row: Inquiry
           agreedPricePaise={r.agreedPricePaise}
           canOffer={canOffer}
           askingPricePaise={r.askingPricePaise}
+          role={r.role}
         />
 
         {r.role === "seller" && r.status === "pending" && <RespondForm inquiryId={r.id} hasWhatsapp={hasWhatsapp} />}

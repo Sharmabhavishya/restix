@@ -31,6 +31,8 @@ export interface FormEvent {
   policySource: string | null;
   isFixture: boolean;
   ticketTypes: { id: string; name: string; faceValuePaise: number | null }[];
+  /** Students looking for tickets to it. */
+  wants?: number;
 }
 
 export interface ListingDefaults {
@@ -68,7 +70,8 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
   const [format, setFormat] = useState<TicketFormat>(((v?.format === "digital" ? "qr" : v?.format) as TicketFormat) ?? defaults.format ?? "wristband");
   const [quantity, setQuantity] = useState(() => clampQty(Number(v?.quantity ?? defaults.quantity ?? 1)));
   const [price, setPrice] = useState(v?.askingPrice ?? paiseToInput(defaults.askingPricePaise));
-  const [negotiable, setNegotiable] = useState(v ? v.priceNegotiable === "on" : Boolean(defaults.priceNegotiable));
+  // Bargaining is on unless the seller turns it off (an existing listing keeps its own setting).
+  const [negotiable, setNegotiable] = useState(v ? v.priceNegotiable === "on" : defaults.priceNegotiable ?? true);
   const [bulkMin, setBulkMin] = useState(v?.bulkMinQuantity ?? (defaults.bulkMinQuantity ? String(defaults.bulkMinQuantity) : ""));
   const [bulkPrice, setBulkPrice] = useState(v?.bulkPrice ?? paiseToInput(defaults.bulkPricePaise ?? null));
   const [meetup, setMeetup] = useState(v?.meetupArea ?? defaults.meetupArea ?? "");
@@ -147,6 +150,11 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
           </Select>
           {editing && <input type="hidden" name="eventId" value={eventId} />}
         </Field>
+        {event && (event.wants ?? 0) > 0 && (
+          <p className="-mt-2 flex items-center gap-2 rounded-[10px] bg-sticker/30 px-3 py-2 text-[14px] font-medium text-ink">
+            <span aria-hidden>🙋</span> {event.wants} {event.wants === 1 ? "person is" : "people are"} looking for tickets to this.
+          </p>
+        )}
         {blocked && <Notice tone="error" title="Can't list for this event">Tickets for this event can&apos;t be resold right now.</Notice>}
         {event && event.ticketTypes.length > 1 ? (
           <Field label="Ticket type" htmlFor="ticketTypeId" error={fe.ticketTypeId}>
@@ -247,7 +255,7 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
         <p className="text-[13px] font-medium text-muted">More options <span className="font-normal">· all optional</span></p>
 
         <More title="Offers and deals" sub={dealSummary(negotiable, bulkMinN, bulkPricePaise)} open={opened(["bulkMinQuantity", "bulkPrice", "originalPrice"], Boolean(defaults.bulkMinQuantity))}>
-          <Checkbox id="priceNegotiable" name="priceNegotiable" label="Open to offers" hint="Buyers can suggest a price. You take it, counter or pass." checked={negotiable} onChange={(e) => setNegotiable(e.target.checked)} />
+          <Checkbox id="priceNegotiable" name="priceNegotiable" label="Open to offers" hint="On by default. Buyers can suggest a price; you take it, counter or pass. Untick for a fixed price." checked={negotiable} onChange={(e) => setNegotiable(e.target.checked)} />
           <fieldset className="flex flex-col gap-2">
             <legend className="text-sm font-medium">Multi-ticket deal</legend>
             <p className="text-[13px] text-muted">

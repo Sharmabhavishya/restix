@@ -1,6 +1,7 @@
 import "server-only";
 import type { EventStatus, TransferPolicy } from "@/lib/listing-rules";
 import { asSystem, asUser, type Tx } from "./db";
+import { wantsFor } from "./wants";
 
 export interface EventSummary {
   id: string;
@@ -20,6 +21,9 @@ export interface EventSummary {
   /** Cover image version (null without a cover) and its tiny blurred placeholder. */
   coverVersion: number | null;
   coverBlur: string | null;
+  /** Students looking for tickets to it (a count only), and whether the viewer is one of them. */
+  wantCount?: number;
+  iWant?: boolean;
 }
 
 export interface TicketType {
@@ -45,7 +49,7 @@ const resaleOk = (tx: Tx) => tx`e.transfer_policy in ('allowed', 'face_value_onl
 
 /** Upcoming events for a college with live availability, for signed-in students. */
 export async function listUpcomingEvents(viewerId: string, opts: { includePast?: boolean } = {}): Promise<EventSummary[]> {
-  return asUser(viewerId, (tx) => tx<EventSummary[]>`
+  return asUser(viewerId, async (tx) => withWants(tx, viewerId, await tx<EventSummary[]>`
     select e.id, e.slug, e.name, e.category, e.venue, e.starts_at, e.ends_at, e.status, e.transfer_policy,
            e.policy_source, e.is_fixture, c.version as cover_version, c.blur as cover_blur,
            count(l.id)::int as available_listings,
@@ -57,7 +61,16 @@ export async function listUpcomingEvents(viewerId: string, opts: { includePast?:
     where e.college_id = restix.my_college_id() and ${resaleOk(tx)}
       and (${opts.includePast ?? false} or coalesce(e.ends_at, e.starts_at) > now())
     group by e.id, c.event_id
-    order by e.starts_at`);
+    order by e.starts_at`));
+}
+
+async function withWants<T extends { id: string; wantCount?: number; iWant?: boolean }>(tx: Tx, viewerId: string, events: T[]): Promise<T[]> {
+  const { counts, mine } = await wantsFor(tx, viewerId, events.map((e) => e.id));
+  for (const e of events) {
+    e.wantCount = counts.get(e.id) ?? 0;
+    e.iWant = mine.has(e.id);
+  }
+  return events;
 }
 
 /**
@@ -103,6 +116,7 @@ export async function getEventBySlug(viewerId: string, slug: string): Promise<Ev
       from restix.events e
       where e.college_id = restix.my_college_id() and e.slug = ${slug}`;
     if (!event) return null;
+    await withWants(tx, viewerId, [event]);
     event.ticketTypes = await tx<TicketType[]>`
       select id, name, face_value_paise from restix.ticket_types where event_id = ${event.id} order by sort_order, name`;
     return event;
@@ -127,7 +141,30 @@ export async function listableEvents(viewerId: string, include?: string): Promis
       select id, event_id, name, face_value_paise from restix.ticket_types
       where event_id = any(${events.map((e) => e.id)}::uuid[]) order by sort_order, name`;
     for (const e of events) e.ticketTypes = types.filter((t) => t.eventId === e.id);
-    return events;
+    return withWants(tx, viewerId, events);
   });
 }
 
+
+/** Just the next event, for the sidebar on every page (one row, no extras). */
+export async function nextUpEvent(viewerId: string): Promise<EventSummary | null> {
+  const [row] = await asUser(viewerId, (tx) => tx<EventSummary[]>`
+    select e.id, e.slug, e.name, e.category, e.venue, e.starts_at, e.ends_at, e.status, e.transfer_policy,
+           e.policy_source, e.is_fixture, null::int as cover_version, null as cover_blur, 0 as available_listings,
+           (select coalesce(sum(l.quantity), 0)::int from restix.ticket_listings l where l.event_id = e.id and ${available(tx)}) as available_tickets,
+           null as lowest_price_paise
+    from restix.events e
+    where e.college_id = restix.my_college_id() and ${resaleOk(tx)}
+      and e.status in ('scheduled', 'postponed') and coalesce(e.ends_at, e.starts_at) > now()
+    order by e.starts_at
+    limit 1`);
+  return row ?? null;
+}
+
+/** Upcoming events as plain options, for filter menus. */
+export async function eventOptions(viewerId: string): Promise<{ id: string; slug: string; name: string }[]> {
+  return asUser(viewerId, (tx) => tx<{ id: string; slug: string; name: string }[]>`
+    select e.id, e.slug, e.name from restix.events e
+    where e.college_id = restix.my_college_id() and ${resaleOk(tx)} and coalesce(e.ends_at, e.starts_at) > now()
+    order by e.starts_at`);
+}

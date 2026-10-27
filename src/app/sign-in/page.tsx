@@ -63,7 +63,7 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
   return (
     <div className="flex min-h-dvh flex-col">
       <PublicHeader />
-      <main className="mx-auto grid w-full max-w-[1200px] flex-1 items-start gap-10 px-4 py-10 sm:px-6 md:grid-cols-[1fr_minmax(0,440px)] md:py-20">
+      <main className="mx-auto grid w-full max-w-[1200px] flex-1 items-start gap-10 px-4 py-10 sm:px-6 grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_minmax(0,440px)] md:py-20">
         <div className="max-w-xl">
           <h1 className="font-display text-[clamp(2.4rem,5.5vw,4.25rem)] leading-[0.95] font-extrabold tracking-[-0.04em]">
             sign in with your college email

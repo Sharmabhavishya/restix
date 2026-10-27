@@ -24,6 +24,7 @@ export default async function SellPage({ searchParams }: PageProps<"/sell">) {
     policySource: e.policySource,
     isFixture: e.isFixture,
     ticketTypes: e.ticketTypes,
+    wants: e.wantCount ?? 0,
   }));
   const preselect = typeof sp.event === "string" ? events.find((e) => e.slug === sp.event)?.id : undefined;
 

@@ -12,6 +12,7 @@ import { EmptyState, Notice, Panel } from "@/components/ui/bits";
 import { TrackView } from "@/components/track";
 import { ShareButton } from "@/components/share-button";
 import { EventPoster } from "@/components/event-poster";
+import { WantButton } from "@/components/want-button";
 import { SaveButton } from "@/components/save-button";
 
 export const metadata: Metadata = { title: "Event" };
@@ -37,6 +38,7 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
       </div>
       <div className="mb-6">
         <EventPoster event={event} size="hero">
+          {canList && <WantButton eventId={event.id} wanted={Boolean(event.iWant)} count={event.wantCount ?? 0} />}
           {canList && (
             <Link href={`/sell?event=${event.slug}`} className="inline-flex h-8 items-center rounded-full bg-white px-3.5 text-[13px] font-semibold text-[#111827] transition-transform hover:scale-[1.03]">
               Sell yours

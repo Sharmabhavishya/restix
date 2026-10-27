@@ -16,7 +16,7 @@ export default async function AuditPage() {
       {rows.length === 0 ? (
         <EmptyState title="no actions yet" />
       ) : (
-        <Panel>
+        <Panel className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[12px] text-muted">

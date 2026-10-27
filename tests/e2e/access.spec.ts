@@ -107,9 +107,14 @@ test.describe("rules and states", () => {
 
   test("unknown pages and listings 404", async ({ browser }) => {
     const { page, context } = await asFixture(browser, "Rohan M");
-    const res = await page.goto("/listings/00000000-0000-4000-8000-00000000dead");
-    expect(res?.status()).toBe(404);
+    // Signed-in pages stream a loading skeleton first, so the status is already sent by the time
+    // the listing turns out to be missing: the not-found page shows, and search engines are told
+    // to skip it (these pages are never indexed anyway).
+    await page.goto("/listings/00000000-0000-4000-8000-00000000dead");
     await expect(page.getByText("this page isn't on the list")).toBeVisible();
+    await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toHaveCount(1);
+    // Outside the app, a missing page is a real 404.
+    expect((await page.goto("/definitely-missing"))?.status()).toBe(404);
     await context.close();
   });
 

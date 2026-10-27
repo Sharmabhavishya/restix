@@ -25,6 +25,8 @@ export interface TicketData {
   meetupArea?: string | null;
   marketMedianPaise?: number | null;
   marketCount?: number | null;
+  /** The price before a recent cut (the query only returns it for a week). */
+  previousPricePaise?: number | null;
 }
 
 export const PRICE_TONE: Record<PriceTier, string> = {
@@ -71,6 +73,7 @@ export function TicketCard({
     ? `${listing.bulkMinQuantity}+ for ${formatPaise(listing.bulkPricePaise)} each`
     : null;
   const f = listing.format;
+  const dropped = live && !pricePending && listing.previousPricePaise != null && listing.previousPricePaise > listing.askingPricePaise;
 
   const price = live ? (
     <div className="tk-price flex flex-col items-end gap-0.5">
@@ -104,9 +107,10 @@ export function TicketCard({
             <span className="sr-only">{FORMAT_LABEL[listing.format]} · </span>
             {meta.join(" · ")}
           </p>
-          {(bulk || listing.priceNegotiable || listing.eventIsFixture) && (
+          {(bulk || listing.priceNegotiable || listing.eventIsFixture || dropped) && (
             <p className="flex min-w-0 flex-wrap gap-1.5 pt-0.5">
               {listing.eventIsFixture && <FixtureTag />}
+              {dropped && <span className="tk-chip text-price-low">↓ was {formatPaise(listing.previousPricePaise!)}</span>}
               {bulk && <span className="tk-chip text-price-low">{bulk}</span>}
               {listing.priceNegotiable && <span className="tk-chip">open to offers</span>}
             </p>

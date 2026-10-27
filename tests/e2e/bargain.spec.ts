@@ -16,7 +16,7 @@ test("offer, counter, deal, then WhatsApp with the message already written", asy
   await selectByText(page, "Ticket type", "Night pass");
   await page.getByLabel("Price", { exact: true }).fill("800");
   await page.getByText("Offers and deals", { exact: true }).click();
-  await page.getByLabel("Open to offers").check();
+  await expect(page.getByLabel("Open to offers")).toBeChecked(); // bargaining is on by default
   await page.getByRole("button", { name: "Publish listing" }).click();
   await expect(page).toHaveURL(/\/listings\/[0-9a-f-]{36}\?saved=publish/);
   const listingUrl = page.url().split("?")[0];
@@ -31,8 +31,9 @@ test("offer, counter, deal, then WhatsApp with the message already written", asy
   // The buyer's number goes in now, but the seller only sees it after saying yes.
   const ownNumber = buyer.page.getByLabel("Your WhatsApp number");
   if (await ownNumber.count()) await ownNumber.fill("98111 22233");
-  await buyer.page.getByText("Add a note or make an offer", { exact: true }).click();
+  await buyer.page.getByText("Add a note", { exact: true }).click();
   await buyer.page.getByLabel(/Message to Kabir D/).fill("Hey! Would you take a bit less?");
+  await buyer.page.getByText("Don't like the price? Make an offer").click();
   await buyer.page.getByLabel(/Your offer per ticket/).fill("900");
   await buyer.page.getByRole("button", { name: "Request this ticket" }).click();
   await expect(buyer.page.getByText("Offers can't go above the asking price.")).toBeVisible();
@@ -46,6 +47,7 @@ test("offer, counter, deal, then WhatsApp with the message already written", asy
   const card = page.locator("article", { hasText: "Would you take a bit less?" });
   await expect(card.getByRole("link", { name: /^WhatsApp/ })).toHaveCount(0);
   await expect(card.getByText("Bargaining")).toBeVisible();
+  await card.getByRole("button", { name: "Counter offer" }).click();
   await card.getByLabel(/Or counter with/).fill("720");
   await card.getByRole("button", { name: "Counter" }).click();
   await expect(card.getByText("waiting on Rohan to reply")).toBeVisible();

@@ -17,6 +17,7 @@ Postgres. Source of truth: `supabase/migrations/*.sql`, applied in filename orde
 | `ticket_listings` | The listing: format, quantity, prices (paise), optional multi-ticket deal (`bulk_min_quantity`, `bulk_price_paise`), handover, status, expiry, `version` | |
 | `saved_listings` | A student's private watchlist: `user_id`, `listing_id`, `created_at`; PK is both ids | Sellers never learn who saved their listing |
 | `event_covers` | One cover image per event: a WebP (max 1.5 MB, made by sharp, metadata stripped), its size, a tiny blurred data-URL placeholder and a version that busts caches | Read: same college. Write: moderators of the event's college. Served by `src/app/event-cover/[id]/route.ts` |
+| `event_wants` | "I want a ticket": one row per student per event | Own rows only (read/insert/delete); insert only for events you can see. Counts come from `event_want_counts(uuid[])` (security definer, college-scoped), never names |
 | `inquiries` | Buyer -> seller request; on accept the seller shares `seller_whatsapp` (E.164) and/or a `seller_contact_shared` note, and the database copies the buyer's number into `buyer_whatsapp` if `buyer_shares_whatsapp` (chosen when asking); `agreed_price_paise` once an offer is accepted | `seller_id` denormalised for RLS; `buyer_whatsapp` has no column grant and is set only by the `inquiries_whatsapp_handoff` trigger |
 | `offers` | Bargaining on an inquiry: who offered how much, and what happened (`open/accepted/declined/superseded/withdrawn`) | one open offer per inquiry; parties (and that college's moderators) read |
 | `transaction_confirmations` | Each party's private outcome | one per party per inquiry |
@@ -127,3 +128,14 @@ local use only.
 `tests/integration/rls.test.ts` attacks these rules directly as authenticated users (forged
 seller ids, self-verification, moderator-only statuses, reading private emails, rewriting the
 audit log, version skipping, cross-college reads, and more).
+
+## Signals (migration 20261027100000)
+
+- `event_want_counts(p_events uuid[])`: how many students want each event, for the viewer's college.
+- `seller_stats(p_seller uuid)`: handovers both sides confirmed as `completed`, the number of
+  answered requests in the last 120 days and their median reply time in minutes. Empty for
+  sellers outside the viewer's college. Aggregates only.
+- `ticket_listings.previous_price_paise` / `price_dropped_at`: set only by the
+  `listings_price_drop` trigger when the asking price goes down (keeping the highest price of
+  the past week through a series of cuts), cleared when it goes up, never set on insert. No
+  column grant, so clients can't fake a drop. Cards show it for 7 days.

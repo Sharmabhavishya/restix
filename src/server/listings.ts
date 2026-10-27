@@ -46,6 +46,16 @@ export interface ListingCard {
   saved?: boolean;
   /** The event's cover image version, when it has one. */
   eventCoverVersion?: number | null;
+  /** What the price was before the seller lowered it, for a week after the cut (set by the database). */
+  previousPricePaise: number | null;
+}
+
+export interface SellerStats {
+  /** Handovers both sides confirmed as completed. */
+  handovers: number;
+  replies: number;
+  /** Typical time to answer a request, when there are enough answers to say. */
+  medianReplyMinutes: number | null;
 }
 
 export interface ListingDetail extends ListingCard {
@@ -74,7 +84,8 @@ const CARD_COLUMNS = (tx: Tx) => tx`
   l.id, l.event_id, e.slug as event_slug, e.name as event_name, e.starts_at as event_starts_at,
   e.ends_at as event_ends_at, e.status as event_status, e.transfer_policy, e.is_fixture as event_is_fixture,
   t.name as ticket_type_name, t.face_value_paise, l.format, l.quantity, l.asking_price_paise, l.original_price_paise,
-  l.price_negotiable, l.bulk_min_quantity, l.bulk_price_paise, l.handover_method, l.meetup_area, l.status, l.expires_at, l.published_at, l.created_at,
+  l.price_negotiable, l.bulk_min_quantity, l.bulk_price_paise, case when l.price_dropped_at > now() - interval '7 days' then l.previous_price_paise end as previous_price_paise,
+  l.handover_method, l.meetup_area, l.status, l.expires_at, l.published_at, l.created_at,
   l.seller_id, p.display_name as seller_name, (p.email_verified_at is not null) as seller_verified`;
 
 const CARD_FROM = (tx: Tx) => tx`
@@ -161,7 +172,8 @@ export async function searchListings(viewerId: string, f: SearchFilters): Promis
       price_desc: tx`l.asking_price_paise desc, l.created_at desc`,
       soonest: tx`e.starts_at asc, l.asking_price_paise asc`,
     }[f.sort ?? "newest"];
-    const [{ total }] = await tx<{ total: number }[]>`select count(*)::int as total from ${CARD_FROM(tx)} ${MARKET_JOIN(tx)} where ${where}`;
+    // Counting only needs the going rate when filtering by it.
+    const [{ total }] = await tx<{ total: number }[]>`select count(*)::int as total from ${CARD_FROM(tx)} ${f.deals ? MARKET_JOIN(tx) : tx``} where ${where}`;
     const items = await tx<ListingCard[]>`
       select ${CARD_COLUMNS(tx)}, ${MARKET_COLUMNS(tx)} from ${CARD_FROM(tx)} ${MARKET_JOIN(tx)} where ${where}
       order by ${order}, l.id
@@ -174,7 +186,7 @@ export async function searchListings(viewerId: string, f: SearchFilters): Promis
 export async function formatCounts(viewerId: string, f: SearchFilters): Promise<Record<string, number>> {
   return asUser(viewerId, async (tx) => {
     const rows = await tx<{ format: string; n: number }[]>`
-      select l.format, count(*)::int as n from ${CARD_FROM(tx)} ${MARKET_JOIN(tx)}
+      select l.format, count(*)::int as n from ${CARD_FROM(tx)} ${f.deals ? MARKET_JOIN(tx) : tx``}
       where ${filterSql(tx, f, false)}
       group by l.format`;
     return Object.fromEntries(rows.map((r) => [r.format, r.n]));
@@ -426,4 +438,18 @@ async function maybeExpire(): Promise<void> {
   } catch (err) {
     console.error("expire sweep failed", err instanceof Error ? err.message : err);
   }
+}
+
+/** A seller's track record, as aggregates only (see restix.seller_stats). */
+export async function sellerStats(viewerId: string, sellerId: string): Promise<SellerStats> {
+  const [row] = await asUser(viewerId, (tx) => tx<{ handovers: number | null; replies: number | null; medianReplyMinutes: number | null }[]>`
+    select handovers, replies, median_reply_minutes from restix.seller_stats(${sellerId})`);
+  const replies = row?.replies ?? 0;
+  return { handovers: row?.handovers ?? 0, replies, medianReplyMinutes: replies >= 2 ? row?.medianReplyMinutes ?? null : null };
+}
+
+/** Other live listings for the same event, cheapest first, for "more from this event". */
+export async function moreFromEvent(viewerId: string, listing: { id: string; eventSlug: string }, limit = 3): Promise<ListingCard[]> {
+  const { items } = await searchListings(viewerId, { event: listing.eventSlug, sort: "price_asc" });
+  return items.filter((l) => l.id !== listing.id).slice(0, limit);
 }

@@ -22,6 +22,7 @@ export interface PosterEvent {
   lowestPricePaise: number | null;
   coverVersion: number | null;
   coverBlur: string | null;
+  wantCount?: number;
 }
 
 /**
@@ -103,7 +104,7 @@ export function EventPoster({
           {kind} · {formatTime(e.startsAt)}{e.venue ? ` · ${e.venue}` : ""}
         </p>
         {hero ? (
-          <h1 className="mt-2 max-w-[18ch] font-display text-[clamp(2.4rem,6vw,4.75rem)] leading-[0.92] font-extrabold tracking-[-0.04em] text-balance">{e.name}</h1>
+          <h1 className="mt-2 max-w-[18ch] font-display text-[clamp(2.4rem,6vw,4.75rem)] leading-[0.92] font-extrabold tracking-[-0.04em] text-balance [overflow-wrap:anywhere]">{e.name}</h1>
         ) : (
           <h2 className="mt-1.5 line-clamp-2 font-display text-[1.6rem] leading-[1] font-extrabold tracking-[-0.03em] [overflow-wrap:anywhere]">{e.name}</h2>
         )}
@@ -114,6 +115,11 @@ export function EventPoster({
             </span>
           ) : (
             <span className="inline-flex h-8 items-center rounded-full bg-white/20 px-3.5 text-[13px] font-medium backdrop-blur-sm">No tickets listed yet</span>
+          )}
+          {!hero && (e.wantCount ?? 0) > 0 && (
+            <span className="inline-flex h-8 items-center rounded-full bg-sticker px-3 text-[13px] font-semibold text-sticker-ink">
+              {e.wantCount} looking
+            </span>
           )}
           {children}
         </div>

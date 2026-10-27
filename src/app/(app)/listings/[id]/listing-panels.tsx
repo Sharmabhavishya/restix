@@ -2,11 +2,12 @@
 
 import { useActionState, useState } from "react";
 import { initialState } from "@/lib/action-state";
-import { REPORT_REASONS, type ReportReason } from "@/lib/validation";
+import { REPORT_REASONS, type ReportReason } from "@/lib/report-reasons";
 import { sellerActionsFor, type ListingStatus, type SellerAction } from "@/lib/listing-rules";
 import { contactSeller, listingAction, reportListing } from "../actions";
 import { Field, Select, Textarea, Input, describedBy } from "@/components/ui/field";
 import { Notice } from "@/components/ui/bits";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { buttonClass } from "@/components/ui/button";
 import { formatPaise } from "@/lib/money";
@@ -78,15 +79,34 @@ export function ContactForm({
         </label>
         {share && !savedWhatsapp && (
           <div className="mt-3 pl-[30px]">
-            <Input name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" aria-label="Your WhatsApp number" placeholder="Your WhatsApp, like 98765 43210" defaultValue={state.values?.whatsapp ?? ""} aria-invalid={fe.whatsapp ? true : undefined} />
+            <PhoneInput name="whatsapp" aria-label="Your WhatsApp number" defaultValue={state.values?.whatsapp ?? ""} aria-invalid={fe.whatsapp ? true : undefined} />
             {fe.whatsapp && <p className="mt-1.5 text-[13px] font-medium text-negative" role="alert">{fe.whatsapp}</p>}
           </div>
         )}
       </div>
 
-      <details className="group rounded-[10px] border border-border" open={Boolean(fe.message || fe.offer) || undefined}>
+      {negotiable && (
+        <details className="group" open={Boolean(fe.offer) || undefined}>
+          <summary className="cursor-pointer list-none text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
+            Don&apos;t like the price? Make an offer
+          </summary>
+          <div className="mt-3">
+            <Field
+              label="Your offer per ticket (₹)"
+              htmlFor="offer"
+              optional
+              error={fe.offer}
+              hint={`The seller can take it, counter or pass. It can't go above ${formatPaise(each)}.`}
+            >
+              <Input id="offer" name="offer" inputMode="decimal" placeholder={String(Math.round((each * 0.9) / 100))} defaultValue={state.values?.offer ?? ""} className="w-36" {...describedBy("offer", fe.offer, true)} />
+            </Field>
+          </div>
+        </details>
+      )}
+
+      <details className="group rounded-[10px] border border-border" open={Boolean(fe.message) || undefined}>
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-          {negotiable ? "Add a note or make an offer" : "Add a note"}
+          Add a note
           <ChevronDown className="size-4 text-muted transition-transform duration-300 group-open:rotate-180" aria-hidden />
         </summary>
         <div className="flex flex-col gap-4 border-t border-border px-3 pt-3 pb-4">
@@ -101,17 +121,6 @@ export function ContactForm({
               {...describedBy("message", fe.message, true)}
             />
           </Field>
-          {negotiable && (
-            <Field
-              label="Your offer per ticket (₹)"
-              htmlFor="offer"
-              optional
-              error={fe.offer}
-              hint={`Leave it blank to ask at ${formatPaise(each)}. It can't go above the asking price.`}
-            >
-              <Input id="offer" name="offer" inputMode="decimal" placeholder={String(Math.round((each * 0.9) / 100))} defaultValue={state.values?.offer ?? ""} className="w-36" {...describedBy("offer", fe.offer, true)} />
-            </Field>
-          )}
         </div>
       </details>
 

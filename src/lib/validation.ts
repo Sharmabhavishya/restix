@@ -2,6 +2,7 @@ import { z } from "zod";
 import { parseRupees } from "./money";
 import { fromLocalInput } from "./format";
 import { defaultHandover, FORMATS, handoversFor, type TicketFormat } from "./listing-rules";
+import { REPORT_REASONS, type ReportReason } from "./report-reasons";
 
 // Strips control characters (keeping newlines and tabs) and trims. React escapes
 // output, so this is about tidy data, not HTML safety.
@@ -178,19 +179,8 @@ export const offerInput = z.object({
   amount: offerAmount(true),
 });
 
-export const REPORT_REASONS = {
-  scam: "Suspected scam",
-  fake_listing: "Fake or misleading listing",
-  duplicate: "Duplicate listing",
-  prohibited_resale: "Resale isn't allowed for this event",
-  impersonation: "Impersonating someone",
-  spam: "Spam",
-  harassment: "Harassment",
-  suspicious_behaviour: "Suspicious seller behaviour",
-  disputed_handover: "Disputed handover",
-  other: "Something else",
-} as const;
-export type ReportReason = keyof typeof REPORT_REASONS;
+// Kept in their own module so the report form can list them without shipping zod to the browser.
+export { REPORT_REASONS, type ReportReason };
 
 export const reportInput = z
   .object({

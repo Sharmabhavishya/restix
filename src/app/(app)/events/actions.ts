@@ -7,6 +7,7 @@ import { cleanText } from "@/lib/validation";
 import { getViewer, writeBlockReason } from "@/server/auth/viewer";
 import { redirect } from "next/navigation";
 import { approveSuggestion, decideSuggestion, suggestEvent, suggestionInput } from "@/server/event-admin";
+import { setWant } from "@/server/wants";
 
 export async function suggest(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const viewer = await getViewer();
@@ -46,4 +47,16 @@ export async function decide(_prev: ActionState, formData: FormData): Promise<Ac
   if (!result.ok) return { error: result.error };
   revalidatePath("/admin/events");
   return { ok: true, message: "Declined." };
+}
+
+/** "I want a ticket" for an event, or not any more. Returns the new state for the button. */
+export async function toggleWant(eventId: string, want: boolean): Promise<{ ok: boolean; wanted?: boolean; error?: string }> {
+  const viewer = await getViewer();
+  const blocked = writeBlockReason(viewer);
+  if (blocked) return { ok: false, error: blocked };
+  if (!z.uuid().safeParse(eventId).success || typeof want !== "boolean") return { ok: false, error: "Invalid request." };
+  const result = await setWant(viewer!.id, eventId, want);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath("/events");
+  return { ok: true, wanted: result.wanted };
 }

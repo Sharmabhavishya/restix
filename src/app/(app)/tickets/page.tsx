@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Flame, Heart, Search, SlidersHorizontal } from "lucide-react";
 import { requireBrowser } from "@/server/auth/viewer";
 import { formatCounts, PAGE_SIZE, SORTS, searchListings, displayStatus } from "@/server/listings";
-import { listUpcomingEvents } from "@/server/events";
+import { eventOptions } from "@/server/events";
 import { activeFilterCount, parseFilters, withParams, type RawParams } from "@/lib/search-params";
 import { FORMAT_LABEL, FORMATS } from "@/lib/listing-rules";
 import { paiseToInput } from "@/lib/money";
@@ -29,7 +29,7 @@ export default async function TicketsPage({ searchParams }: PageProps<"/tickets"
   const [result, counts, events] = await Promise.all([
     searchListings(viewer.id, f),
     formatCounts(viewer.id, f),
-    listUpcomingEvents(viewer.id),
+    eventOptions(viewer.id),
   ]);
   const totalAll = Object.values(counts).reduce((a, b) => a + b, 0);
   const filters = activeFilterCount(f);

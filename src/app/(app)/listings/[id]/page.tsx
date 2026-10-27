@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, Clock, Flame, Lock, MapPin, Sparkles } from "lucide-react";
 import { requireBrowser } from "@/server/auth/viewer";
-import { displayStatus, getListing } from "@/server/listings";
+import { displayStatus, getListing, moreFromEvent, sellerStats } from "@/server/listings";
+import { TicketCard } from "@/components/ticket-card";
 import { myInquiryFor } from "@/server/inquiries";
 import { FORMAT_LABEL, HANDOVER_LABEL, STATUS_LABEL, sellerCan, type TicketFormat } from "@/lib/listing-rules";
 import { dealFor, REF_LABEL } from "@/lib/deal";
@@ -56,7 +57,11 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
   const style = bandStyle(listing.eventId) as React.CSSProperties;
   const deal = dealFor(listing);
   // The buyer's own saved number, for the "share if they say yes" choice.
-  const priv = mine ? null : await privateProfile(viewer.id);
+  const [priv, stats, more] = await Promise.all([
+    mine ? null : privateProfile(viewer.id),
+    sellerStats(viewer.id, listing.sellerId),
+    moreFromEvent(viewer.id, listing),
+  ]);
 
   return (
     <>
@@ -95,7 +100,7 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
             <span className="inline-flex h-6 items-center rounded-full bg-surface/70 px-2.5 text-[12px] font-semibold text-[var(--band-ink)]">{FORMAT_LABEL[listing.format]}</span>
             {listing.eventIsFixture && <FixtureTag />}
           </div>
-          <h1 className="mt-3 font-display text-[28px] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance sm:text-[38px]">{listing.eventName}</h1>
+          <h1 className="mt-3 font-display text-[28px] leading-[1.05] font-extrabold tracking-[-0.02em] text-balance [overflow-wrap:anywhere] sm:text-[38px]">{listing.eventName}</h1>
           <p className="mt-2 text-[15px] text-[var(--band-ink)]">
             {listing.ticketTypeName} · {listing.quantity} {listing.quantity === 1 ? "ticket" : "tickets"}
           </p>
@@ -177,6 +182,11 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
                 <p className="text-[13px] text-muted">
                   on ResTix since {formatLongDate(listing.sellerMemberSince)} · {listing.sellerActiveListings} live {listing.sellerActiveListings === 1 ? "listing" : "listings"}
                 </p>
+                <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[13px] font-medium text-positive-ink">
+                  {stats.handovers > 0 && <span>✓ {stats.handovers} {stats.handovers === 1 ? "handover" : "handovers"} done</span>}
+                  {stats.medianReplyMinutes !== null && <span>⚡ {replyTime(stats.medianReplyMinutes)}</span>}
+                  {stats.handovers === 0 && stats.medianReplyMinutes === null && <span className="font-normal text-muted">New on ResTix</span>}
+                </p>
               </div>
             </div>
             {listing.sellerVerified && <div className="mt-3"><VerifiedEmail /></div>}
@@ -231,6 +241,30 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
           )}
         </aside>
       </div>
+
+      {more.length > 0 && (
+        <section aria-labelledby="more-heading" className="mt-12">
+          <div className="mb-4 flex items-baseline justify-between gap-4">
+            <h2 id="more-heading" className="font-display text-2xl font-bold tracking-[-0.02em]">More for {listing.eventName}</h2>
+            <Link href={`/events/${listing.eventSlug}`} className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">See all</Link>
+          </div>
+          <ul className="flex flex-col gap-5">
+            {more.map((l) => (
+              <li key={l.id}>
+                <TicketCard listing={l} href={`/listings/${l.id}`} showEvent={false} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
+}
+
+/** "Usually replies within an hour", from the median minutes to answer a request. */
+function replyTime(minutes: number): string {
+  if (minutes < 60) return "Usually replies within an hour";
+  if (minutes < 6 * 60) return "Usually replies within a few hours";
+  if (minutes < 24 * 60) return "Usually replies within a day";
+  return "Usually replies within a few days";
 }
