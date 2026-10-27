@@ -3,6 +3,7 @@ import { db, makeListing, makeUser, outcome } from "./helpers";
 
 const inquiries = await import("@/server/inquiries");
 const offers = await import("@/server/offers");
+const listings = await import("@/server/listings");
 const { asSystem, asUser } = db;
 
 const MSG = "Hey, is this still available?";
@@ -25,8 +26,13 @@ describe("bargaining", () => {
     expect(c.sent).toEqual({ ok: true });
     expect((await openOffer(c.seller.id, c.inquiryId))?.amountPaise).toBe(35000);
 
+    expect(await offers.offersWaiting(c.seller.id)).toBe(1);
+    expect(await offers.offersWaiting(c.buyer.id)).toBe(0);
+
     // The seller counters; the buyer's offer is retired, and only one stays open.
     expect(await offers.makeOffer(c.seller.id, { inquiryId: c.inquiryId, amountPaise: 45000 })).toEqual({ ok: true });
+    expect(await offers.offersWaiting(c.seller.id)).toBe(0);
+    expect(await offers.offersWaiting(c.buyer.id)).toBe(1);
     const all = (await offers.offersFor(c.buyer.id, [c.inquiryId])).get(c.inquiryId)!;
     expect(all.map((o) => o.status)).toEqual(["superseded", "open"]);
 
@@ -110,5 +116,17 @@ describe("sharing WhatsApp on accept", () => {
     expect(buyerView.sellerWhatsapp).toBe("+919876543210");
     expect(await outcome(asUser(c.buyer.id, (tx) => tx`
       update restix.inquiries set seller_whatsapp = '+911234567890' where id = ${c.inquiryId}`))).toBe("42501");
+  });
+});
+
+describe("finding sellers who bargain", () => {
+  it("filters search to listings open to offers", async () => {
+    const seller = await makeUser();
+    const buyer = await makeUser();
+    const open = await makeListing(seller.id, { negotiable: true });
+    const fixed = await makeListing(seller.id, { negotiable: false });
+    const ids = (await listings.searchListings(buyer.id, { offers: true, q: "Test Event" })).items.map((l) => l.id);
+    expect(ids).toContain(open.listingId);
+    expect(ids).not.toContain(fixed.listingId);
   });
 });

@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import type { Viewer } from "@/server/auth/viewer";
 import { pendingInquiryCount } from "@/server/profile";
 import { unseenReplies } from "@/server/inquiries";
+import { offersWaiting } from "@/server/offers";
 import { queueCounts } from "@/server/moderation";
 import { listUpcomingEvents } from "@/server/events";
 import { NextUp } from "./next-up";
@@ -12,12 +13,19 @@ import { Notice } from "../ui/bits";
 import Link from "next/link";
 
 async function navFor(viewer: Viewer): Promise<NavGroup[]> {
-  const [pending, replies] = await Promise.all([
+  const [pending, replies, offers] = await Promise.all([
     pendingInquiryCount(viewer.id).catch(() => 0),
     unseenReplies(viewer.id).catch(() => 0),
+    offersWaiting(viewer.id).catch(() => 0),
   ]);
-  const waiting = pending + replies;
-  const inboxLabel = pending && replies ? "Requests & replies" : pending ? "Requests to answer" : replies ? "New replies" : "Inquiries";
+  const waiting = pending + replies + offers;
+  const kinds = [pending && "requests", offers && "offers", replies && "replies"].filter(Boolean) as string[];
+  const inboxLabel =
+    kinds.length > 1 ? "Things to answer"
+    : pending ? "Requests to answer"
+    : offers ? "Offers to answer"
+    : replies ? "New replies"
+    : "Inquiries";
   const groups: NavGroup[] = [
     {
       items: [

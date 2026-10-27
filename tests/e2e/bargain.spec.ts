@@ -48,7 +48,7 @@ test("offer, counter, deal, then WhatsApp with the message already written", asy
   await buyer.page.goto("/inquiries?tab=sent");
   const mine = buyer.page.locator("article", { hasText: "Would you take a bit less?" });
   await mine.getByRole("button", { name: "Take ₹720" }).click();
-  await expect(mine.getByText(/Deal at/)).toBeVisible();
+  await expect(mine.getByText(/Agreed at/)).toBeVisible();
 
   // The seller says yes and shares WhatsApp; the buyer's button opens a chat with the deal written in.
   await page.reload();

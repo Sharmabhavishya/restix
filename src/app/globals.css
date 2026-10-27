@@ -242,6 +242,17 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   .tape-track { animation: none !important; }
 }
 
+/* A price gets agreed: the line pops once (reduced motion makes it instant via the global rule). */
+@keyframes pop {
+  0% { transform: scale(0.92); opacity: 0; }
+  60% { transform: scale(1.03); opacity: 1; }
+  100% { transform: none; }
+}
+.pop {
+  animation: pop 420ms var(--ease-out-expo);
+  transform-origin: left center;
+}
+
 /* Rows that arrive (a new inquiry, a saved listing) settle in; content is visible without it. */
 @keyframes settle {
   from { opacity: 0.4; transform: translateY(4px); }

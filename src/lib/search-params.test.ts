@@ -10,7 +10,14 @@ describe("parseFilters", () => {
 
   it("drops anything invalid instead of passing it on", () => {
     const f = parseFilters({ format: "qr", sort: "drop table", page: "-3", min: "abc", event: "../etc", category: "rave", from: "yesterday" });
-    expect(f).toEqual({ q: undefined, event: undefined, category: undefined, format: undefined, minPaise: undefined, maxPaise: undefined, from: undefined, to: undefined, sort: "newest", page: 1 });
+    expect(f).toEqual({ q: undefined, event: undefined, category: undefined, format: undefined, minPaise: undefined, maxPaise: undefined, from: undefined, to: undefined, offers: undefined, sort: "newest", page: 1 });
+    expect(parseFilters({ offers: "yes" }).offers).toBeUndefined();
+  });
+
+  it("filters to listings open to offers", () => {
+    const f = parseFilters({ offers: "1" });
+    expect(f.offers).toBe(true);
+    expect(activeFilterCount(f)).toBe(1);
   });
 
   it("ignores a max below the min and caps long queries", () => {

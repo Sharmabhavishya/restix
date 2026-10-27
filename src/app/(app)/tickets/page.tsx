@@ -12,7 +12,7 @@ import { EVENT_CATEGORIES } from "@/server/event-admin";
 import { Wristband } from "@/components/wristband";
 import { EmptyState, PageTitle } from "@/components/ui/bits";
 import { ButtonLink, buttonClass } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Checkbox, Field, Input, Select } from "@/components/ui/field";
 import { TrackView } from "@/components/track";
 import { CountTile } from "@/components/ui/count-tile";
 
@@ -189,6 +189,7 @@ function FilterForm({
         <Input aria-label="From date" name="from" type="date" defaultValue={dateInput(f.from)} />
         <Input aria-label="To date" name="to" type="date" defaultValue={dateInput(f.to, true)} />
       </fieldset>
+      <Checkbox id={`${idPrefix}-offers`} name="offers" value="1" defaultChecked={f.offers} label="Open to offers" hint="Sellers happy to bargain." />
       <Field label="Sort by" htmlFor={`${idPrefix}-sort`}>
         <Select id={`${idPrefix}-sort`} name="sort" defaultValue={f.sort}>
           {Object.entries(SORTS).map(([v, l]) => (

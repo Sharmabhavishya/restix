@@ -83,3 +83,13 @@ export async function decideOffer(viewerId: string, input: { offerId: string; de
     return { ok: false, error: "That didn't save because of a server error. Please try again." };
   }
 }
+
+/** Open offers the viewer has to answer, on conversations still going: part of the inbox badge. */
+export async function offersWaiting(viewerId: string): Promise<number> {
+  const [row] = await asUser(viewerId, (tx) => tx<{ n: number }[]>`
+    select count(*)::int as n
+    from restix.offers o join restix.inquiries i on i.id = o.inquiry_id
+    where o.status = 'open' and o.from_user <> ${viewerId}
+      and ${viewerId} in (i.buyer_id, i.seller_id) and i.status in ('pending', 'accepted')`);
+  return row.n;
+}

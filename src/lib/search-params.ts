@@ -13,6 +13,8 @@ export interface ParsedFilters {
   maxPaise?: number;
   from?: Date;
   to?: Date;
+  /** Only listings marked "open to offers". */
+  offers?: true;
   sort: "newest" | "price_asc" | "price_desc" | "soonest";
   page: number;
 }
@@ -53,6 +55,7 @@ export function parseFilters(sp: RawParams): ParsedFilters {
     from: fromDate,
     // "to" is inclusive of that whole day.
     to: toDate ? new Date(toDate.getTime() + 86_400_000) : undefined,
+    offers: one(sp.offers) === "1" ? true : undefined,
     sort: sort && (SORTS as readonly string[]).includes(sort) ? (sort as ParsedFilters["sort"]) : "newest",
     page: Number.isInteger(page) && page >= 1 && page <= 500 ? page : 1,
   };
@@ -60,7 +63,7 @@ export function parseFilters(sp: RawParams): ParsedFilters {
 
 /** How many filters (besides sort and page) are in use. */
 export function activeFilterCount(f: ParsedFilters): number {
-  return [f.q, f.event, f.category, f.format, f.minPaise, f.maxPaise, f.from, f.to].filter((v) => v !== undefined).length;
+  return [f.q, f.event, f.category, f.format, f.minPaise, f.maxPaise, f.from, f.to, f.offers].filter((v) => v !== undefined).length;
 }
 
 /** Builds a query string from the current params with some keys replaced or removed. */

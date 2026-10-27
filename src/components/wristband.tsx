@@ -48,6 +48,7 @@ export function Wristband({
     FORMAT_LABEL[listing.format],
     `${listing.quantity} ${listing.quantity === 1 ? "ticket" : "tickets"}`,
     showEvent ? formatDate(listing.eventStartsAt) : listing.meetupArea,
+    listing.priceNegotiable ? "open to offers" : null,
   ].filter(Boolean);
   const title = showEvent ? listing.eventName : listing.ticketTypeName;
 
@@ -69,7 +70,7 @@ export function Wristband({
           <>
             <span className="num text-lg leading-none font-semibold text-ink">{pricePending ? "₹ —" : formatPaise(listing.askingPricePaise)}</span>
             <span className="text-[12px] text-[var(--band-ink)]">
-              {listing.quantity > 1 ? "each" : listing.priceNegotiable ? "negotiable" : "asking"}
+              {listing.quantity > 1 ? "each" : "asking"}
             </span>
           </>
         )}

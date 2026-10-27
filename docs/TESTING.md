@@ -7,8 +7,8 @@ Chrome stable). Re-run before relying on them.
 | --- | --- | --- |
 | Type check | `npm run typecheck` | pass, 0 errors |
 | Lint | `npm run lint` | pass, 0 problems |
-| Unit tests | `npm run test:unit` | **104 passed** (9 files) |
-| Integration tests | `npm run test:integration` | **64 passed** (7 files) |
+| Unit tests | `npm run test:unit` | **105 passed** (9 files) |
+| Integration tests | `npm run test:integration` | **65 passed** (7 files) |
 | Production build | `npm run build` | pass |
 | End-to-end + accessibility | `npm run test:e2e` | **28 passed** (desktop 1440x900 + Pixel 7 phone profile) |
 | Dependency audit | `npm audit` | 0 vulnerabilities (production and dev) |

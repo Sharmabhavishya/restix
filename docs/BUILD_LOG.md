@@ -111,3 +111,7 @@ ResTix). Update after every milestone; newest log entries last.
   through the pool occasionally interleaved (`UNSAFE_TRANSACTION`). Real Postgres unaffected.
 - axe caught two new contrast failures (tape strip text past its background; 85% white on the
   accent tile); fixed.
+- Live wristband preview on the sell form. Phone check found /sell 476px wide at 390 (grid track
+  min-width); fixed there and on three other detail grids; the phone E2E covers more pages.
+- "Open to offers" search filter and band label; offers waiting on you count in the inbox badge
+  ("Things to answer"); the agreed price pops in once.

@@ -89,6 +89,7 @@ export interface SearchFilters {
   maxPaise?: number;
   from?: Date;
   to?: Date;
+  offers?: boolean;
   sort?: SortKey;
   page?: number;
 }
@@ -111,7 +112,8 @@ function filterSql(tx: Tx, f: SearchFilters, includeFormat = true) {
     ${f.minPaise !== undefined ? tx`and l.asking_price_paise >= ${f.minPaise}` : tx``}
     ${f.maxPaise !== undefined ? tx`and l.asking_price_paise <= ${f.maxPaise}` : tx``}
     ${f.from ? tx`and e.starts_at >= ${f.from}` : tx``}
-    ${f.to ? tx`and e.starts_at < ${f.to}` : tx``}`;
+    ${f.to ? tx`and e.starts_at < ${f.to}` : tx``}
+    ${f.offers ? tx`and l.price_negotiable` : tx``}`;
 }
 
 /** Available listings for the viewer's college, filtered and paged. RLS scopes the rows. */

@@ -15,7 +15,8 @@ ResTix connects people. It never handles money: no payments, no fees, no escrow,
   review). Cancelled and finished events drop out automatically.
 - **Listings as wristbands.** Wristband, digital, paper or other; quantity, asking and original
   price, handover method and a public meetup spot. Contact details are blocked from public text.
-- **Discovery.** Search, filters (event, kind, format, price, date), sorting, pagination.
+- **Discovery.** Search, filters (event, kind, format, price, date, open to offers), sorting,
+  pagination. The sell form shows a live preview of your band as you type.
 - **Requests, not chat.** A buyer asks; the seller accepts and chooses what to share (their
   WhatsApp or a note) with that buyer only. Both sides can record how it went.
 - **Bargaining in the app.** On "open to offers" listings the buyer can send an offer with the

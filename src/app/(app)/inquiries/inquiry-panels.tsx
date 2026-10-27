@@ -164,8 +164,8 @@ export function Bargain({
       )}
 
       {agreedPricePaise !== null ? (
-        <p className="text-[15px] text-positive-ink">
-          Deal at <span className="num font-semibold">{formatPaise(agreedPricePaise)}</span> a ticket. Pay at the handover, after you&apos;ve checked it.
+        <p className="pop rounded-[var(--radius-control)] bg-positive-soft px-3 py-2 text-[15px] text-positive-ink">
+          <span className="font-semibold">Deal.</span> Agreed at <span className="num font-semibold">{formatPaise(agreedPricePaise)}</span> a ticket. Pay at the handover, after you&apos;ve checked it.
         </p>
       ) : (
         <>
