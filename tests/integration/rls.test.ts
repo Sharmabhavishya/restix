@@ -144,13 +144,11 @@ describe("profiles and roles", () => {
       update restix.profiles set status = 'active' where id = ${restricted.id}`))).toBe("42501");
   });
 
-  it("lets a user rename themselves but not others", async () => {
+  it("lets nobody rename themselves or anyone else (names come from the Google account)", async () => {
     const user = await makeUser();
     const other = await makeUser();
-    const mine = await asUser(user.id, (tx) => tx`update restix.profiles set display_name = 'New Name' where id = ${user.id} returning id`);
-    const theirs = await asUser(user.id, (tx) => tx`update restix.profiles set display_name = 'Hacked' where id = ${other.id} returning id`);
-    expect(mine).toHaveLength(1);
-    expect(theirs).toHaveLength(0);
+    expect(await outcome(asUser(user.id, (tx) => tx`update restix.profiles set display_name = 'New Name' where id = ${user.id}`))).toBe("42501");
+    expect(await outcome(asUser(user.id, (tx) => tx`update restix.profiles set display_name = 'Hacked' where id = ${other.id}`))).toBe("42501");
   });
 
   it("keeps email addresses private", async () => {

@@ -10,15 +10,14 @@ export async function privateProfile(viewerId: string) {
   return row ?? null;
 }
 
-export async function updateProfile(viewerId: string, input: { displayName: string; whatsapp: string | null; finishOnboarding?: boolean }): Promise<Result> {
+export async function updateProfile(viewerId: string, input: { whatsapp: string | null; finishOnboarding?: boolean }): Promise<Result> {
   if (!(await allow("profile", viewerId))) return { ok: false, error: "Too many changes in a short time. Try again later." };
   try {
     await asUser(viewerId, async (tx) => {
-      await tx`update restix.profiles set display_name = ${input.displayName} where id = ${viewerId}`;
       await tx`update restix.profile_private set whatsapp_number = ${input.whatsapp} where user_id = ${viewerId}`;
     });
     if (input.finishOnboarding) {
-      // onboarded_at is not client-writable; the server stamps it once the person has set their name.
+      // onboarded_at is not client-writable; the server stamps it once the person has accepted the rules.
       await asSystem((tx) => tx`update restix.profiles set onboarded_at = coalesce(onboarded_at, now()) where id = ${viewerId}`);
     }
     return { ok: true, message: "saved" };

@@ -19,7 +19,6 @@ export function containsContactDetails(text: string): boolean {
   return PHONE_RE.test(text) || EMAIL_RE.test(text) || HANDLE_RE.test(text);
 }
 
-const RESERVED_NAME_RE = /\b(admin|administrator|moderator|mod team|restix|official|support|staff)\b/i;
 
 const optionalText = (max: number) =>
   z
@@ -190,18 +189,6 @@ export const reportInput = z
     details: optionalText(2000),
   })
   .refine((v) => v.listingId || v.reportedUserId, { message: "Nothing to report." });
-
-export const displayNameInput = z
-  .string()
-  .transform((v) => cleanText(v).replace(/\s+/g, " "))
-  .pipe(
-    z
-      .string()
-      .min(2, "Use at least 2 characters.")
-      .max(40, "Keep it under 40 characters.")
-      .refine((v) => !RESERVED_NAME_RE.test(v), "That name could be mistaken for staff. Pick another.")
-      .refine((v) => !containsContactDetails(v) && !v.includes("@"), "Don't put contact details in your name."),
-  );
 
 /** Accepts +<country><number> or a 10-digit Indian mobile number; returns E.164 or null. */
 export function normalizeWhatsapp(input: string): string | null {

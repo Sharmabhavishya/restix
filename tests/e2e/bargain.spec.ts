@@ -5,7 +5,8 @@ import { asFixture, selectByText, signIn, uniqueEmail } from "./helpers";
 test("offer, counter, deal, then WhatsApp with the message already written", async ({ browser, page }) => {
   // A new seller, with a WhatsApp number on file, lists a ticket that's open to offers.
   await signIn(page, uniqueEmail("e2e.haggle"), "Kabir D");
-  await page.getByLabel("Display name").fill("Kabir D");
+  await expect(page.getByText("Kabir D", { exact: true })).toBeVisible(); // name comes from the account
+  await expect(page.getByLabel("Display name")).toHaveCount(0); // and can't be edited
   await page.getByLabel("WhatsApp number").fill("98765 43210");
   await page.getByLabel(/I'll only list tickets I own/).check();
   await page.getByRole("button", { name: "Let's go" }).click();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatPaise, parseRupees } from "./money";
-import { containsContactDetails, displayNameInput, inquiryInput, listingInput, normalizeWhatsapp } from "./validation";
+import { containsContactDetails, inquiryInput, listingInput, normalizeWhatsapp } from "./validation";
 
 const base = {
   eventId: "11111111-1111-4111-8111-111111111111",
@@ -166,15 +166,6 @@ describe("containsContactDetails", () => {
     expect(containsContactDetails("wa.me/919876543210")).toBe(true);
     expect(containsContactDetails("Meet at gate 2 after 6pm")).toBe(false);
     expect(containsContactDetails("2 tickets, row 12")).toBe(false);
-  });
-});
-
-describe("displayNameInput", () => {
-  it("accepts ordinary names and collapses whitespace", () => {
-    expect(displayNameInput.parse("  Asha   K ")).toBe("Asha K");
-  });
-  it.each(["A", "ResTix Admin", "Official Moderator", "asha@snu.edu.in", "x".repeat(41)])("rejects %j", (name) => {
-    expect(displayNameInput.safeParse(name).success).toBe(false);
   });
 });
 

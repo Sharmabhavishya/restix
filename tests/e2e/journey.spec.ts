@@ -28,11 +28,11 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   await mod.page.getByRole("button", { name: "Create event" }).click();
   await expect(mod.page.getByText(`Saved “${eventName}”.`)).toBeVisible();
 
-  // 1-2. A new student signs in with an allowed, verified email and sets a name.
+  // 1-2. A new student signs in with an allowed, verified email and gets the name from their account.
   const sellerEmail = uniqueEmail("e2e.seller");
   await signIn(page, sellerEmail, "Tara S");
   await expect(page).toHaveURL(/\/welcome/);
-  await page.getByLabel("Display name").fill("Tara S");
+  await expect(page.getByText("Tara S", { exact: true })).toBeVisible(); // name comes from the account
   await page.getByLabel(/I'll only list tickets I own/).check();
   await page.getByRole("button", { name: "Let's go" }).click();
   await expect(page).toHaveURL(/\/tickets/);

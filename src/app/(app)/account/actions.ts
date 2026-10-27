@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { fieldErrors, formValues, type ActionState } from "@/lib/action-state";
-import { cleanText, displayNameInput, normalizeWhatsapp } from "@/lib/validation";
+import { cleanText, normalizeWhatsapp } from "@/lib/validation";
 import { safeNext } from "@/lib/safe-redirect";
 import { getViewer } from "@/server/auth/viewer";
 import { deleteAccount, updateProfile } from "@/server/profile";
@@ -14,8 +14,8 @@ import { devAuthEnabled, supabaseAuthConfigured } from "@/server/env";
 import { DEV_COOKIE } from "@/server/auth/dev-session";
 import { supabaseServer } from "@/server/auth/supabase";
 
+// The name comes from the college Google account and can't be changed here.
 const profileSchema = z.object({
-  displayName: displayNameInput,
   whatsapp: z
     .string()
     .optional()
@@ -40,7 +40,7 @@ async function signedInViewer() {
 export async function saveProfile(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const viewer = await signedInViewer();
   if (!viewer) return { error: "Please sign in again." };
-  const parsed = profileSchema.safeParse({ displayName: formData.get("displayName"), whatsapp: formData.get("whatsapp") ?? undefined });
+  const parsed = profileSchema.safeParse({ whatsapp: formData.get("whatsapp") ?? undefined });
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values: formValues(formData) };
   const onboarding = formData.get("onboarding") === "1";
   if (onboarding && formData.get("rules") !== "on") {

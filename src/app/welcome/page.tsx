@@ -28,7 +28,7 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
       </div>
       <h1 className="text-[clamp(2rem,6vw,2.75rem)] leading-[1.05] font-bold tracking-[-0.03em]">you&apos;re in. one sec.</h1>
       <p className="mt-3 text-[17px] text-muted">
-        Pick the name people see when you sell or ask about a ticket.
+        Add your WhatsApp if you like (it stays hidden until you accept a buyer), and agree to the house rules.
       </p>
       <div className="mt-4">
         <VerifiedEmail />

@@ -49,7 +49,8 @@ export async function completeSignIn(identity: ProviderIdentity): Promise<SignIn
                on conflict (user_id) do nothing`;
       return { ok: true as const, isNew: true, newlyVerified: true, onboarded: false };
     }
-    await tx`update restix.profiles set email_verified_at = coalesce(email_verified_at, now()), last_seen_at = now()
+    await tx`update restix.profiles set email_verified_at = coalesce(email_verified_at, now()), last_seen_at = now(),
+               display_name = ${defaultDisplayName(identity)}
              where id = ${identity.id}`;
     await tx`update restix.profile_private set email = ${email} where user_id = ${identity.id}`;
     return { ok: true as const, isNew: false, newlyVerified: existing.emailVerifiedAt === null, onboarded: existing.onboardedAt !== null };
