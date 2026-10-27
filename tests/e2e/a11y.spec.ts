@@ -45,8 +45,15 @@ test.describe("dark mode", () => {
     for (const path of ["/", "/sign-in", "/safety"]) await scan(page, path);
     const { page: student, context } = await asFixture(browser, "Asha K");
     await student.emulateMedia({ colorScheme: "dark" });
-    for (const path of ["/tickets", "/events", "/sell", "/inquiries", "/account", "/selling"]) await scan(student, path);
+    for (const path of ["/tickets", "/events", "/events/indie-night", "/sell", "/inquiries", "/account", "/selling"]) await scan(student, path);
     await context.close();
+    // A buyer's view of a listing: price colours, deal banner, buy box.
+    const { page: buyer, context: buyerContext } = await asFixture(browser, "Rohan M");
+    await buyer.emulateMedia({ colorScheme: "dark" });
+    await buyer.goto("/tickets");
+    const href = await buyer.locator("a.tk-link").first().getAttribute("href");
+    await scan(buyer, href!);
+    await buyerContext.close();
   });
 
   test("moderator pages keep contrast in dark mode", async ({ browser }) => {

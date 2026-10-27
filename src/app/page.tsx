@@ -178,10 +178,10 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
                           {formatDate(e.startsAt)} · {formatTime(e.startsAt)}{e.venue ? ` · ${e.venue}` : ""}
                         </p>
                       </div>
-                      <div className="flex w-28 flex-none flex-col items-end justify-center border-l-2 border-dashed border-[color-mix(in_oklab,var(--band-ink)_28%,transparent)] bg-[var(--band-strong)] px-3 py-2 text-right">
+                      <div className="flex min-w-28 flex-none flex-col items-end justify-center border-l-2 border-dashed border-[color-mix(in_oklab,var(--band-ink)_28%,transparent)] bg-[var(--band-strong)] px-3 py-2 text-right">
                         {e.availableTickets > 0 ? (
                           <>
-                            <span className="num text-sm font-semibold">from {formatPaise(e.lowestPricePaise!)}</span>
+                            <span className="num text-sm font-semibold whitespace-nowrap">from {formatPaise(e.lowestPricePaise!)}</span>
                             <span className="text-[11px] text-[var(--band-ink)]">{e.availableTickets} up</span>
                           </>
                         ) : (

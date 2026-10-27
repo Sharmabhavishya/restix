@@ -530,9 +530,17 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 .tk-qr .tk-body { background: linear-gradient(120deg, var(--band) 40%, var(--band-strong)); }
 .tk-qr .tk-stub {
-  background: var(--color-surface);
+  /* White like a printed pass in light mode; the card's own colour in dark, so it stays one piece. */
+  background: light-dark(var(--color-surface), var(--band-strong));
   border-left: 1.5px dashed color-mix(in oklab, var(--band-ink) 22%, transparent);
-  color: var(--band-ink);
+}
+/* The code always sits on its own white tile, as a real one would. */
+.tk-qrmark {
+  padding: 3px;
+  border-radius: 6px;
+  background: #fff;
+  color: #141418;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08);
 }
 
 /* Email ticket: an envelope with an airmail edge, the price on a perforated stamp. */
@@ -585,7 +593,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   align-items: center;
   padding: 0.45rem 0.85rem;
   border-radius: 999px;
-  background: var(--color-surface);
+  background: light-dark(var(--color-surface), var(--band-strong));
 }
 .tk-appicon {
   display: grid;

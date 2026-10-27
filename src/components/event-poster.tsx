@@ -73,7 +73,7 @@ export function EventPoster({
         <span
           aria-hidden
           className={`pointer-events-none absolute -z-20 font-display leading-[0.8] font-extrabold tracking-[-0.05em] whitespace-nowrap text-white/15 uppercase transition-transform duration-1000 ease-[var(--ease-out-expo)] motion-safe:group-hover/poster:-translate-x-4 ${
-            hero ? "right-[-4%] bottom-[18%] text-[clamp(6rem,18vw,15rem)]" : "right-[-6%] bottom-[22%] text-[clamp(4.5rem,11vw,7.5rem)]"
+            hero ? "top-[6%] right-[-4%] text-[clamp(6rem,18vw,15rem)]" : "top-[16%] right-[-6%] text-[clamp(4.5rem,11vw,7.5rem)]"
           } -rotate-6`}
         >
           {kind}
