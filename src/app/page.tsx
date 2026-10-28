@@ -18,6 +18,7 @@ import { BAND_PHOTOS, CLIPS, MOMENT_PHOTO } from "@/components/landing-photos";
 import { LoopVideo } from "@/components/loop-video";
 import { TicketCard, type TicketData } from "@/components/ticket-card";
 import { MotionRoot } from "@/components/motion-root";
+import { FormatShowcase } from "@/components/format-showcase";
 
 // The tape strip under the hero: the rules, said the way people say them.
 const TAPE = ["spare ticket? sorted", "your number stays private", "₹0 fees. no cap.", "verified college emails only", "no group-chat spam", "wristbands · QR · paper · passes", "check it before you pay", "report anything sus"];
@@ -41,12 +42,12 @@ const FAQ = [
   {
     tab: "Who's on it",
     q: "Who can see my listings?",
-    a: "Only students who signed in with a verified college Google account. Your email address is never shown to anyone; people see the display name you pick.",
+    a: "Only students who signed in with a verified college Google account. Your email address is never shown to anyone; people see the name on your college Google account.",
   },
   {
     tab: "Events",
     q: "Which events can I list for?",
-    a: "Only events whose organisers allow tickets to change hands. Moderators check that before an event goes up, and some events cap prices at face value, which ResTix enforces for you.",
+    a: "Any event the admins have added, and you can suggest one that's missing. If the organisers don't allow resale, or cap it at face value, the event is marked and ResTix enforces it for you.",
   },
   {
     tab: "Handovers",
@@ -61,7 +62,7 @@ const FAQ = [
   {
     tab: "Trouble",
     q: "Something went wrong. Now what?",
-    a: "Report the listing or the person. Moderators review reports, can take listings down and restrict accounts, and every action is logged. Reports are private, and decisions can be appealed.",
+    a: "Report the listing, including problems with the person behind it. Moderators review reports, can take listings down and restrict accounts, and every action is logged. Reports are private, and decisions can be appealed.",
   },
 ];
 
@@ -75,6 +76,17 @@ const EXAMPLES: (Pick<TicketData, "eventName" | "ticketTypeName" | "format" | "q
   { eventName: "Film fest", ticketTypeName: "All-access", format: "pass", quantity: 1, askingPricePaise: 120000 },
   { eventName: "Food carnival", ticketTypeName: "Food coupons", format: "token", quantity: 5, askingPricePaise: 10000, offers: true },
 ];
+
+// What each format is called on the showcase, and how it changes hands. Plain, because it's safety.
+const FORMAT_NOTES: Record<string, [string, string]> = {
+  wristband: ["Wristband", "Handed over in person. Check the clasp hasn't been cut before you pay."],
+  paper: ["Paper", "A printed ticket or stub. Meet somewhere public and look at it first."],
+  qr: ["QR", "Sent as a PDF or screenshot. Get it before you pay, and never post the code."],
+  app: ["App", "Moves inside the ticketing app. Transfer first, then pay."],
+  email: ["Email", "A booking email or confirmation, forwarded or reissued in the organiser's system."],
+  pass: ["Pass", "A lanyard, pass or entry card. In person, and check the name and date on it."],
+  token: ["Tokens", "Food coupons, drink tokens, stamp cards. Count them at the handover."],
+};
 
 const example = (e: (typeof EXAMPLES)[number], i: number): TicketData => ({
   id: `example-${e.format}`,
@@ -256,22 +268,14 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
             </p>
             <p data-reveal style={{ "--i": 2 } as React.CSSProperties} className="mt-6 text-[13px] text-muted">Examples, not real listings.</p>
           </div>
-          <ul aria-label="Example tickets" className="flex flex-col gap-4">
-            {EXAMPLES.map((e, i) => (
-              <li
-                key={e.format}
-                data-reveal
-                style={{ "--i": i, marginLeft: `${[0, 8, 3, 11, 5, 9, 1][i]}%` } as React.CSSProperties}
-                className="max-w-[34rem]"
-              >
-                <div className={i % 3 === 0 ? "float-a" : i % 3 === 1 ? "float-b" : "float-c"}>
-                  <div style={{ rotate: `${[-1.5, 1, -0.5, 1.5, -1, 0.5, -2][i]}deg` }}>
-                    <TicketCard listing={example(e, i)} />
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <FormatShowcase
+            items={EXAMPLES.map((e, i) => ({
+              key: e.format,
+              label: FORMAT_NOTES[e.format][0],
+              note: FORMAT_NOTES[e.format][1],
+              ticket: <TicketCard listing={example(e, i)} />,
+            }))}
+          />
         </div>
       </section>
 
@@ -367,27 +371,22 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
         </div>
       </section>
 
-      {/* Questions: filed like index cards. */}
-      <section aria-labelledby="faq-heading" className="mx-auto max-w-[900px] px-4 pt-24 pb-24 sm:px-6 md:pt-36 md:pb-36">
-        <h2 id="faq-heading" data-reveal className={`mb-10 ${H2}`}>questions, answered</h2>
-        <div className="flex flex-col">
+      {/* Questions: one clean list, the topic as a small label beside each. */}
+      <section aria-labelledby="faq-heading" className="mx-auto max-w-[1000px] px-4 pt-24 pb-24 sm:px-6 md:pt-36 md:pb-36">
+        <h2 id="faq-heading" data-reveal className={`mb-12 ${H2}`}>questions, answered</h2>
+        <div className="border-b border-border">
           {FAQ.map((f, i) => (
-            <details
-              key={f.q}
-              open={i === 0}
-              data-reveal
-              style={{ "--i": i, "--step": `${i * 32}px` } as React.CSSProperties}
-              // Each card's tab sits in the gap above it, so it never covers the card before;
-              // the cards step right like a filed drawer from tablet width up.
-              className={`group relative mt-9 first:mt-7 md:ml-[var(--step)] ${i % 2 ? "bg-accent-track" : "bg-accent-soft"} rounded-[var(--radius-card)] rounded-tl-none`}
-            >
-              <summary className="flex min-h-14 cursor-pointer list-none flex-col gap-1 px-5 py-4 [&::-webkit-details-marker]:hidden">
-                <span className={`absolute -top-7 left-0 inline-flex h-7 items-center rounded-t-[var(--radius-control)] px-4 text-[13px] font-medium text-accent-ink ${i % 2 ? "bg-accent-track" : "bg-accent-soft"}`}>
-                  {f.tab}
+            <details key={f.q} open={i === 0} data-reveal style={{ "--i": i } as React.CSSProperties} className="faq-item group border-t border-border">
+              <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-1 py-6 sm:grid-cols-[8.5rem_minmax(0,1fr)_auto] [&::-webkit-details-marker]:hidden">
+                <span className="text-[12px] font-bold tracking-[0.14em] text-accent-strong uppercase sm:pt-1">{f.tab}</span>
+                <span className="col-start-1 font-display text-[clamp(1.25rem,2.4vw,1.625rem)] leading-tight font-extrabold tracking-[-0.025em] text-ink sm:col-start-2">
+                  {f.q}
                 </span>
-                <span className="mt-1 text-lg font-medium text-ink">{f.q}</span>
+                <span aria-hidden className="faq-plus col-start-2 row-span-2 row-start-1 grid size-10 place-items-center rounded-full border border-border text-xl leading-none text-ink group-hover:bg-raised sm:col-start-3">
+                  +
+                </span>
               </summary>
-              <p className="max-w-[60ch] px-5 pb-6 text-base leading-relaxed text-accent-ink">{f.a}</p>
+              <p className="max-w-[60ch] pb-7 text-base leading-relaxed text-ink-soft sm:ml-[calc(8.5rem+1.5rem)]">{f.a}</p>
             </details>
           ))}
         </div>

@@ -283,10 +283,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   /* "Live" means live: the dot breathes. */
   .live-dot { animation: live 2s ease-in-out infinite; }
 
-  /* Things that float gently forever cost little: one transform on the compositor. */
-  .float-a { animation: float 7s ease-in-out infinite; }
-  .float-b { animation: float 8s ease-in-out -2.5s infinite reverse; }
-  .float-c { animation: float 6s ease-in-out -4s infinite; }
 
   /* "I want a ticket": the hand waves once. */
   .want-wave { animation: wave 700ms var(--ease-out-expo); transform-origin: 70% 80%; }
@@ -368,6 +364,28 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   to { opacity: 1; transform: none; }
 }
 
+/* Landing format showcase (components/format-showcase.tsx). Every ticket sits in the same grid
+   cell; only the current one is shown. A faint dot grid gives the stage some depth. */
+.fmt-stage {
+  background-image: radial-gradient(color-mix(in oklab, var(--color-ink) 9%, transparent) 1px, transparent 1.2px);
+  background-size: 18px 18px;
+}
+.fmt-slide[data-on="false"] { opacity: 0; visibility: hidden; }
+.fmt-slide .tk { filter: drop-shadow(0 18px 28px rgb(56 10 30 / 0.14)) drop-shadow(0 2px 4px rgb(56 10 30 / 0.08)); }
+
+/* FAQ accordion: the plus turns into a cross when a question is open. */
+.faq-item[open] .faq-plus { rotate: 45deg; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .fmt-slide { transition: opacity 450ms var(--ease-out-quart), transform 650ms var(--ease-out-expo), visibility 450ms; }
+  .fmt-slide[data-on="false"] { transform: translateY(18px) scale(0.97); }
+  .fmt-pill, .fmt-tick { transition: background-color 250ms, color 250ms, border-color 250ms, width 400ms var(--ease-out-expo); }
+  .fmt-pill:active { scale: 0.96; }
+  .faq-plus { transition: rotate 350ms var(--ease-out-expo), background-color 200ms; }
+  /* An answer slides in as its question opens. */
+  .faq-item[open] > p { animation: prose-in 500ms var(--ease-out-expo); }
+}
+
 /* Static fallbacks so nothing depends on motion. */
 .sticker { rotate: 8deg; }
 
@@ -388,10 +406,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 @keyframes wobble {
   0%, 100% { transform: none; }
   50% { transform: rotate(-5deg); }
-}
-@keyframes float {
-  0%, 100% { transform: none; }
-  50% { transform: translateY(-10px) rotate(2deg); }
 }
 @keyframes live {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-positive) 55%, transparent); }
