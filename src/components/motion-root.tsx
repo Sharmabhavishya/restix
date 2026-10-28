@@ -7,9 +7,11 @@ import { useEffect } from "react";
  * hidden without script), then lets each `[data-reveal]` element rise in the first time it enters
  * the viewport. Does nothing at all for people who prefer reduced motion.
  */
-export function MotionRoot() {
+export function MotionRoot({ selector }: { selector?: string } = {}) {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) return;
+    // Reading pages opt whole blocks in with a selector; they get the gentler "soft" rise.
+    if (selector) for (const el of document.querySelectorAll<HTMLElement>(selector)) el.dataset.reveal ??= "soft";
     const root = document.documentElement;
     const els = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
     // Anything already on screen shows at once; only what's below the fold waits for its turn.
@@ -34,6 +36,6 @@ export function MotionRoot() {
       io.disconnect();
       root.classList.remove("js-motion");
     };
-  }, []);
+  }, [selector]);
   return null;
 }

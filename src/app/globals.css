@@ -198,6 +198,12 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 /* Long-form reading pages. */
+/* Contents list: one number per item (ours, not the browser's), plain links. */
+.prose-restix .toc { list-style: none; padding-left: 0; max-width: none; }
+.prose-restix .toc li { margin-top: 0; }
+.prose-restix .toc a { display: flex; align-items: baseline; gap: 0.75rem; text-decoration: none; color: var(--color-ink); }
+.prose-restix .toc .toc-n { min-width: 1.4rem; font-size: 12.5px; font-weight: 600; color: var(--color-accent-strong); }
+.prose-restix .toc a:hover .toc-t { text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--color-accent); }
 .prose-restix {
   font-size: 16px;
   line-height: 1.65;
@@ -247,6 +253,16 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
    so the reduced-motion rule above never has to fight it.
    --------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: no-preference) {
+  /* Reading pages: the heading block rises in on load, contents links glide to their section,
+     and the section you jumped to flashes a raspberry bar so you can see where you landed. */
+  html:has(.prose-restix) { scroll-behavior: smooth; }
+  .prose-head > * { animation: prose-in 800ms var(--ease-out-expo) backwards; }
+  .prose-head > :nth-child(2) { animation-delay: 90ms; }
+  .prose-head > :nth-child(3) { animation-delay: 180ms; }
+  .prose-restix .toc .toc-n { transition: translate 300ms var(--ease-out-expo); }
+  .prose-restix .toc a:hover .toc-n { translate: 4px 0; }
+  .prose-restix h2:target { animation: section-flash 1600ms var(--ease-out-quart); }
+
   /* Sections rise in the first time they scroll into view (components/motion-root.tsx adds and
      clears .reveal-wait). Without script, or with reduced motion, everything just shows. */
   [data-reveal] {
@@ -259,6 +275,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     transform: translateY(56px) scale(0.97);
     transition: none;
   }
+  /* Reading pages: a short, quiet rise, so text never feels like it's flying in. */
+  .js-motion [data-reveal="soft"].reveal-wait { transform: translateY(16px); }
   /* The stagger applies only while revealing, so hovers stay instant afterwards. */
   .js-motion [data-reveal].reveal-run { transition-delay: calc(var(--i, 0) * 90ms); }
 
@@ -309,6 +327,14 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
 /* Keyframes move `transform` and `opacity` only, which the browser can run on the compositor
    without repainting the page each frame. (They stack on top of any static `rotate`.) */
+@keyframes prose-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes section-flash {
+  from { box-shadow: -14px 0 0 -10px var(--color-accent); color: var(--color-accent-strong); }
+  to { box-shadow: -14px 0 0 -10px transparent; }
+}
 @keyframes line-up {
   from { transform: translateY(0.4em) rotate(2deg); }
   to { transform: none; }
