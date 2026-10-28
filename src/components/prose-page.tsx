@@ -24,3 +24,19 @@ export async function ProsePage({ title, intro, updated, children }: { title: st
 export function Callout({ children }: { children: ReactNode }) {
   return <div className="my-8 rounded-[var(--radius-card)] bg-accent-soft px-5 py-4 text-[16px] leading-relaxed text-accent-ink">{children}</div>;
 }
+
+/** Numbered list of the page's sections, linking to each h2 by id. */
+export function Contents({ items }: { items: [id: string, title: string][] }) {
+  return (
+    <nav aria-label="On this page" className="mb-2 border-y border-rule py-5">
+      <p className="text-[13px] font-medium tracking-wide text-muted uppercase">On this page</p>
+      <ol className="mt-3 grid gap-x-8 sm:grid-cols-2">
+        {items.map(([id, title]) => (
+          <li key={id}>
+            <a href={`#${id}`} className="tap">{title}</a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}

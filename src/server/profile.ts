@@ -39,12 +39,12 @@ export async function deleteAccount(viewerId: string): Promise<Result> {
     select count(*)::int as open_reports from restix.reports
     where reported_user_id = ${viewerId} and status in ('open', 'in_review')`);
   if (openReports > 0) {
-    return { ok: false, error: "There's an open report about your account, so it can't be deleted until a moderator has reviewed it. Email the ResTix team if you need help." };
+    return { ok: false, error: "There's an open report about your account, so it can't be deleted until a moderator has reviewed it." };
   }
   if (profile.status !== "active") {
     return {
       ok: false,
-      error: "Accounts under a moderation restriction can't be deleted from here, so a decision can't be dodged by re-joining. Send an appeal, or email the ResTix team to request deletion.",
+      error: "Accounts under a moderation restriction can't be deleted from here, so a decision can't be dodged by re-joining. Send an appeal from this page first.",
     };
   }
   try {

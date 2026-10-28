@@ -136,7 +136,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
         description={
           <>
             Permanently removes your profile, listings, requests and outcome confirmations. Reports you sent stay, without your name, so moderation history isn&apos;t lost.
-            {underAction && " Accounts under a restriction can't be deleted here; appeal or email the team."}
+            {underAction && " Accounts under a restriction can't be deleted until that's resolved; you can appeal above."}
           </>
         }
       >
