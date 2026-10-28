@@ -43,13 +43,16 @@ async function navFor(viewer: Viewer): Promise<NavGroup[]> {
     groups.push({
       label: "Moderation",
       items: [
-        { href: "/admin", label: q?.open ? "Reports to review" : "Reports", icon: "flag", count: q ? q.open : 0, exact: true },
+        { href: "/admin", label: "Dashboard", icon: "dash", exact: true },
+        { href: "/admin/reports", label: q?.open ? "Reports to review" : "Reports", icon: "flag", count: q ? q.open : 0 },
         { href: "/admin/reviews", label: q?.pendingListings ? "Listings to check" : "Listing checks", icon: "review", count: q?.pendingListings ?? 0 },
         { href: "/admin/appeals", label: q?.openAppeals ? "Appeals to decide" : "Appeals", icon: "gavel", count: q?.openAppeals ?? 0 },
         { href: "/admin/events", label: q?.openSuggestions ? "Event requests" : "Events", icon: "calendar", count: q?.openSuggestions ?? 0 },
         { href: "/admin/users", label: "Accounts", icon: "users" },
         { href: "/admin/audit", label: "Audit log", icon: "log" },
-        ...(viewer.role === "admin" ? [{ href: "/admin/analytics", label: "Analytics", icon: "chart" as const }] : []),
+        ...(viewer.role === "admin"
+          ? [{ href: "/admin/team", label: "Team", icon: "team" as const }, { href: "/admin/analytics", label: "Analytics", icon: "chart" as const }]
+          : []),
       ],
     });
   }

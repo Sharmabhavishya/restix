@@ -34,7 +34,7 @@ export default async function ReportPage({ params }: PageProps<"/admin/reports/[
   return (
     <>
       <nav aria-label="Breadcrumb" className="[&_a]:tap mb-4 text-sm text-muted">
-        <Link href="/admin" className="hover:text-ink">Reports</Link>
+        <Link href="/admin/reports" className="hover:text-ink">Reports</Link>
       </nav>
       <PageTitle
         title={REPORT_REASONS[report.reason]}

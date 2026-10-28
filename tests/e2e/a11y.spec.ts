@@ -32,7 +32,7 @@ test("student pages", async ({ browser }) => {
 
 test("moderator pages", async ({ browser }) => {
   const { page, context } = await asFixture(browser, "Meera (moderator)");
-  for (const path of ["/admin", "/admin/reviews", "/admin/appeals", "/admin/events", "/admin/events/new", "/admin/users", "/admin/audit", "/admin/analytics"]) {
+  for (const path of ["/admin", "/admin/reports", "/admin/reviews", "/admin/appeals", "/admin/events", "/admin/events/new", "/admin/users", "/admin/team", "/admin/audit", "/admin/analytics"]) {
     await scan(page, path);
   }
   await context.close();
@@ -59,7 +59,7 @@ test.describe("dark mode", () => {
   test("moderator pages keep contrast in dark mode", async ({ browser }) => {
     const { page, context } = await asFixture(browser, "Meera (moderator)");
     await page.emulateMedia({ colorScheme: "dark" });
-    for (const path of ["/admin", "/admin/events", "/admin/analytics", "/admin/audit"]) await scan(page, path);
+    for (const path of ["/admin", "/admin/events", "/admin/team", "/admin/analytics", "/admin/audit"]) await scan(page, path);
     await context.close();
   });
 });

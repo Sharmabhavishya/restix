@@ -140,10 +140,15 @@ describe("moderators act only within their college", () => {
       select email from restix.profile_private where user_id = ${seller.id}`)).toHaveLength(0);
   });
 
-  it("nobody can delete events", async () => {
-    const mod = await makeUser({ role: "admin" });
+  it("only an admin of the event's own college can delete it", async () => {
     const { eventId } = await makeEvent();
-    expect(await outcome(asUser(mod.id, (tx) => tx`delete from restix.events where id = ${eventId}`))).toBe("42501");
+    const mod = await makeUser({ role: "moderator" });
+    const farAdmin = await makeUser({ role: "admin", collegeId: await otherCollege() });
+    for (const who of [mod.id, farAdmin.id]) {
+      expect(await asUser(who, (tx) => tx`delete from restix.events where id = ${eventId} returning id`)).toHaveLength(0);
+    }
+    const admin = await makeUser({ role: "admin" });
+    expect(await asUser(admin.id, (tx) => tx`delete from restix.events where id = ${eventId} returning id`)).toHaveLength(1);
   });
 
   it("admins can't change their own role", async () => {

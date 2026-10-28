@@ -24,6 +24,7 @@ export default async function AdminEventsPage({ searchParams }: PageProps<"/admi
         actions={<ButtonLink href="/admin/events/new">Add event</ButtonLink>}
       />
       {typeof sp.saved === "string" && <Notice tone="success" className="mb-5">Saved “{sp.saved}”.</Notice>}
+      {sp.deleted === "1" && <Notice tone="success" className="mb-5">Event deleted, with its listings. It&apos;s recorded in the audit log.</Notice>}
       {suggestions.length > 0 && (
         <Panel className="mb-6">
           <h2 className="px-5 pt-5 pb-1 text-[17px] font-semibold">Event requests from students ({suggestions.length})</h2>

@@ -6,6 +6,7 @@ import { coverUrl } from "@/server/event-covers";
 import { toLocalInput } from "@/lib/format";
 import { paiseToInput } from "@/lib/money";
 import { EventForm } from "../event-form";
+import { DeleteEvent } from "../delete-event";
 import { Notice, PageTitle, Panel } from "@/components/ui/bits";
 
 export const metadata: Metadata = { title: "Edit event" };
@@ -38,6 +39,7 @@ export default async function EditEventPage({ params }: PageProps<"/admin/events
           }}
         />
       </Panel>
+      {mod.role === "admin" && <DeleteEvent eventId={e.id} name={e.name} listings={e.listings} />}
     </>
   );
 }

@@ -117,6 +117,8 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
 
   // 9. A moderator resolves it, with the action in the audit log.
   await mod.page.goto("/admin");
+  await expect(mod.page.getByText("Reports to review").first()).toBeVisible(); // the dashboard flags it
+  await mod.page.goto("/admin/reports");
   await mod.page.getByText("Suspected scam").first().click();
   await expect(mod.page.getByText("Asked me to pay before meeting")).toBeVisible();
   await mod.page.getByLabel("Reason for the listing action").fill("Hidden while we check the pay-first request");

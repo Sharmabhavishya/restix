@@ -33,6 +33,7 @@ export default async function AuditPage() {
                   <td className="px-3 py-3 whitespace-nowrap">{r.actorName ?? "deleted account"}</td>
                   <td className="px-3 py-3">
                     <span className="font-medium">{r.action.replace(/_/g, " ")}</span>
+                    {r.action === "delete_event" && typeof r.metadata.name === "string" && <> · {r.metadata.name}</>}
                     {r.reportId && (
                       <> · <Link href={`/admin/reports/${r.reportId}`} className="underline">report</Link></>
                     )}

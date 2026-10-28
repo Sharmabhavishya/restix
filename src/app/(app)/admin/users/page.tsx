@@ -31,7 +31,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/user
               ? [{ op: "user:restrict", label: "Restrict" }, { op: "user:suspend", label: "Suspend", tone: "danger" }]
               : [{ op: "user:reinstate", label: "Reinstate" }];
             const roleOps: ModOp[] = u.role
-              ? [{ op: "role:none", label: "Remove role", tone: "danger" }, ...(u.role === "moderator" ? [{ op: "role:admin", label: "Make admin" }] : [])]
+              ? u.role === "moderator" ? [{ op: "role:none", label: "Remove moderator", tone: "danger" }] : []
               : [{ op: "role:moderator", label: "Make moderator" }];
             return (
               <li key={u.id}>
@@ -52,7 +52,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/user
                   ) : (
                     <div className="flex flex-col gap-4">
                       {!u.role && <ModForm hidden={{ userId: u.id }} compact ops={ops} placeholder="Shown to the person" />}
-                      {mod.role === "admin" && <ModForm hidden={{ userId: u.id }} compact ops={roleOps} reasonLabel="Reason for the role change" />}
+                      {mod.role === "admin" && roleOps.length > 0 && <ModForm hidden={{ userId: u.id }} compact ops={roleOps} reasonLabel="Reason for the role change" />}
                     </div>
                   )}
                 </Panel>

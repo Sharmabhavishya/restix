@@ -120,9 +120,10 @@ export async function eventForEdit(modId: string, id: string) {
     const [e] = await tx<{
       id: string; name: string; slug: string; category: string; venue: string | null; description: string | null;
       startsAt: Date; endsAt: Date | null; status: string; transferPolicy: string; policySource: string | null; isFixture: boolean;
-      coverVersion: number | null;
+      coverVersion: number | null; listings: number;
     }[]>`select id, name, slug, category, venue, description, starts_at, ends_at, status, transfer_policy, policy_source, is_fixture,
-           (select version from restix.event_covers c where c.event_id = e.id) as cover_version
+           (select version from restix.event_covers c where c.event_id = e.id) as cover_version,
+           (select count(*)::int from restix.ticket_listings l where l.event_id = e.id) as listings
          from restix.events e where e.id = ${id}`;
     if (!e) return null;
     const types = await tx<{ name: string; faceValuePaise: number | null }[]>`

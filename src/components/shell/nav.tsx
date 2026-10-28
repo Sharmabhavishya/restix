@@ -4,13 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  BarChart3, CalendarDays, ClipboardCheck, Flag, Gavel, Inbox, LayoutList, Menu, ScrollText, Search, Tag, User, Users, X,
+  BarChart3, CalendarDays, ClipboardCheck, Flag, Gavel, Inbox, LayoutDashboard, LayoutList, Menu, ScrollText, Search, ShieldCheck, Tag, User, Users, X,
 } from "lucide-react";
 import { Wordmark } from "../logo";
 
 const ICONS = {
   search: Search, calendar: CalendarDays, tag: Tag, list: LayoutList, inbox: Inbox, user: User,
-  flag: Flag, review: ClipboardCheck, users: Users, gavel: Gavel, log: ScrollText, chart: BarChart3,
+  flag: Flag, review: ClipboardCheck, users: Users, gavel: Gavel, log: ScrollText, chart: BarChart3, dash: LayoutDashboard, team: ShieldCheck,
 } as const;
 
 export interface NavItem {

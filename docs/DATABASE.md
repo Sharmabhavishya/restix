@@ -72,7 +72,7 @@ All tables have RLS enabled. Policies use helper functions (SECURITY DEFINER, fi
 | --- | --- | --- |
 | profiles | any signed-in user, **public columns only** (column grants) | self: `display_name`; moderators: `status`, `status_reason` (trigger blocks self-status changes) |
 | profile_private | owner, moderators | owner: `whatsapp_number` |
-| events / ticket_types | same college / any | moderators |
+| events / ticket_types | same college / any | insert/update: moderators; delete events: admins of that college only (cascades to ticket types, listings, requests, offers, saves, wants, cover) |
 | ticket_listings | owner always; moderators; browsers of the same college for public statuses | insert: eligible owner; update: owner (columns granted) or moderator; delete: owner |
 | inquiries | buyer, seller, moderators | insert: eligible buyer on an active listing, matching seller; update: parties, moderators (trigger limits who sets what) |
 | transaction_confirmations | parties, moderators | the party, once, after acceptance |
@@ -139,3 +139,15 @@ audit log, version skipping, cross-college reads, and more).
   `listings_price_drop` trigger when the asking price goes down (keeping the highest price of
   the past week through a series of cuts), cleared when it goes up, never set on insert. No
   column grant, so clients can't fake a drop. Cards show it for 7 days.
+
+## Admin powers (migration 20261028120000)
+
+- `events_delete`: an active admin of the event's college (`administers(college_id)`) may delete
+  it; moderators, students and admins elsewhere can't.
+  Foreign keys cascade to everything listed under it; reports, appeals and audit entries keep
+  their rows with the link set to null. `deleteEvent` in `src/server/admin.ts` writes the audit
+  entry first (with the event's name in `metadata`) and requires the name typed back.
+- `moderation_actions.action` also allows `delete_event` and `export_users`. Each spreadsheet
+  export (`/api/admin/export`, admins only) is logged with its row count.
+- One admin: the app only grants and removes the `moderator` role (`/admin/team`); `admin` is
+  granted with `scripts/grant-role.ts`.

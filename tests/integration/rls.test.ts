@@ -376,3 +376,23 @@ describe("saved listings", () => {
     expect(await outcome(save(banned.id, banned.id, listingId))).toBe("42501");
   });
 });
+
+describe("deleting events", () => {
+  it("lets only admins delete an event, and takes its listings with it", async () => {
+    const seller = await makeUser();
+    const mod = await makeUser({ role: "moderator" });
+    const admin = await makeUser({ role: "admin" });
+    const { eventId, ticketTypeId } = await makeEvent();
+    const { listingId } = await makeListing(seller.id, { eventId, ticketTypeId });
+
+    // Students and moderators delete nothing (RLS filters the row away).
+    for (const who of [seller.id, mod.id]) {
+      const gone = await asUser(who, (tx) => tx`delete from restix.events where id = ${eventId} returning id`);
+      expect(gone).toHaveLength(0);
+    }
+    const gone = await asUser(admin.id, (tx) => tx`delete from restix.events where id = ${eventId} returning id`);
+    expect(gone).toHaveLength(1);
+    const left = await asSystem((tx) => tx`select id from restix.ticket_listings where id = ${listingId}`);
+    expect(left).toHaveLength(0);
+  });
+});

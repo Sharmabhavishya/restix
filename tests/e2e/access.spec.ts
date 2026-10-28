@@ -135,6 +135,21 @@ test.describe("rules and states", () => {
 });
 
 test.describe("endpoints", () => {
+  test("only the admin can export accounts, as a spreadsheet", async ({ browser, request }) => {
+    expect((await request.get("/api/admin/export")).status()).toBe(403);
+    const student = await asFixture(browser, "Rohan M");
+    expect((await student.page.request.get("/api/admin/export")).status()).toBe(403);
+    await student.context.close();
+    const admin = await asFixture(browser, "Meera (moderator)");
+    const res = await admin.page.request.get("/api/admin/export");
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-disposition"]).toMatch(/attachment; filename="restix-accounts-\d{4}-\d{2}-\d{2}\.csv"/);
+    const csv = await res.text();
+    expect(csv).toContain('"Name","Email","WhatsApp"');
+    expect(csv).toContain("rohan.m@snu.edu.in");
+    await admin.context.close();
+  });
+
   test("analytics endpoint rejects junk and cross-site posts", async ({ request }) => {
     const headers = { origin: "http://localhost:3100" };
     expect((await request.post("/api/track", { data: { name: "drop_table" }, headers })).status()).toBe(400);

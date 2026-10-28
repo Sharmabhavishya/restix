@@ -195,7 +195,7 @@ export async function pendingListings(modId: string) {
 // Moderator writes. Each change and its audit record commit together.
 // ---------------------------------------------------------------------------
 
-async function audit(tx: Tx, modId: string, entry: {
+export async function audit(tx: Tx, modId: string, entry: {
   action: string; reason: string; listingId?: string | null; userId?: string | null; reportId?: string | null;
   eventId?: string | null; metadata?: Record<string, unknown>;
 }) {
@@ -204,7 +204,7 @@ async function audit(tx: Tx, modId: string, entry: {
                    ${entry.reportId ?? null}, ${entry.eventId ?? null}, ${tx.json((entry.metadata ?? {}) as never)})`;
 }
 
-async function guarded(modId: string, fn: (tx: Tx) => Promise<Result>): Promise<Result> {
+export async function guarded(modId: string, fn: (tx: Tx) => Promise<Result>): Promise<Result> {
   if (!(await allow("moderation", modId))) return { ok: false, error: "Too many moderation actions in a short time." };
   try {
     return await asUser(modId, fn);

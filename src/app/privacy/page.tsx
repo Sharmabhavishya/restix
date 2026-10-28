@@ -123,7 +123,12 @@ export default function PrivacyPage() {
           request see the numbers they chose to share, and nobody else can.
         </li>
         <li>
-          <strong>Nobody sees your email address</strong>, apart from our moderators when they need it to run the service.
+          <strong>No other student sees your email address.</strong>
+        </li>
+        <li>
+          <strong>The ResTix team</strong> (our admin and moderators) can see account details, including email addresses and
+          WhatsApp numbers, to run the service and keep it safe. The admin can export account details for our records. Every
+          export is logged, and exported details are never sold or used for advertising.
         </li>
         <li>
           Saved listings are visible only to you. &quot;I want a ticket&quot; marks are only ever shown as a count, never with names.

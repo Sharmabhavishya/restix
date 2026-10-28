@@ -13,6 +13,7 @@ import {
   type ListingModAction, type UserModAction,
 } from "@/server/moderation";
 import { eventInput, saveEvent, linkSuggestion } from "@/server/event-admin";
+import { deleteEvent } from "@/server/admin";
 
 const uuid = z.uuid();
 
@@ -65,8 +66,9 @@ export async function moderate(_prev: ActionState, formData: FormData): Promise<
     if (mod.role !== "admin") return { error: "Admins only." };
     const userId = String(formData.get("userId") ?? "");
     const role = op.slice(5);
-    if (!uuid.safeParse(userId).success || !["moderator", "admin", "none"].includes(role)) return { error: "Invalid request." };
-    result = await setRole(mod.id, { userId, role: role === "none" ? null : (role as "moderator" | "admin"), reason });
+    // One admin runs ResTix; the team is moderators. (A second admin could remove the first.)
+    if (!uuid.safeParse(userId).success || !["moderator", "none"].includes(role)) return { error: "Invalid request." };
+    result = await setRole(mod.id, { userId, role: role === "none" ? null : "moderator", reason });
   } else {
     return { error: "Unknown action." };
   }
@@ -117,4 +119,17 @@ export async function saveEventAction(_prev: ActionState, formData: FormData): P
   revalidatePath("/events");
   revalidatePath("/admin/events");
   redirect(`/admin/events?saved=${encodeURIComponent(parsed.data.name)}`);
+}
+
+export async function deleteEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const mod = await moderator();
+  if (!mod || mod.role !== "admin") return { error: "Admins only." };
+  const eventId = String(formData.get("eventId") ?? "");
+  if (!uuid.safeParse(eventId).success) return { error: "Invalid request." };
+  const reason = reasonOf(formData);
+  if (!reason) return { ...NEED_REASON, values: formValues(formData) };
+  const result = await deleteEvent(mod.id, { eventId, confirmName: String(formData.get("confirmName") ?? ""), reason });
+  if (!result.ok) return { error: result.error, values: formValues(formData) };
+  revalidatePath("/", "layout");
+  redirect("/admin/events?deleted=1");
 }
