@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 
 export const controlClass =
-  "block w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-[15px] text-ink " +
+  "block w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-base text-ink sm:text-[15px] " +
   "placeholder:text-placeholder transition-[border-color,box-shadow] duration-150 " +
   "hover:border-control-hover focus:border-accent focus:outline-none focus:ring-3 focus:ring-accent-track " +
   "aria-[invalid=true]:border-negative disabled:bg-raised disabled:text-muted";

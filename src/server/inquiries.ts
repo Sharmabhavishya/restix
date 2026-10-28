@@ -145,6 +145,10 @@ export async function respondToInquiry(
       await tx`update restix.inquiries
                set status = 'accepted', seller_whatsapp = ${whatsapp}, seller_contact_shared = ${input.note}, responded_at = now()
                where id = ${input.inquiryId}`;
+      // Saying yes to a request that's waiting on the buyer's offer means yes to that price too;
+      // the offer trigger records it as the agreed price. (The form says so before the tap.)
+      await tx`update restix.offers set status = 'accepted'
+               where inquiry_id = ${input.inquiryId} and status = 'open' and from_user <> ${viewerId}`;
       return { ok: true, listingId: inq.listingId };
     });
     if (result.ok && input.decision === "accept") {

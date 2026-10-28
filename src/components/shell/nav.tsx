@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BarChart3, CalendarDays, ClipboardCheck, Flag, Gavel, Inbox, LayoutList, Menu, ScrollText, Search, Tag, User, Users, X,
 } from "lucide-react";
@@ -92,14 +92,28 @@ export function MobileBar({ groups, footer, scope }: { groups: NavGroup[]; foote
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn === pathname;
   const setOpen = (value: boolean) => setOpenOn(value ? pathname : null);
+  const opener = useRef<HTMLButtonElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenOn(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenOn(null);
+      // Keep Tab inside the sheet while it covers the page.
+      if (e.key !== "Tab" || !sheet.current) return;
+      const items = sheet.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled])");
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+    };
+    const button = opener.current;
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      // Back to where they were, unless they navigated away.
+      if (button?.isConnected) button.focus();
     };
   }, [open]);
   const waiting = groups.flatMap((g) => g.items).reduce((n, i) => n + (i.count ?? 0), 0);
@@ -111,6 +125,7 @@ export function MobileBar({ groups, footer, scope }: { groups: NavGroup[]; foote
           <Wordmark className="text-[22px]" />
         </Link>
         <button
+          ref={opener}
           type="button"
           onClick={() => setOpen(true)}
           aria-expanded={open}
@@ -123,7 +138,7 @@ export function MobileBar({ groups, footer, scope }: { groups: NavGroup[]; foote
         </button>
       </div>
       {open && (
-        <div id="mobile-menu" role="dialog" aria-modal="true" aria-label="Menu" className="fixed inset-0 z-40 flex flex-col bg-ground">
+        <div ref={sheet} id="mobile-menu" role="dialog" aria-modal="true" aria-label="Menu" className="fixed inset-0 z-40 flex flex-col bg-ground">
           <div className="flex h-12 flex-none items-center justify-between border-b border-border px-4">
             <span className="text-sm text-muted">{scope}</span>
             <button type="button" onClick={() => setOpen(false)} className="-mr-2 flex size-11 items-center justify-center rounded-[var(--radius-control)] hover:bg-raised" autoFocus>

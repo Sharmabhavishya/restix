@@ -35,9 +35,9 @@ export function PublicFooter() {
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
         <p>ResTix connects students. Payments and handovers happen between you, never through us.</p>
         <nav aria-label="Legal" className="flex gap-4">
-          <Link href="/safety" className="hover:text-ink">Safety</Link>
-          <Link href="/privacy" className="hover:text-ink">Privacy</Link>
-          <Link href="/terms" className="hover:text-ink">Terms</Link>
+          <Link href="/safety" className="tap hover:text-ink">Safety</Link>
+          <Link href="/privacy" className="tap hover:text-ink">Privacy</Link>
+          <Link href="/terms" className="tap hover:text-ink">Terms</Link>
         </nav>
       </div>
     </footer>

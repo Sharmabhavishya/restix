@@ -103,7 +103,7 @@ export function TicketCard({
         )}
         <div className="tk-body">
           <p className="line-clamp-2 text-[15px] leading-snug font-semibold [overflow-wrap:anywhere] text-ink">{title}</p>
-          <p className="truncate text-[13px] text-[var(--band-ink)]">
+          <p className="line-clamp-2 text-[13px] text-[var(--band-ink)] sm:line-clamp-1">
             <span className="sr-only">{FORMAT_LABEL[listing.format]} · </span>
             {meta.join(" · ")}
           </p>
@@ -134,7 +134,8 @@ export function TicketCard({
 
   const style = bandStyle(listing.eventId) as CSSProperties;
   return (
-    <div className="flex items-center gap-3">
+    // On a phone the save heart sits inside the card, under the price, so the card keeps the full width.
+    <div className={`relative flex items-center gap-3 ${aside ? "tk-saveable" : ""}`}>
       {href ? (
         <Link href={href} style={style} className="tk-link group relative block min-w-0 flex-1 rounded-[12px] focus-visible:outline-offset-4">
           {card}
@@ -144,7 +145,7 @@ export function TicketCard({
           {card}
         </div>
       )}
-      {aside}
+      {aside && <div className="z-[3] max-sm:absolute max-sm:right-4 max-sm:bottom-2.5">{aside}</div>}
     </div>
   );
 }

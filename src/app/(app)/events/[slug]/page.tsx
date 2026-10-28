@@ -31,7 +31,7 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
     <>
       <TrackView name="event_viewed" eventId={event.id} />
       <div className="mb-4 flex items-center justify-between gap-4">
-        <nav aria-label="Breadcrumb" className="text-sm text-muted">
+        <nav aria-label="Breadcrumb" className="[&_a]:tap text-sm text-muted">
           <Link href="/events" className="hover:text-ink">Events</Link>
         </nav>
         <ShareButton path={`/events/${event.slug}`} title={`${event.name} on ResTix`} text={`Tickets for ${event.name} on ResTix. Student sign-in needed.`} />

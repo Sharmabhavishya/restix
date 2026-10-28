@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Text links and link-style buttons get a full finger-sized target on touch screens. */
+@utility tap {
+  @variant pointer-coarse {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
 /* ResTix tokens (docs/DESIGN.md): one ground, one ink, one raspberry hue on small marks,
    its pale tints on areas. Everything downstream references these. */
 @theme {
@@ -195,6 +204,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   color: var(--color-ink-soft);
 }
 .prose-restix h2 {
+  scroll-margin-top: 1.5rem;
   margin-top: 2.75rem;
   margin-bottom: 0.75rem;
   font-size: 1.375rem;
@@ -221,6 +231,15 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .prose-restix table { margin-top: 1rem; width: 100%; font-size: 15px; border-collapse: collapse; }
 .prose-restix th { text-align: left; font-weight: 500; color: var(--color-muted); font-size: 13px; padding: 0.5rem 0.75rem 0.5rem 0; }
 .prose-restix td { padding: 0.6rem 0.75rem 0.6rem 0; border-top: 1px solid var(--color-rule); vertical-align: top; }
+/* On phones a three-column table gets too narrow: each row becomes a short labelled block. */
+@media (max-width: 639px) {
+  .prose-restix .stack-table thead { display: none; }
+  .prose-restix .stack-table tr { display: block; padding: 0.85rem 0; border-top: 1px solid var(--color-rule); }
+  .prose-restix .stack-table td { display: block; padding: 0.15rem 0; border: 0; }
+  .prose-restix .stack-table td:first-child { font-weight: 600; color: var(--color-ink); }
+  .prose-restix .stack-table td:nth-child(2)::before { content: "From: "; color: var(--color-muted); }
+  .prose-restix .stack-table td:nth-child(3)::before { content: "Why: "; color: var(--color-muted); }
+}
 
 /* ---------------------------------------------------------------------------
    Fun, cheap motion. All CSS: transforms and opacity only (compositor-friendly), no
@@ -412,6 +431,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   min-height: 5.5rem;
 }
 .tk-qr { --stub: 8.5rem; }
+/* Room under the price for the save heart, which sits there on phones (see TicketCard). */
+@media (max-width: 639px) {
+  .tk-saveable .tk .tk-stub { flex-direction: column; justify-content: center; align-items: flex-end; gap: 0.35rem; padding-bottom: 3.3rem; }
+}
 @media (min-width: 640px) {
   .tk, .tk-qr { --stub: 9.5rem; }
 }

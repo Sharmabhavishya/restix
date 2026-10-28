@@ -48,6 +48,25 @@ describe("bargaining", () => {
       .toEqual({ ok: false, error: "You've already agreed a price on this one." });
   });
 
+  it("accepting the request agrees to the buyer's open offer, not the asking price", async () => {
+    const c = await conversation({ offerPaise: 38000 });
+    expect(await inquiries.respondToInquiry(c.seller.id, { inquiryId: c.inquiryId, decision: "accept", shareWhatsapp: false, note: "Library steps, 6pm" }))
+      .toEqual({ ok: true });
+    const [buyerView] = await inquiries.inbox(c.buyer.id);
+    expect(buyerView.status).toBe("accepted");
+    expect(buyerView.agreedPricePaise).toBe(38000);
+    expect(await openOffer(c.buyer.id, c.inquiryId)).toBeUndefined();
+  });
+
+  it("accepting leaves the seller's own open counter open", async () => {
+    const c = await conversation({ offerPaise: 35000 });
+    await offers.makeOffer(c.seller.id, { inquiryId: c.inquiryId, amountPaise: 45000 });
+    await inquiries.respondToInquiry(c.seller.id, { inquiryId: c.inquiryId, decision: "accept", shareWhatsapp: false, note: "DM me" });
+    const [buyerView] = await inquiries.inbox(c.buyer.id);
+    expect(buyerView.agreedPricePaise).toBeNull();
+    expect((await openOffer(c.buyer.id, c.inquiryId))?.amountPaise).toBe(45000);
+  });
+
   it("keeps fixed-price listings fixed unless the seller opens the bargaining", async () => {
     const c = await conversation({ negotiable: false });
     expect(await offers.makeOffer(c.buyer.id, { inquiryId: c.inquiryId, amountPaise: 30000 }))

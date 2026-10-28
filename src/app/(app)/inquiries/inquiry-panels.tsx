@@ -30,7 +30,7 @@ export function SharedContact({ text }: { text: string }) {
   );
 }
 
-export function RespondForm({ inquiryId, hasWhatsapp }: { inquiryId: string; hasWhatsapp: boolean }) {
+export function RespondForm({ inquiryId, hasWhatsapp, theirOfferPaise }: { inquiryId: string; hasWhatsapp: boolean; theirOfferPaise: number | null }) {
   const [state, action] = useActionState(respond, initialState);
   const [mode, setMode] = useState<"idle" | "accept">("idle");
   if (state.ok) return <Notice tone="success">{state.message}</Notice>;
@@ -41,6 +41,11 @@ export function RespondForm({ inquiryId, hasWhatsapp }: { inquiryId: string; has
         <form action={action} className="flex flex-col gap-4 rounded-[var(--radius-control)] bg-raised p-4">
           <input type="hidden" name="inquiryId" value={inquiryId} />
           <input type="hidden" name="decision" value="accept" />
+          {theirOfferPaise !== null && (
+            <p className="text-[13px]">
+              Accepting also agrees to their offer of <span className="num font-semibold">{formatPaise(theirOfferPaise)}</span> a ticket. Want a different price? Cancel and counter it first.
+            </p>
+          )}
           {hasWhatsapp ? (
             <Checkbox id={`wa-${inquiryId}`} name="shareWhatsapp" defaultChecked label="Share my WhatsApp" hint="Only this buyer sees it." />
           ) : (
@@ -50,7 +55,7 @@ export function RespondForm({ inquiryId, hasWhatsapp }: { inquiryId: string; has
             <Textarea id={`note-${inquiryId}`} name="note" rows={2} maxLength={200} placeholder="e.g. Insta @handle, or meet at the library steps 6pm" />
           </Field>
           <div className="flex gap-2">
-            <SubmitButton pendingLabel="Sharing…">Share & accept</SubmitButton>
+            <SubmitButton pendingLabel="Sharing…">{theirOfferPaise !== null ? `Accept at ${formatPaise(theirOfferPaise)}` : "Share & accept"}</SubmitButton>
             <button type="button" className={buttonClass("ghost")} onClick={() => setMode("idle")}>Cancel</button>
           </div>
         </form>
@@ -149,7 +154,7 @@ export function Bargain({
   // Nobody has bargained yet: just the invitation.
   if (offers.length === 0 && agreedPricePaise === null && !showForm) {
     return (
-      <button type="button" onClick={() => setWriting(true)} className="self-start text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline">
+      <button type="button" onClick={() => setWriting(true)} className="tap self-start text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline">
         {role === "buyer" ? "Don't like the price? Make an offer" : "Want a different price? Suggest one"}
       </button>
     );
@@ -210,7 +215,7 @@ export function Bargain({
             </form>
           )}
           {canOffer && !(open && open.mine) && !showForm && (
-            <button type="button" onClick={() => setWriting(true)} className="self-start text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline">
+            <button type="button" onClick={() => setWriting(true)} className="tap self-start text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline">
               {theirs ? "Counter offer" : role === "buyer" ? "Make another offer" : "Suggest a price"}
             </button>
           )}

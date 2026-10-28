@@ -67,7 +67,7 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
     <>
       {!mine && <TrackView name="listing_viewed" listingId={listing.id} eventId={listing.eventId} />}
       <div className="mb-4 flex items-center justify-between gap-4">
-        <nav aria-label="Breadcrumb" className="min-w-0 truncate text-sm text-muted">
+        <nav aria-label="Breadcrumb" className="[&_a]:tap min-w-0 truncate text-sm text-muted">
           <Link href="/tickets" className="hover:text-ink">Tickets</Link>
           <span aria-hidden> / </span>
           <Link href={`/events/${listing.eventSlug}`} className="hover:text-ink">{listing.eventName}</Link>

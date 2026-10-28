@@ -19,10 +19,10 @@ export function SiteFooter({ year }: { year: number }) {
             </p>
           </div>
           <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2 text-[15px] text-white/85">
-            <Link href="/safety" className="hover:text-white">Safety</Link>
-            <Link href="/privacy" className="hover:text-white">Privacy</Link>
-            <Link href="/terms" className="hover:text-white">Terms</Link>
-            <Link href="/sign-in" className="hover:text-white">Sign in</Link>
+            <Link href="/safety" className="tap hover:text-white">Safety</Link>
+            <Link href="/privacy" className="tap hover:text-white">Privacy</Link>
+            <Link href="/terms" className="tap hover:text-white">Terms</Link>
+            <Link href="/sign-in" className="tap hover:text-white">Sign in</Link>
           </nav>
         </div>
         <p className="mt-10 text-[13px] text-white/70">© {year} ResTix</p>

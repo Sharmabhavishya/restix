@@ -99,7 +99,8 @@ function InquiryCard({ row: r, hasWhatsapp, viewerName, offers }: { row: Inquiry
     eventName: r.eventName,
     ticketTypeName: r.ticketTypeName,
     quantity: r.quantityRequested,
-    unitPricePaise: r.agreedPricePaise ?? unitPrice(r, r.quantityRequested),
+    // Mid-bargain there's no settled price yet, so the opener leaves it to the chat.
+    unitPricePaise: r.agreedPricePaise ?? (offers.some((o) => o.status === "open") ? null : unitPrice(r, r.quantityRequested)),
     format: r.format as TicketFormat,
     site: new URL(env().APP_URL).host,
   };
@@ -117,8 +118,11 @@ function InquiryCard({ row: r, hasWhatsapp, viewerName, offers }: { row: Inquiry
         <Link href={`/listings/${r.listingId}`} className="min-w-0 hover:underline">
           <span className="font-semibold">{r.eventName}</span>
           <span className="text-[13px] text-[var(--band-ink)]">
-            {" "}· {r.ticketTypeName} · {FORMAT_LABEL[r.format as TicketFormat]} · {formatPaise(unitPrice(r, r.quantityRequested))}
-            {unitPrice(r, r.quantityRequested) < r.askingPricePaise ? " each (multi-ticket deal)" : ""} · {formatDate(r.eventStartsAt)}
+            {" "}· {r.ticketTypeName} · {FORMAT_LABEL[r.format as TicketFormat]} ·{" "}
+            {r.agreedPricePaise !== null
+              ? `${formatPaise(r.agreedPricePaise)} each (agreed)`
+              : `${formatPaise(unitPrice(r, r.quantityRequested))}${unitPrice(r, r.quantityRequested) < r.askingPricePaise ? " each (multi-ticket deal)" : ""}`}{" "}
+            · {formatDate(r.eventStartsAt)}
           </span>
         </Link>
         <div className="flex flex-wrap gap-2">
@@ -146,7 +150,9 @@ function InquiryCard({ row: r, hasWhatsapp, viewerName, offers }: { row: Inquiry
           role={r.role}
         />
 
-        {r.role === "seller" && r.status === "pending" && <RespondForm inquiryId={r.id} hasWhatsapp={hasWhatsapp} />}
+        {r.role === "seller" && r.status === "pending" && (
+          <RespondForm inquiryId={r.id} hasWhatsapp={hasWhatsapp} theirOfferPaise={offers.find((o) => o.status === "open" && !o.mine)?.amountPaise ?? null} />
+        )}
 
         {accepted && (
           <div className="flex flex-col gap-3 rounded-[12px] bg-positive-soft/60 p-4">

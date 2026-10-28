@@ -19,8 +19,9 @@ export interface DealContext {
   eventName: string;
   ticketTypeName: string;
   quantity: number;
-  /** Price per ticket the two agreed on: an accepted offer, the multi-ticket deal, or the asking price. */
-  unitPricePaise: number;
+  /** Price per ticket the two agreed on (an accepted offer, the multi-ticket deal, or the asking
+   *  price); null while an offer is still open, so the message doesn't claim a price nobody agreed. */
+  unitPricePaise: number | null;
   format: TicketFormat;
   /** Where ResTix lives, e.g. "restix.app", for the sign-off. */
   site: string;
@@ -34,7 +35,7 @@ function tickets(c: DealContext): string {
   return c.quantity === 1 ? `a ticket (${c.ticketTypeName})` : `${c.quantity} tickets (${c.ticketTypeName})`;
 }
 
-function price(c: DealContext): string {
+function price(c: DealContext & { unitPricePaise: number }): string {
   return c.quantity === 1
     ? formatPaise(c.unitPricePaise)
     : `${formatPaise(c.unitPricePaise)} each (${formatPaise(c.unitPricePaise * c.quantity)} in total)`;
@@ -49,7 +50,8 @@ export function sellerOpener(c: DealContext): string {
   const next = SENT_ONLINE.includes(c.format)
     ? "I'll send it over, and you can pay once you've got it. Does that work?"
     : "When and where works for you to meet?";
-  return `Hi ${first(c.buyerName)}! I've accepted your request for ${tickets(c)} to ${c.eventName} on ResTix. Let's close it at ${price(c)}. ${next}${signOff(c)}`;
+  const deal = c.unitPricePaise === null ? "Let's settle the price here." : `Let's close it at ${price({ ...c, unitPricePaise: c.unitPricePaise })}.`;
+  return `Hi ${first(c.buyerName)}! I've accepted your request for ${tickets(c)} to ${c.eventName} on ResTix. ${deal} ${next}${signOff(c)}`;
 }
 
 /** The buyer's first message to the seller who accepted them. */
@@ -57,5 +59,6 @@ export function buyerOpener(c: DealContext): string {
   const next = SENT_ONLINE.includes(c.format)
     ? "Could you send it over? I'll pay as soon as I've got it."
     : "When and where works for you to meet?";
-  return `Hi ${first(c.sellerName)}! You accepted my request for ${tickets(c)} to ${c.eventName} on ResTix. Happy to close it at ${price(c)}. ${next}${signOff(c)}`;
+  const deal = c.unitPricePaise === null ? "Let's settle the price here." : `Happy to close it at ${price({ ...c, unitPricePaise: c.unitPricePaise })}.`;
+  return `Hi ${first(c.sellerName)}! You accepted my request for ${tickets(c)} to ${c.eventName} on ResTix. ${deal} ${next}${signOff(c)}`;
 }

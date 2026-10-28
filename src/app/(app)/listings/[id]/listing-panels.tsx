@@ -87,7 +87,7 @@ export function ContactForm({
 
       {negotiable && (
         <details className="group" open={Boolean(fe.offer) || undefined}>
-          <summary className="cursor-pointer list-none text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
+          <summary className="tap cursor-pointer list-none text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
             Don&apos;t like the price? Make an offer
           </summary>
           <div className="mt-3">
@@ -197,7 +197,7 @@ export function ReportForm({ listingId }: { listingId: string }) {
   if (state.ok) return <Notice tone="success">{state.message}</Notice>;
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="text-sm text-muted underline hover:text-ink">
+      <button type="button" onClick={() => setOpen(true)} className="tap text-sm text-muted underline hover:text-ink">
         Something off? Report this listing
       </button>
     );

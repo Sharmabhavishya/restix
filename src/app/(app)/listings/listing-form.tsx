@@ -126,7 +126,7 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
           label="Event"
           htmlFor="eventId"
           error={fe.eventId}
-          hint={editing ? undefined : <Link href="/sell?add=1#add-event" className="font-medium text-accent-strong underline-offset-2 hover:underline">Can&apos;t find it? Add your event</Link>}
+          hint={editing ? undefined : <Link href="/sell?add=1#add-event" className="tap font-medium text-accent-strong underline-offset-2 hover:underline">Can&apos;t find it? Add your event</Link>}
         >
           <Select
             id="eventId"

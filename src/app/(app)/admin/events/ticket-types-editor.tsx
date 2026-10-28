@@ -69,7 +69,7 @@ export function TicketTypesEditor({ initial, error }: { initial?: string; error?
               maxLength={60}
               onChange={(e) => update(r.key, { name: e.target.value.replace(/,/g, "") })}
               placeholder="e.g. Day pass"
-              className="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-[15px] focus:border-accent focus:ring-3 focus:ring-accent-track focus:outline-none"
+              className="h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface px-3 text-base sm:text-[15px] focus:border-accent focus:ring-3 focus:ring-accent-track focus:outline-none"
             />
             <div className="relative">
               <span aria-hidden className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted">₹</span>
@@ -79,7 +79,7 @@ export function TicketTypesEditor({ initial, error }: { initial?: string; error?
                 inputMode="decimal"
                 onChange={(e) => update(r.key, { price: e.target.value.replace(/[^\d.]/g, "") })}
                 placeholder="Face value"
-                className="num h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface pr-2 pl-7 text-[15px] focus:border-accent focus:ring-3 focus:ring-accent-track focus:outline-none"
+                className="num h-10 w-full rounded-[var(--radius-control)] border border-control bg-surface pr-2 pl-7 text-base sm:text-[15px] focus:border-accent focus:ring-3 focus:ring-accent-track focus:outline-none"
               />
             </div>
             <button type="button" onClick={() => remove(r.key)} aria-label={`Remove ticket type ${i + 1}`} className="grid size-10 place-items-center rounded-[var(--radius-control)] text-muted hover:bg-raised hover:text-ink">
@@ -88,7 +88,7 @@ export function TicketTypesEditor({ initial, error }: { initial?: string; error?
           </li>
         ))}
       </ul>
-      <button type="button" onClick={() => add()} className="inline-flex items-center gap-1.5 self-start text-[14px] font-medium text-accent-strong hover:underline">
+      <button type="button" onClick={() => add()} className="tap inline-flex items-center gap-1.5 self-start text-[14px] font-medium text-accent-strong hover:underline">
         <Plus className="size-4" aria-hidden /> Add another type
       </button>
       {error ? (

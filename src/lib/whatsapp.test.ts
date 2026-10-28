@@ -30,6 +30,11 @@ describe("WhatsApp handoff", () => {
     expect(sellerOpener({ ...ctx, quantity: 3, unitPricePaise: 70000 })).toContain("₹700 each (₹2,100 in total)");
   });
 
+  it("doesn't name a price while an offer is still open", () => {
+    expect(sellerOpener({ ...ctx, unitPricePaise: null })).toContain("Let's settle the price here.");
+    expect(buyerOpener({ ...ctx, unitPricePaise: null })).not.toContain("₹");
+  });
+
   it("asks to send it over for tickets that travel online, with payment after", () => {
     for (const format of ["qr", "email", "app"] as const) {
       expect(sellerOpener({ ...ctx, format })).toContain("you can pay once you've got it");
