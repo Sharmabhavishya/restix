@@ -13,8 +13,17 @@ import { Field, Input, Checkbox } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { LoopVideo } from "@/components/loop-video";
 import { CLIPS } from "@/components/landing-photos";
+import { BadgeCheck, Lock, Wallet, type LucideIcon } from "lucide-react";
 
 export const metadata: Metadata = { title: "Sign in" };
+
+const PERKS: [LucideIcon, string][] = [
+  [Lock, "your number stays hidden till you say yes"],
+  [BadgeCheck, "college emails only"],
+  [Wallet, "₹0 fees. we never touch your money"],
+];
+
+const TAPE = ["no passwords", "college emails only", "your email stays hidden", "₹0 fees. no cap.", "name + email, that's it", "report anything sus"];
 
 function errorCopy(code: string | undefined): { title: string; body: string } | null {
   switch (code) {
@@ -61,26 +70,26 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
   const dev = devAuthEnabled();
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col overflow-x-clip">
       <PublicHeader />
-      <main className="mx-auto grid w-full max-w-[1200px] flex-1 items-start gap-10 px-4 py-10 sm:px-6 grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_minmax(0,440px)] md:py-20">
-        <div className="max-w-xl">
-          <h1 className="font-display text-[clamp(2.4rem,5.5vw,4.25rem)] leading-[0.95] font-extrabold tracking-[-0.04em]">
-            sign in with your college email
-          </h1>
-          <p className="mt-5 max-w-md text-[17px] leading-relaxed text-muted">
-            Only verified students get in. That&apos;s the whole point: no randoms, no reposted screenshots, just people like you.
+      <main className="mx-auto grid w-full max-w-[1200px] flex-1 grid-cols-[minmax(0,1fr)] items-start gap-x-14 gap-y-10 px-4 pt-8 pb-16 sm:px-6 md:grid-cols-[minmax(0,1fr)_minmax(0,460px)] md:pt-16 md:pb-24">
+        <div className="md:pt-6">
+          <p className="inline-flex items-center gap-2 rounded-full bg-accent-soft px-3 py-1.5 text-[13px] font-semibold text-accent-strong">
+            <span aria-hidden className="live-dot size-2 rounded-full bg-positive" />
+            verified students only. no randoms.
           </p>
-          <ul className="mt-8 flex flex-col gap-3 text-[15px]">
-            <li className="flex gap-3"><span className="mt-2 size-1.5 flex-none rounded-full bg-accent" />Your phone number stays private. It&apos;s shared with one person, only after a seller says yes.</li>
-            <li className="flex gap-3"><span className="mt-2 size-1.5 flex-none rounded-full bg-accent" />We only see your name and college email. Your email is never shown to other students.</li>
-            <li className="flex gap-3"><span className="mt-2 size-1.5 flex-none rounded-full bg-accent" />No passwords to remember, and no payment details, ever.</li>
-          </ul>
-          {/* A window onto a real night: the reason anyone signs in. */}
-          <LoopVideo src={CLIPS.blueStage.src} poster={CLIPS.blueStage.poster} className="relative mt-10 hidden aspect-[16/7] rounded-[28px] bg-raised md:block" />
+          <h1 className="mt-6 font-display text-[clamp(3.25rem,8vw,6.75rem)] leading-[0.88] font-extrabold tracking-[-0.045em]">
+            <span className="hero-line" style={{ "--i": 0 } as React.CSSProperties}>get in.</span>
+            <br />
+            <span className="hero-line text-accent-strong" style={{ "--i": 1 } as React.CSSProperties}>it&apos;s one tap.</span>
+          </h1>
+          <p className="mt-7 max-w-[38ch] text-lg leading-relaxed text-ink-soft">
+            Sign in with your college Google account. No passwords, no forms, and your email never shows to other students.
+          </p>
         </div>
 
-        <div className="flex flex-col gap-4">
+        {/* The sign-in itself is a ticket: a student pass on a stage, with a tear-off stub. */}
+        <div className="flex flex-col gap-4 md:col-start-2 md:row-span-2 md:row-start-1">
           {message && <Notice tone={error === "cancelled" ? "info" : "error"} title={message.title}>{message.body}</Notice>}
 
           {viewer && error && (
@@ -91,27 +100,44 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
             </Notice>
           )}
 
-          <Panel className="p-6">
-            <h2 className="text-lg font-semibold">Continue with Google</h2>
-            <p className="mt-1 text-sm text-muted">Use your college Google account.</p>
-            {google ? (
-              <form action={signInWithGoogle} className="mt-5">
-                <input type="hidden" name="next" value={next} />
-                <SubmitButton variant="secondary" size="lg" className="w-full" pendingLabel="Opening Google…">
-                  <GoogleG />
-                  Continue with Google
-                </SubmitButton>
-              </form>
-            ) : (
-              <Notice tone="warning" className="mt-5" title="Google sign-in isn't configured here">
-                Set <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> and enable the Google provider in Supabase. Steps are in docs/DEPLOYMENT.md.
-              </Notice>
-            )}
-            <p className="mt-4 text-[13px] text-muted">
-              By continuing you agree to the <Link href="/terms" className="underline">terms</Link> and{" "}
-              <Link href="/privacy" className="underline">privacy notice</Link>.
-            </p>
-          </Panel>
+          <div className="relative overflow-hidden rounded-[32px] bg-accent px-4 py-10 sm:px-8 sm:py-12">
+            <LoopVideo src={CLIPS.blueStage.src} poster={CLIPS.blueStage.poster} className="absolute inset-0" />
+            <span aria-hidden className="absolute inset-0 bg-accent opacity-35 mix-blend-multiply" />
+            <div className="pass-wrap relative">
+              <span className="sticker absolute -top-4 -right-2 z-10 rounded-full bg-sticker px-3.5 py-1.5 text-sm font-bold whitespace-nowrap text-sticker-ink sm:-right-4">
+                no passwords. no cap.
+              </span>
+              <div className="pass bg-surface">
+                <div className="px-6 pt-7 pb-6">
+                  <p className="text-[12px] font-bold tracking-[0.18em] text-accent-strong uppercase">admit one · student pass</p>
+                  <h2 className="mt-2 font-display text-[clamp(1.75rem,4vw,2.125rem)] leading-none font-extrabold tracking-[-0.03em]">
+                    pick your college account
+                  </h2>
+                  <p className="mt-2.5 text-[15px] text-muted">That&apos;s the whole form. We only get your name and college email.</p>
+                  {google ? (
+                    <form action={signInWithGoogle} className="mt-6">
+                      <input type="hidden" name="next" value={next} />
+                      <SubmitButton variant="dark" size="lg" className="w-full" pendingLabel="Opening Google…">
+                        <span className="grid size-6 place-items-center rounded-full bg-white"><GoogleG /></span>
+                        Continue with Google
+                      </SubmitButton>
+                    </form>
+                  ) : (
+                    <Notice tone="warning" className="mt-6" title="Google sign-in isn't configured here">
+                      Set <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> and enable the Google provider in Supabase. Steps are in docs/DEPLOYMENT.md.
+                    </Notice>
+                  )}
+                </div>
+                <div className="pass-stub flex items-center justify-between gap-4 px-6">
+                  <p className="text-[12.5px] leading-snug text-muted">
+                    By continuing you agree to the <Link href="/terms" className="underline">terms</Link> and{" "}
+                    <Link href="/privacy" className="underline">privacy policy</Link>.
+                  </p>
+                  <span aria-hidden className="pass-code flex-none text-ink" />
+                </div>
+              </div>
+            </div>
+          </div>
 
           {dev && (
             <Panel className="border-dashed p-6">
@@ -146,7 +172,36 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
             </Panel>
           )}
         </div>
+
+        <ul className="flex flex-wrap gap-3 md:col-start-1 md:row-start-2 md:max-w-[34rem] md:self-start">
+          {PERKS.map(([Icon, text], i) => (
+            <li
+              key={text}
+              className={`perk flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 text-[15px] font-medium ${i % 2 ? "rotate-[1.5deg]" : "-rotate-[1.5deg]"}`}
+            >
+              <Icon className="size-4 flex-none text-accent-strong" aria-hidden />
+              {text}
+            </li>
+          ))}
+        </ul>
       </main>
+
+      {/* The house rules as sticker tape, same as the home page. */}
+      <div aria-hidden className="-mx-4 -rotate-2 bg-primary py-4 text-on-primary">
+        <div className="tape-track flex w-max bg-primary">
+          {[0, 1].map((copy) => (
+            <div key={copy} className="flex items-center">
+              {TAPE.map((t) => (
+                <span key={t} className="flex items-center font-display text-[clamp(1.25rem,2.4vw,1.75rem)] font-bold tracking-[-0.02em] whitespace-nowrap">
+                  <span className="px-6 sm:px-8">{t}</span>
+                  <span className="size-3 rounded-full border-[3px] border-accent" />
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="h-10" />
       <PublicFooter />
     </div>
   );

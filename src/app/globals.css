@@ -322,6 +322,52 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   .footer-word:hover .footer-letter:not(:hover) { translate: 0 -2%; }
 }
 
+/* Sign-in pass (app/sign-in): a ticket with a tear-off stub. The two notches are cut with a
+   mask at the stub line, so the stage behind shows through them; the shadow sits on the wrapper
+   as a drop-shadow, which follows the cut shape. */
+.pass {
+  --stub: 5.25rem;
+  border-radius: 22px;
+  -webkit-mask:
+    radial-gradient(circle 12px at 0 calc(100% - var(--stub)), #0000 97%, #000) ,
+    radial-gradient(circle 12px at 100% calc(100% - var(--stub)), #0000 97%, #000);
+  -webkit-mask-composite: source-in;
+  mask:
+    radial-gradient(circle 12px at 0 calc(100% - var(--stub)), #0000 97%, #000) ,
+    radial-gradient(circle 12px at 100% calc(100% - var(--stub)), #0000 97%, #000);
+  mask-composite: intersect;
+}
+.pass-wrap { filter: drop-shadow(0 26px 40px rgb(56 10 30 / 0.45)); }
+.pass-stub {
+  height: var(--stub);
+  border-top: 2px dashed var(--color-border);
+  margin-inline: 14px;
+  padding-inline: 10px;
+}
+/* A barcode-ish mark. Decoration only. */
+.pass-code {
+  width: 74px;
+  height: 34px;
+  opacity: 0.85;
+  background: repeating-linear-gradient(90deg,
+    currentColor 0 2px, transparent 2px 4px, currentColor 4px 5px, transparent 5px 8px,
+    currentColor 8px 11px, transparent 11px 12px, currentColor 12px 13px, transparent 13px 16px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pass-wrap { animation: pass-in 900ms var(--ease-out-expo) 150ms backwards; }
+  .pass-wrap > .pass { transition: rotate 500ms var(--ease-out-expo), translate 500ms var(--ease-out-expo); }
+  .pass-wrap:hover > .pass { rotate: -1.2deg; translate: 0 -4px; }
+  .perk { transition: rotate 400ms var(--ease-out-expo), translate 400ms var(--ease-out-expo), border-color 200ms; animation: prose-in 700ms var(--ease-out-expo) backwards; }
+  .perk:nth-child(1) { animation-delay: 350ms; }
+  .perk:nth-child(2) { animation-delay: 450ms; }
+  .perk:nth-child(3) { animation-delay: 550ms; }
+  .perk:hover { rotate: 0deg; translate: 0 -3px; border-color: var(--color-accent-track); }
+}
+@keyframes pass-in {
+  from { opacity: 0; transform: translateY(36px) rotate(-4deg); }
+  to { opacity: 1; transform: none; }
+}
+
 /* Static fallbacks so nothing depends on motion. */
 .sticker { rotate: 8deg; }
 
