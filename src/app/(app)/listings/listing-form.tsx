@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useActionState, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, Coins, IdCard, Mail, Minus, Plus, QrCode, Ribbon, Shapes, Smartphone, Ticket, type LucideIcon } from "lucide-react";
+import { ChevronDown, Minus, Plus } from "lucide-react";
+import { FORMAT_ICON } from "@/components/format-icon";
 import { initialState } from "@/lib/action-state";
 import {
   FORMAT_HINT, FORMAT_LABEL, FORMATS, HANDOVER_LABEL, handoversFor, defaultHandover,
@@ -17,9 +18,7 @@ import { Notice } from "@/components/ui/bits";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { PRICE_TONE, TicketCard } from "@/components/ticket-card";
 
-const FORMAT_ICON: Record<TicketFormat, LucideIcon> = {
-  wristband: Ribbon, paper: Ticket, qr: QrCode, email: Mail, app: Smartphone, pass: IdCard, token: Coins, other: Shapes,
-};
+
 
 export interface FormEvent {
   id: string;

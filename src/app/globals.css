@@ -370,6 +370,28 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   background-image: radial-gradient(color-mix(in oklab, var(--color-ink) 9%, transparent) 1px, transparent 1.2px);
   background-size: 18px 18px;
 }
+/* Pills: an icon badge and a label. The current one goes dark, its badge raspberry. */
+.fmt-pill { border-color: var(--color-border); background: var(--color-surface); color: var(--color-ink); }
+.fmt-pill .fmt-badge { background: var(--color-accent-soft); color: var(--color-accent-strong); }
+.fmt-pill[data-on="true"] { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-on-primary); }
+.fmt-pill[data-on="true"] .fmt-badge { background: var(--color-accent); color: #fff; }
+.fmt-pill:hover:not([data-on="true"]) { border-color: var(--color-control-hover); }
+.fmt-fill {
+  width: 100%;
+  transform-origin: left;
+  background: color-mix(in oklab, var(--color-on-primary) 16%, transparent);
+  animation-name: fmt-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+@keyframes fmt-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+/* On phones the row scrolls sideways; its edges fade so it reads as "there's more". */
+@media (max-width: 639px) {
+  .fmt-row { mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 32px), transparent); }
+}
 .fmt-slide[data-on="false"] { opacity: 0; visibility: hidden; }
 .fmt-slide .tk { filter: drop-shadow(0 18px 28px rgb(56 10 30 / 0.14)) drop-shadow(0 2px 4px rgb(56 10 30 / 0.08)); }
 
@@ -379,8 +401,10 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 @media (prefers-reduced-motion: no-preference) {
   .fmt-slide { transition: opacity 450ms var(--ease-out-quart), transform 650ms var(--ease-out-expo), visibility 450ms; }
   .fmt-slide[data-on="false"] { transform: translateY(18px) scale(0.97); }
-  .fmt-pill, .fmt-tick { transition: background-color 250ms, color 250ms, border-color 250ms, width 400ms var(--ease-out-expo); }
-  .fmt-pill:active { scale: 0.96; }
+  .fmt-pill, .fmt-badge, .fmt-tick { transition: background-color 300ms, color 300ms, border-color 300ms, width 400ms var(--ease-out-expo), translate 300ms var(--ease-out-expo), scale 200ms; }
+  .fmt-pill:hover:not([data-on="true"]) { translate: 0 -2px; }
+  .fmt-pill:active { scale: 0.95; }
+  .fmt-pill[data-on="true"] .fmt-badge { animation: pop 450ms var(--ease-out-expo); }
   .faq-plus { transition: rotate 350ms var(--ease-out-expo), background-color 200ms; }
   /* An answer slides in as its question opens. */
   .faq-item[open] > p { animation: prose-in 500ms var(--ease-out-expo); }
