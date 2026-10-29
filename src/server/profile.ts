@@ -41,6 +41,14 @@ export async function deleteAccount(viewerId: string): Promise<Result> {
   if (openReports > 0) {
     return { ok: false, error: "There's an open report about your account, so it can't be deleted until a moderator has reviewed it." };
   }
+  // The college's only admin can't leave: nobody would be left to run it.
+  const [{ soleAdmin }] = await asSystem((tx) => tx<{ soleAdmin: boolean }[]>`
+    select exists (select 1 from restix.admin_roles where user_id = ${viewerId} and role = 'admin')
+       and not exists (
+         select 1 from restix.admin_roles r join restix.profiles p on p.id = r.user_id
+         where r.role = 'admin' and r.user_id <> ${viewerId}
+           and p.college_id = (select college_id from restix.profiles where id = ${viewerId})) as sole_admin`);
+  if (soleAdmin) return { ok: false, error: "You're the only admin, so this account can't be deleted." };
   if (profile.status !== "active") {
     return {
       ok: false,

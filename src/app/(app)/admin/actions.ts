@@ -13,7 +13,7 @@ import {
   type ListingModAction, type UserModAction,
 } from "@/server/moderation";
 import { eventInput, saveEvent, linkSuggestion } from "@/server/event-admin";
-import { deleteEvent } from "@/server/admin";
+import { createTestEvents, deleteEvent, removeTestEvents } from "@/server/admin";
 
 const uuid = z.uuid();
 
@@ -132,4 +132,15 @@ export async function deleteEventAction(_prev: ActionState, formData: FormData):
   if (!result.ok) return { error: result.error, values: formValues(formData) };
   revalidatePath("/", "layout");
   redirect("/admin/events?deleted=1");
+}
+
+export async function testEventsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const mod = await moderator();
+  if (!mod || mod.role !== "admin") return { error: "Admins only." };
+  const op = String(formData.get("op") ?? "");
+  if (!["add", "remove"].includes(op)) return { error: "Unknown action." };
+  const result = op === "add" ? await createTestEvents(mod.id) : await removeTestEvents(mod.id);
+  if (!result.ok) return { error: result.error };
+  revalidatePath("/", "layout");
+  return { ok: true, message: result.message };
 }

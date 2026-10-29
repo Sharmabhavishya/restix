@@ -151,3 +151,8 @@ audit log, version skipping, cross-college reads, and more).
   export (`/api/admin/export`, admins only) is logged with its row count.
 - One admin: the app only grants and removes the `moderator` role (`/admin/team`); `admin` is
   granted with `scripts/grant-role.ts`.
+- Test events (`createTestEvents` / `removeTestEvents` in `src/server/admin.ts`, admins only): six
+  random sample events per click, flagged `is_fixture` with slugs starting `test-`, capped at 30.
+  Removal only touches those slugs, so the dev seed's sample events are never deleted.
+- Accounts directory and export are scoped to the admin's own college (`my_college_id()`).
+- `deleteAccount` refuses when the person is their college's only admin.

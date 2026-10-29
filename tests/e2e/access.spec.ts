@@ -135,6 +135,20 @@ test.describe("rules and states", () => {
 });
 
 test.describe("endpoints", () => {
+  test("the admin sees every student, and can add and clear test events", async ({ browser }) => {
+    const admin = await asFixture(browser, "Meera (moderator)");
+    await admin.page.goto("/admin/users");
+    await expect(admin.page.getByText("rohan.m@snu.edu.in")).toBeVisible();
+    await expect(admin.page.getByRole("link", { name: "Export to Excel" }).first()).toBeVisible();
+    await admin.page.goto("/admin/events");
+    await admin.page.getByRole("button", { name: "Add 6 test events" }).click();
+    await expect(admin.page.getByText("Added 6 test events")).toBeVisible();
+    await admin.page.getByRole("button", { name: /^Remove all 6 test events/ }).click();
+    await expect(admin.page.getByText("Removed 6 test events.")).toBeVisible();
+    await expect(admin.page.getByText("Spring Fest: Night 2").first()).toBeVisible(); // the sample data stays
+    await admin.context.close();
+  });
+
   test("only the admin can export accounts, as a spreadsheet", async ({ browser, request }) => {
     expect((await request.get("/api/admin/export")).status()).toBe(403);
     const student = await asFixture(browser, "Rohan M");

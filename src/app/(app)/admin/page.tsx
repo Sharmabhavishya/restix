@@ -39,6 +39,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/admin"
   ];
 
   const actions = [
+    { href: "/admin/users", label: "All students", icon: Users },
     { href: "/admin/events/new", label: "Add an event", icon: CalendarPlus },
     ...(admin ? [{ href: "/admin/team", label: "Manage the team", icon: Users }] : []),
     ...(admin ? [{ href: "/admin/analytics", label: "Analytics", icon: BarChart3 }] : []),
@@ -124,7 +125,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/admin"
         </Panel>
 
         <Panel className="p-5">
-          <h2 className="text-[15px] font-semibold">Newest students</h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-[15px] font-semibold">Newest students</h2>
+            <Link href="/admin/users" className="text-[13px] underline">All {n.users}</Link>
+          </div>
           <ul className="mt-3 flex flex-col divide-y divide-rule">
             {d.newest.map((u) => (
               <li key={u.id} className="flex items-baseline justify-between gap-3 py-2.5 first:pt-0">

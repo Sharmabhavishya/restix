@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireModerator } from "@/server/auth/viewer";
 import { allEvents, openSuggestions } from "@/server/event-admin";
+import { testEventCount } from "@/server/admin";
+import { TestEvents } from "./test-events";
 import { DecideSuggestion } from "../../events/suggest-form";
 import { formatDateTime } from "@/lib/format";
 import type { TransferPolicy } from "@/lib/listing-rules";
@@ -14,7 +16,7 @@ export const metadata: Metadata = { title: "Manage events" };
 export default async function AdminEventsPage({ searchParams }: PageProps<"/admin/events">) {
   const sp = await searchParams;
   const mod = await requireModerator();
-  const [events, suggestions] = await Promise.all([allEvents(mod.id), openSuggestions(mod.id)]);
+  const [events, suggestions, testCount] = await Promise.all([allEvents(mod.id), openSuggestions(mod.id), mod.role === "admin" ? testEventCount(mod.id) : 0]);
   const held = events.filter((e) => e.transferPolicy === "unknown" && e.status !== "cancelled").length;
   return (
     <>
@@ -24,6 +26,7 @@ export default async function AdminEventsPage({ searchParams }: PageProps<"/admi
         actions={<ButtonLink href="/admin/events/new">Add event</ButtonLink>}
       />
       {typeof sp.saved === "string" && <Notice tone="success" className="mb-5">Saved “{sp.saved}”.</Notice>}
+      {mod.role === "admin" && <TestEvents count={testCount} />}
       {sp.deleted === "1" && <Notice tone="success" className="mb-5">Event deleted, with its listings. It&apos;s recorded in the audit log.</Notice>}
       {suggestions.length > 0 && (
         <Panel className="mb-6">

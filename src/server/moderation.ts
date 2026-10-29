@@ -393,7 +393,7 @@ export async function findUsers(modId: string, q: string) {
     from restix.profiles p
     left join restix.profile_private pp on pp.user_id = p.id
     left join restix.admin_roles r on r.user_id = p.id
-    where ${q ? tx`(p.display_name ilike ${pattern} or pp.email ilike ${pattern})` : tx`p.status <> 'active' or exists (select 1 from restix.reports x where x.reported_user_id = p.id)`}
+    where p.college_id = restix.my_college_id() and ${q ? tx`(p.display_name ilike ${pattern} or pp.email ilike ${pattern})` : tx`(p.status <> 'active' or exists (select 1 from restix.reports x where x.reported_user_id = p.id))`}
     order by p.created_at desc limit 50`);
 }
 

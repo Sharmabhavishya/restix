@@ -16,8 +16,8 @@ export async function GET() {
 
   const day = (d: Date | null) => (d ? d.toLocaleDateString("en-CA", { timeZone: TIME_ZONE }) : "");
   const csv = toCsv(
-    ["Name", "Email", "WhatsApp", "Status", "Role", "Joined", "Listings", "Requests sent"],
-    rows.map((r) => [r.displayName, r.email, phoneCell(r.whatsappNumber), r.status, r.role ?? "student", day(r.createdAt), r.listings, r.requests]),
+    ["Name", "Email", "WhatsApp", "Status", "Role", "Joined", "Listings", "Live listings", "Requests sent", "Reports against"],
+    rows.map((r) => [r.displayName, r.email, phoneCell(r.whatsappNumber), r.status, r.role ?? "student", day(r.createdAt), r.listings, r.liveListings, r.requests, r.reportsAgainst]),
   );
   return new NextResponse(csv, {
     headers: {
