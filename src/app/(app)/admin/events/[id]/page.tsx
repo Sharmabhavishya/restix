@@ -34,6 +34,7 @@ export default async function EditEventPage({ params }: PageProps<"/admin/events
             status: e.status,
             transferPolicy: e.transferPolicy,
             policySource: e.policySource,
+            ticketFormat: e.ticketFormat,
             ticketTypes: e.ticketTypes.map((t) => (t.faceValuePaise !== null ? `${t.name}, ${paiseToInput(t.faceValuePaise)}` : t.name)).join("\n"),
             coverUrl: e.coverVersion ? coverUrl(e.id, e.coverVersion) : null,
           }}

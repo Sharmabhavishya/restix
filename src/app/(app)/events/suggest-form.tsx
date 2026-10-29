@@ -10,6 +10,9 @@ import { buttonClass } from "@/components/ui/button";
 const KINDS = [["", "Choose one"], ["fest", "Fest"], ["concert", "Concert"], ["party", "Party"], ["prom", "Prom"], ["workshop", "Workshop"], ["sports", "Sports"], ["other", "Something else"]] as const;
 import { Notice } from "@/components/ui/bits";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { FormatChoice } from "@/components/format-choice";
+import { LEVEL_PRESETS } from "@/lib/ticket-levels";
+import type { TicketFormat } from "@/lib/listing-rules";
 
 export function SuggestForm() {
   const [state, action] = useActionState(suggest, initialState);
@@ -34,6 +37,31 @@ export function SuggestForm() {
       <Field label="Where" htmlFor="sg-venue" optional error={fe.venue}>
         <Input id="sg-venue" name="venue" maxLength={120} defaultValue={state.values?.venue ?? ""} placeholder="Venue or campus" />
       </Field>
+      <FormatChoice
+        legend="What kind of ticket is it?"
+        hint="Optional. Sellers won't have to pick it themselves."
+        defaultValue={(state.values?.ticketFormat as TicketFormat | "" | undefined) ?? ""}
+      />
+      <fieldset>
+        <legend className="mb-1 text-sm font-medium">Ticket levels <span className="font-normal text-muted">(optional)</span></legend>
+        <p className="mb-2.5 text-[13px] text-muted">Tick the ones this event has. Leave them all if everyone gets the same ticket.</p>
+        <div className="flex flex-wrap gap-1.5">
+          {LEVEL_PRESETS.map((level) => (
+            <label
+              key={level}
+              className="inline-flex h-9 cursor-pointer items-center rounded-full border border-border bg-surface px-3.5 text-[14px] font-medium transition-[border-color,background-color] hover:border-control-hover has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent"
+            >
+              <input type="checkbox" name="ticketTypes" value={level} className="sr-only" />
+              {level}
+            </label>
+          ))}
+        </div>
+        <div className="mt-3">
+          <Field label="Other levels" htmlFor="sg-other-types" optional hint="Separate them with commas, e.g. Gold stand, Silver stand.">
+            <Input id="sg-other-types" name="otherTypes" maxLength={300} defaultValue={state.values?.otherTypes ?? ""} />
+          </Field>
+        </div>
+      </fieldset>
       <Field label="Anything that helps" htmlFor="sg-details" optional hint="Who's organising it, or where it was announced. Shown on the event page once it's approved.">
         <Textarea id="sg-details" name="details" rows={2} maxLength={1000} defaultValue={state.values?.details ?? ""} />
       </Field>

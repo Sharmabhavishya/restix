@@ -1,5 +1,5 @@
 import "server-only";
-import type { EventStatus, TransferPolicy } from "@/lib/listing-rules";
+import type { EventStatus, TicketFormat, TransferPolicy } from "@/lib/listing-rules";
 import { asSystem, asUser, type Tx } from "./db";
 import { wantsFor } from "./wants";
 
@@ -34,6 +34,8 @@ export interface TicketType {
 
 export interface EventDetail extends EventSummary {
   description: string | null;
+  /** The kind of ticket the whole event uses, when the event says. */
+  ticketFormat: TicketFormat | null;
   policyUpdatedAt: Date | null;
   ticketTypes: TicketType[];
 }
@@ -107,7 +109,7 @@ export async function getEventBySlug(viewerId: string, slug: string): Promise<Ev
   return asUser(viewerId, async (tx) => {
     const [event] = await tx<EventDetail[]>`
       select e.id, e.slug, e.name, e.category, e.venue, e.description, e.starts_at, e.ends_at, e.status,
-             e.transfer_policy, e.policy_source, e.policy_updated_at, e.is_fixture,
+             e.transfer_policy, e.policy_source, e.policy_updated_at, e.is_fixture, e.ticket_format,
              (select version from restix.event_covers c where c.event_id = e.id) as cover_version,
              (select blur from restix.event_covers c where c.event_id = e.id) as cover_blur,
              (select count(*)::int from restix.ticket_listings l where l.event_id = e.id and ${available(tx)}) as available_listings,
@@ -127,11 +129,11 @@ export async function getEventBySlug(viewerId: string, slug: string): Promise<Ev
  * Events a seller can currently list for, with their ticket types (for the listing form). `include`
  * keeps one more event in the list, so a listing made before its rules changed stays editable.
  */
-export async function listableEvents(viewerId: string, include?: string): Promise<(EventSummary & { ticketTypes: TicketType[] })[]> {
+export async function listableEvents(viewerId: string, include?: string): Promise<(EventSummary & { ticketTypes: TicketType[]; ticketFormat: TicketFormat | null })[]> {
   return asUser(viewerId, async (tx) => {
-    const events = await tx<(EventSummary & { ticketTypes: TicketType[] })[]>`
+    const events = await tx<(EventSummary & { ticketTypes: TicketType[]; ticketFormat: TicketFormat | null })[]>`
       select e.id, e.slug, e.name, e.category, e.venue, e.starts_at, e.ends_at, e.status, e.transfer_policy,
-             e.policy_source, e.is_fixture, 0 as available_listings, 0 as available_tickets, null as lowest_price_paise,
+             e.policy_source, e.is_fixture, e.ticket_format, 0 as available_listings, 0 as available_tickets, null as lowest_price_paise,
              null::int as cover_version, null as cover_blur
       from restix.events e
       where e.college_id = restix.my_college_id() and coalesce(e.ends_at, e.starts_at) > now()

@@ -7,6 +7,8 @@ import { getEventBySlug } from "@/server/events";
 import { displayStatus, searchListings } from "@/server/listings";
 import { formatDateTime, formatTime } from "@/lib/format";
 import { formatPaise } from "@/lib/money";
+import { FORMAT_LABEL } from "@/lib/listing-rules";
+import { FORMAT_ICON } from "@/components/format-icon";
 import { TicketCard } from "@/components/ticket-card";
 import { EmptyState, Notice, Panel } from "@/components/ui/bits";
 import { TrackView } from "@/components/track";
@@ -95,9 +97,18 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
         </section>
 
         <aside className="flex flex-col gap-4">
-          {event.ticketTypes.length > 0 && (
+          {(event.ticketTypes.length > 0 || event.ticketFormat) && (
             <Panel className="p-5">
-              <h2 className="font-semibold">Ticket types</h2>
+              <h2 className="font-semibold">Tickets</h2>
+              {event.ticketFormat && (() => {
+                const Icon = FORMAT_ICON[event.ticketFormat];
+                return (
+                  <p className="mt-2 flex items-center gap-2 text-sm">
+                    <Icon className="size-4 text-accent-strong" strokeWidth={1.75} aria-hidden />
+                    {FORMAT_LABEL[event.ticketFormat]}
+                  </p>
+                );
+              })()}
               <ul className="mt-2 divide-y divide-rule text-sm">
                 {event.ticketTypes.map((t) => (
                   <li key={t.id} className="flex justify-between gap-4 py-2">

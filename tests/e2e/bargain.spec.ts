@@ -1,6 +1,6 @@
 // Bargaining and the WhatsApp hand-off, through the real screens.
 import { expect, test } from "@playwright/test";
-import { asFixture, chooseEvent, selectByText, signIn, uniqueEmail } from "./helpers";
+import { asFixture, chooseEvent, signIn, uniqueEmail } from "./helpers";
 
 test("offer, counter, deal, then WhatsApp with the message already written", async ({ browser, page }) => {
   // A new seller, with a WhatsApp number on file, lists a ticket that's open to offers.
@@ -14,7 +14,7 @@ test("offer, counter, deal, then WhatsApp with the message already written", asy
 
   await page.goto("/sell");
   await chooseEvent(page, "Spring Fest: Night 2");
-  await selectByText(page, "Ticket type", "Night pass");
+  await page.getByRole("group", { name: "Which level?" }).getByText("Night pass", { exact: true }).click(); // the event has levels: pick one
   await page.getByLabel("Price", { exact: true }).fill("800");
   await page.getByText("Offers and deals", { exact: true }).click();
   await expect(page.getByLabel("Open to offers")).toBeChecked(); // bargaining is on by default

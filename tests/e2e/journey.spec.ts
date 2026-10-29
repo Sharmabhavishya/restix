@@ -18,12 +18,16 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   await mod.page.getByLabel(/^Ends/).fill(isoLocal(5.2));
   // No restriction chosen: open to resale at any price, the default.
   await expect(mod.page.getByLabel("Resale rule")).toBeHidden();
-  // Ticket types: rows with presets. Start from the default row, check a preset adds one, then trim back.
-  await mod.page.getByLabel("Ticket type 1 name").fill("Day pass");
-  await mod.page.getByLabel(/Ticket type 1 face value/).fill("600");
-  await mod.page.getByRole("button", { name: "VIP" }).click();
-  await expect(mod.page.getByLabel("Ticket type 2 name")).toHaveValue("VIP");
-  await mod.page.getByRole("button", { name: "Remove ticket type 2" }).click();
+  // Tickets: what kind they are (wristbands), then levels. Try levels, then settle on one kind with a face value.
+  await mod.page.getByText("Wristband", { exact: true }).click();
+  await mod.page.getByRole("radio", { name: /Different levels/ }).click();
+  await expect(mod.page.getByLabel("Level 1 name")).toHaveValue("Normal");
+  await mod.page.getByRole("button", { name: "Fan pit" }).click(); // fills the empty second row
+  await expect(mod.page.getByLabel("Level 2 name")).toHaveValue("Fan pit");
+  await expect(mod.page.getByLabel("Level 3 name")).toHaveCount(0);
+  await mod.page.getByRole("radio", { name: /One kind for everyone/ }).click();
+  await expect(mod.page.getByLabel("Level 1 name")).toHaveCount(0);
+  await mod.page.getByLabel(/^Face value/).fill("600");
   await mod.page.getByLabel("Reason for this change").fill("E2E test event");
   await mod.page.getByRole("button", { name: "Create event" }).click();
   await expect(mod.page.getByText(`Saved “${eventName}”.`)).toBeVisible();
@@ -45,9 +49,15 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   // 4. Create a wristband listing.
   await page.goto("/sell");
   await chooseEvent(page, eventName);
-  // One ticket type: the form doesn't ask. The quick path is event, kind, price.
-  await expect(page.getByLabel("Ticket type")).toHaveCount(0);
+  // One kind of ticket: the form doesn't ask for a level, and the event already says they're wristbands.
+  await expect(page.getByText("Which level?")).toHaveCount(0);
+  await expect(page.getByText("Set by the event, so you don't need to pick.")).toBeVisible();
+  // A seller with a different kind can still change it, and go back.
+  await page.getByRole("button", { name: "Isn't this your ticket? Change it" }).click();
   await expect(page.getByRole("radio", { name: /Wristband/ })).toBeChecked();
+  await page.getByRole("group", { name: "Kind of ticket", exact: true }).getByText("QR e-ticket", { exact: true }).click();
+  await page.getByRole("button", { name: /Use the event's ticket type/ }).click();
+  await expect(page.getByText("Set by the event, so you don't need to pick.")).toBeVisible();
   await page.getByLabel("Tickets", { exact: true }).fill("1");
   await page.getByLabel("Price", { exact: true }).fill("750");
   // Extras live in sections that stay shut until opened.

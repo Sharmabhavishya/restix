@@ -1,6 +1,7 @@
 import "server-only";
 import { asUser, type Tx } from "./db";
 import { audit, guarded } from "./moderation";
+import type { TicketFormat } from "@/lib/listing-rules";
 
 // Admin-level tools: the dashboard, the team list, deleting events and exporting accounts.
 // Everything runs as the signed-in moderator (RLS applies); the admin-only ones re-check the role
@@ -165,19 +166,19 @@ export async function listAccounts(modId: string, opts: { q: string; show: Accou
 // left out of the real numbers) for trying things out on the live site.
 // ---------------------------------------------------------------------------
 
-const TEST_POOL: { name: string; category: string; venue: string; policy: "allowed" | "face_value_only" | "prohibited" | "unknown"; types: [string, number | null][] }[] = [
-  { name: "Neon Night", category: "party", venue: "Main Lawn", policy: "allowed", types: [["Entry", 40000], ["Entry + drink", 60000]] },
-  { name: "Campus Sound Fest", category: "fest", venue: "Open Air Theatre", policy: "allowed", types: [["Day pass", 80000], ["VIP", 150000]] },
-  { name: "Standup Saturday", category: "concert", venue: "Auditorium", policy: "face_value_only", types: [["General", 30000], ["Front row", 50000]] },
-  { name: "Retro Prom", category: "prom", venue: "Grand Hall", policy: "allowed", types: [["Couple", 120000], ["Single", 70000]] },
-  { name: "Hackathon Finals", category: "workshop", venue: "Innovation Lab", policy: "unknown", types: [["Spectator", null]] },
-  { name: "Inter-college Cricket Final", category: "sports", venue: "Sports Ground", policy: "allowed", types: [["Stand", 20000], ["Pavilion", 45000]] },
-  { name: "Silent Disco", category: "party", venue: "Library Lawn", policy: "prohibited", types: [["Headphones + entry", 50000]] },
-  { name: "Open Mic Night", category: "concert", venue: "Cafe Courtyard", policy: "allowed", types: [["Entry", 15000]] },
-  { name: "Freshers Bash", category: "party", venue: "Hostel Ground", policy: "face_value_only", types: [["Entry", 35000], ["Group of 4", 120000]] },
-  { name: "Film Festival Gala", category: "other", venue: "Mini Theatre", policy: "allowed", types: [["All-access", 90000], ["Single screening", 25000]] },
-  { name: "Food Carnival", category: "fest", venue: "Central Plaza", policy: "allowed", types: [["Coupons x5", 25000]] },
-  { name: "Battle of Bands", category: "concert", venue: "Open Air Theatre", policy: "unknown", types: [["General", 40000]] },
+const TEST_POOL: { name: string; format: TicketFormat; category: string; venue: string; policy: "allowed" | "face_value_only" | "prohibited" | "unknown"; types: [string, number | null][] }[] = [
+  { name: "Neon Night", format: "wristband", category: "party", venue: "Main Lawn", policy: "allowed", types: [["Entry", 40000], ["Entry + drink", 60000]] },
+  { name: "Campus Sound Fest", format: "wristband", category: "fest", venue: "Open Air Theatre", policy: "allowed", types: [["Day pass", 80000], ["VIP", 150000]] },
+  { name: "Standup Saturday", format: "qr", category: "concert", venue: "Auditorium", policy: "face_value_only", types: [["General", 30000], ["Front row", 50000]] },
+  { name: "Retro Prom", format: "paper", category: "prom", venue: "Grand Hall", policy: "allowed", types: [["Couple", 120000], ["Single", 70000]] },
+  { name: "Hackathon Finals", format: "pass", category: "workshop", venue: "Innovation Lab", policy: "unknown", types: [["Spectator", null]] },
+  { name: "Inter-college Cricket Final", format: "app", category: "sports", venue: "Sports Ground", policy: "allowed", types: [["Stand", 20000], ["Pavilion", 45000]] },
+  { name: "Silent Disco", format: "wristband", category: "party", venue: "Library Lawn", policy: "prohibited", types: [["Headphones + entry", 50000]] },
+  { name: "Open Mic Night", format: "qr", category: "concert", venue: "Cafe Courtyard", policy: "allowed", types: [["Entry", 15000]] },
+  { name: "Freshers Bash", format: "wristband", category: "party", venue: "Hostel Ground", policy: "face_value_only", types: [["Entry", 35000], ["Group of 4", 120000]] },
+  { name: "Film Festival Gala", format: "pass", category: "other", venue: "Mini Theatre", policy: "allowed", types: [["All-access", 90000], ["Single screening", 25000]] },
+  { name: "Food Carnival", format: "token", category: "fest", venue: "Central Plaza", policy: "allowed", types: [["Coupons x5", 25000]] },
+  { name: "Battle of Bands", format: "qr", category: "concert", venue: "Open Air Theatre", policy: "unknown", types: [["Normal", 40000], ["Fan pit", 70000]] },
 ];
 const MAX_TEST_EVENTS = 30;
 const TEST_BATCH = 6;
@@ -208,11 +209,11 @@ export async function createTestEvents(adminId: string): Promise<Result> {
       const restricted = t.policy === "face_value_only" || t.policy === "prohibited";
       const [e] = await tx<{ id: string }[]>`
         insert into restix.events (college_id, slug, name, category, venue, description, starts_at, ends_at, status,
-                                   transfer_policy, policy_source, policy_updated_at, is_fixture, created_by)
+                                   transfer_policy, policy_source, policy_updated_at, ticket_format, is_fixture, created_by)
         values (restix.my_college_id(), ${slug}, ${`[Test] ${t.name}`}, ${t.category}, ${t.venue},
                 'A made-up event for trying ResTix out. It is labelled sample and is not a real event.',
                 ${start}, ${end}, 'scheduled', ${t.policy}, ${restricted ? "Test event" : null},
-                ${restricted ? new Date() : null}, true, ${adminId})
+                ${restricted ? new Date() : null}, ${t.format}, true, ${adminId})
         returning id`;
       for (const [i, [name, face]] of t.types.entries()) {
         await tx`insert into restix.ticket_types (event_id, name, face_value_paise, sort_order) values (${e.id}, ${name}, ${face}, ${i})`;

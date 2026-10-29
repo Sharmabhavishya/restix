@@ -49,7 +49,12 @@ export default async function TicketsPage({ searchParams }: PageProps<"/tickets"
             ? `hey ${firstName(viewer.displayName)}, nothing's listed rn. check back closer to the next one.`
             : `hey ${firstName(viewer.displayName)}, ${totalAll.toLocaleString("en-IN")} ${totalAll === 1 ? "listing is" : "listings are"} live rn.`
         }
-        actions={<ButtonLink href="/sell">Sell a ticket</ButtonLink>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/events#suggest" variant="secondary">Request an event</ButtonLink>
+            <ButtonLink href="/sell">Sell a ticket</ButtonLink>
+          </div>
+        }
       />
       {filters > 0 && (
         <TrackView name="search_performed" dedupeKey={`search:${withParams(sp, { page: undefined })}`} props={{ filters, results: result.total }} />

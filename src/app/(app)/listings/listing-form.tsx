@@ -31,6 +31,8 @@ export interface FormEvent {
   policySource: string | null;
   isFixture: boolean;
   ticketTypes: { id: string; name: string; faceValuePaise: number | null }[];
+  /** The kind of ticket the whole event uses, when the event says. The seller can still change it. */
+  ticketFormat: TicketFormat | null;
   /** Students looking for tickets to it. */
   wants?: number;
 }
@@ -67,7 +69,9 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
   const event = useMemo(() => events.find((e) => e.id === eventId), [events, eventId]);
   const [ticketTypeId, setTicketTypeId] = useState(v?.ticketTypeId ?? defaults.ticketTypeId ?? event?.ticketTypes[0]?.id ?? "");
   const ticketType = event?.ticketTypes.find((t) => t.id === ticketTypeId);
-  const [format, setFormat] = useState<TicketFormat>(((v?.format === "digital" ? "qr" : v?.format) as TicketFormat) ?? defaults.format ?? "wristband");
+  const [format, setFormat] = useState<TicketFormat>(((v?.format === "digital" ? "qr" : v?.format) as TicketFormat) ?? defaults.format ?? event?.ticketFormat ?? "wristband");
+  // When the event says what kind of ticket it has, that's shown as settled; "change it" opens every option.
+  const [changingFormat, setChangingFormat] = useState(false);
   const [quantity, setQuantity] = useState(() => clampQty(Number(v?.quantity ?? defaults.quantity ?? 1)));
   const [price, setPrice] = useState(v?.askingPrice ?? paiseToInput(defaults.askingPricePaise));
   // Bargaining is on unless the seller turns it off (an existing listing keeps its own setting).
@@ -87,6 +91,7 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
   const blocked = event?.status === "cancelled" || event?.transferPolicy === "prohibited";
   const needsPaid = capped && faceValue === null;
 
+  const formatSettled = Boolean(event?.ticketFormat) && format === event?.ticketFormat && !changingFormat && !fe.format;
   const opened = (keys: string[], hasDefault = false) => keys.some((k) => fe[k]) || hasDefault || undefined;
 
   return (
@@ -143,8 +148,11 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
               invalid={Boolean(fe.eventId)}
               describedBy={fe.eventId ? "eventId-error" : undefined}
               onChange={(id) => {
+                const next = events.find((x) => x.id === id);
                 setEventId(id);
-                setTicketTypeId(events.find((x) => x.id === id)?.ticketTypes[0]?.id ?? "");
+                setTicketTypeId(next?.ticketTypes[0]?.id ?? "");
+                if (next?.ticketFormat) setFormat(next.ticketFormat);
+                setChangingFormat(false);
               }}
             />
           )}
@@ -156,15 +164,27 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
         )}
         {blocked && <Notice tone="error" title="Can't list for this event">Tickets for this event can&apos;t be resold right now.</Notice>}
         {event && event.ticketTypes.length > 1 ? (
-          <Field label="Ticket type" htmlFor="ticketTypeId" error={fe.ticketTypeId}>
-            <Select id="ticketTypeId" name="ticketTypeId" required value={ticketTypeId} onChange={(e) => setTicketTypeId(e.target.value)} {...describedBy("ticketTypeId", fe.ticketTypeId)}>
-              {event.ticketTypes.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}{t.faceValuePaise !== null ? ` · face value ${formatPaise(t.faceValuePaise)}` : ""}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <fieldset>
+            <legend className="mb-1.5 text-sm font-medium">Which level?</legend>
+            <div className="flex flex-wrap gap-2">
+              {event.ticketTypes.map((t) => {
+                const on = t.id === ticketTypeId;
+                return (
+                  <label
+                    key={t.id}
+                    className={`flex min-h-11 cursor-pointer flex-col justify-center rounded-[10px] border px-4 py-2 transition-[border-color,background-color,transform] duration-200 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent motion-safe:active:scale-[0.97] ${
+                      on ? "border-accent bg-accent-soft text-accent-ink" : "border-control bg-surface hover:border-control-hover"
+                    }`}
+                  >
+                    <input type="radio" name="ticketTypeId" value={t.id} checked={on} onChange={() => setTicketTypeId(t.id)} className="sr-only" />
+                    <span className="text-[15px] font-semibold">{t.name}</span>
+                    {t.faceValuePaise !== null && <span className={`num text-[12px] ${on ? "text-accent-ink/80" : "text-muted"}`}>face value {formatPaise(t.faceValuePaise)}</span>}
+                  </label>
+                );
+              })}
+            </div>
+            {fe.ticketTypeId && <p className="mt-2 text-[13px] font-medium text-negative">{fe.ticketTypeId}</p>}
+          </fieldset>
         ) : (
           <input type="hidden" name="ticketTypeId" value={ticketTypeId} />
         )}
@@ -172,6 +192,21 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
 
       {/* 2. What kind of ticket */}
       <Step n={2} title="What kind of ticket?">
+        {formatSettled && event?.ticketFormat ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-accent bg-accent-soft px-4 py-3 text-accent-ink">
+            <input type="hidden" name="format" value={format} />
+            <span className="flex items-center gap-3">
+              {(() => { const Icon = FORMAT_ICON[format]; return <Icon className="size-5 text-accent-strong" strokeWidth={1.75} aria-hidden />; })()}
+              <span className="leading-tight">
+                <span className="block text-[15px] font-semibold">{FORMAT_LABEL[format]}</span>
+                <span className="block text-[12px] text-accent-ink/80">Set by the event, so you don&apos;t need to pick.</span>
+              </span>
+            </span>
+            <button type="button" onClick={() => setChangingFormat(true)} className="tap text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline">
+              Isn&apos;t this your ticket? Change it
+            </button>
+          </div>
+        ) : (
         <fieldset>
           <legend className="sr-only">Kind of ticket</legend>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -196,7 +231,17 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
             })}
           </div>
           {fe.format && <p className="mt-2 text-[13px] font-medium text-negative">{fe.format}</p>}
+          {event?.ticketFormat && format !== event.ticketFormat && (
+            <button
+              type="button"
+              onClick={() => { setFormat(event.ticketFormat!); setChangingFormat(false); }}
+              className="tap mt-2 text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline"
+            >
+              Use the event&apos;s ticket type ({FORMAT_LABEL[event.ticketFormat].toLowerCase()})
+            </button>
+          )}
         </fieldset>
+        )}
       </Step>
 
       {/* 3. How many, how much */}

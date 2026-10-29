@@ -147,6 +147,10 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
             <Link href="#how" className="rounded-[var(--radius-control)] px-3 py-3 text-[15px] font-medium underline-offset-4 hover:underline">
               how it works
             </Link>
+            {/* Signed out, this goes through sign-in first and lands on the request form. */}
+            <Link href="/events#suggest" className="rounded-[var(--radius-control)] px-3 py-3 text-[15px] font-medium text-accent-strong underline-offset-4 hover:underline">
+              event missing? request it
+            </Link>
           </div>
           <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
             <span className="flex items-center gap-1.5"><Lock className="size-4 text-positive" aria-hidden />Number hidden until you say yes</span>

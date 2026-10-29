@@ -6,7 +6,7 @@ import { testEventCount } from "@/server/admin";
 import { TestEvents } from "./test-events";
 import { DecideSuggestion } from "../../events/suggest-form";
 import { formatDateTime } from "@/lib/format";
-import type { TransferPolicy } from "@/lib/listing-rules";
+import { FORMAT_LABEL, type TransferPolicy } from "@/lib/listing-rules";
 import { FixtureTag, PolicyPill } from "@/components/listing-bits";
 import { EmptyState, Notice, PageTitle, Panel, Pill } from "@/components/ui/bits";
 import { ButtonLink, buttonClass } from "@/components/ui/button";
@@ -44,6 +44,9 @@ export default async function AdminEventsPage({ searchParams }: PageProps<"/admi
                   <p className="text-[13px] text-muted">
                     {s.startsAt ? formatDateTime(s.startsAt) : s.happensOn ?? "date not given"}
                     {s.venue ? ` · ${s.venue}` : ""} · from {s.suggestedByName ?? "a deleted account"}
+                  </p>
+                  <p className="mt-1 text-[13px] text-muted">
+                    Tickets: {s.ticketFormat ? FORMAT_LABEL[s.ticketFormat] : "kind not given"} · {s.ticketTypes.length ? s.ticketTypes.join(", ") : "one kind for everyone"}
                   </p>
                   {s.details && <p className="mt-1 text-sm whitespace-pre-line">{s.details}</p>}
                 </div>

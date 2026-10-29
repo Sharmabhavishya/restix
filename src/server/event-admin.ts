@@ -5,6 +5,8 @@ import { parseRupees } from "@/lib/money";
 import { fromLocalInput } from "@/lib/format";
 import { asUser, pgCode, PG } from "./db";
 import { allow } from "./rate-limit";
+import { FORMATS, type TicketFormat } from "@/lib/listing-rules";
+import { parseLevels, SINGLE_LEVEL } from "@/lib/ticket-levels";
 
 // Event management for moderators. Events are open to resale at any price by default; a
 // moderator can add a restriction (face value only, or no resale) per event. Every change is
@@ -31,6 +33,8 @@ export const eventInput = z
       return d;
     }),
     status: z.enum(["scheduled", "postponed", "cancelled", "completed"]),
+    // The kind of ticket the whole event uses. Optional: blank means sellers pick for themselves.
+    ticketFormat: z.preprocess((v) => v || null, z.enum(FORMATS as [TicketFormat, ...TicketFormat[]]).nullable()),
     // Optional in the form: no restriction chosen means resale is allowed at any price.
     transferPolicy: z.preprocess((v) => v || "allowed", z.enum(["allowed", "face_value_only", "prohibited", "unknown"])),
     policySource: z.string().transform(cleanText).pipe(z.string().max(300)).optional().transform((v) => v || null),
@@ -68,6 +72,7 @@ export async function saveEvent(modId: string, collegeId: string, input: EventIn
         await tx`update restix.events set name = ${input.name}, slug = ${input.slug}, category = ${input.category},
                    venue = ${input.venue}, description = ${input.description}, starts_at = ${input.startsAt},
                    ends_at = ${input.endsAt}, status = ${input.status}, transfer_policy = ${input.transferPolicy},
+                   ticket_format = ${input.ticketFormat},
                    policy_source = ${input.policySource},
                    policy_updated_at = case when transfer_policy <> ${input.transferPolicy} or policy_source is distinct from ${input.policySource}
                                             then now() else policy_updated_at end
@@ -75,10 +80,10 @@ export async function saveEvent(modId: string, collegeId: string, input: EventIn
       } else {
         const [row] = await tx<{ id: string }[]>`
           insert into restix.events (college_id, slug, name, category, venue, description, starts_at, ends_at, status,
-                                     transfer_policy, policy_source, policy_updated_at, created_by)
+                                     transfer_policy, policy_source, policy_updated_at, ticket_format, created_by)
           values (${collegeId}, ${input.slug}, ${input.name}, ${input.category}, ${input.venue}, ${input.description},
                   ${input.startsAt}, ${input.endsAt}, ${input.status}, ${input.transferPolicy}, ${input.policySource},
-                  ${input.policySource ? new Date() : null}, ${modId})
+                  ${input.policySource ? new Date() : null}, ${input.ticketFormat}, ${modId})
           returning id`;
         id = row.id;
       }
@@ -131,8 +136,9 @@ export async function eventForEdit(modId: string, id: string) {
     const [e] = await tx<{
       id: string; name: string; slug: string; category: string; venue: string | null; description: string | null;
       startsAt: Date; endsAt: Date | null; status: string; transferPolicy: string; policySource: string | null; isFixture: boolean;
-      coverVersion: number | null; listings: number;
+      coverVersion: number | null; listings: number; ticketFormat: TicketFormat | null;
     }[]>`select id, name, slug, category, venue, description, starts_at, ends_at, status, transfer_policy, policy_source, is_fixture,
+           ticket_format,
            (select version from restix.event_covers c where c.event_id = e.id) as cover_version,
            (select count(*)::int from restix.ticket_listings l where l.event_id = e.id) as listings
          from restix.events e where e.id = ${id}`;
@@ -184,15 +190,18 @@ export const suggestionInput = z.object({
     .optional()
     .transform((v) => (v && v in EVENT_CATEGORIES ? (v as keyof typeof EVENT_CATEGORIES) : null)),
   details: z.string().transform(cleanText).pipe(z.string().max(1000)).optional().transform((v) => v || null),
+  // What kind of ticket the event has, and its levels (e.g. Normal, Fan pit). Both optional.
+  ticketFormat: z.preprocess((v) => v || null, z.enum(FORMATS as [TicketFormat, ...TicketFormat[]]).nullable()),
+  ticketTypes: z.array(z.string()).optional().transform((v) => parseLevels(v ?? [])),
 });
 
 export async function suggestEvent(viewerId: string, input: z.output<typeof suggestionInput>): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!(await allow("report", `suggest:${viewerId}`))) return { ok: false, error: "You've suggested a lot of events today. Moderators will get to them." };
   try {
     await asUser(viewerId, (tx) => tx`
-      insert into restix.event_suggestions (suggested_by, name, starts_at, happens_on, venue, category, details)
+      insert into restix.event_suggestions (suggested_by, name, starts_at, happens_on, venue, category, details, ticket_format, ticket_types)
       values (${viewerId}, ${input.name}, ${input.startsAt}, ${input.startsAt ? istDate(input.startsAt) : null},
-              ${input.venue}, ${input.category}, ${input.details})`);
+              ${input.venue}, ${input.category}, ${input.details}, ${input.ticketFormat}, ${input.ticketTypes})`);
     return { ok: true };
   } catch (err) {
     if (pgCode(err) === PG.insufficientPrivilege) return { ok: false, error: "Your account can't suggest events right now." };
@@ -209,6 +218,8 @@ export interface Suggestion {
   category: string | null;
   happensOn: string | null;
   details: string | null;
+  ticketFormat: TicketFormat | null;
+  ticketTypes: string[];
   status: "open" | "added" | "declined";
   moderatorNote: string | null;
   suggestedByName: string | null;
@@ -217,7 +228,7 @@ export interface Suggestion {
 
 export async function mySuggestions(viewerId: string): Promise<Suggestion[]> {
   return asUser(viewerId, (tx) => tx<Suggestion[]>`
-    select s.id, s.name, s.starts_at, s.venue, s.category, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details,
+    select s.id, s.name, s.starts_at, s.venue, s.category, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details, s.ticket_format, s.ticket_types,
            s.status, s.moderator_note, null as suggested_by_name, s.created_at
     from restix.event_suggestions s where s.suggested_by = ${viewerId}
     order by s.created_at desc limit 10`);
@@ -225,7 +236,7 @@ export async function mySuggestions(viewerId: string): Promise<Suggestion[]> {
 
 export async function openSuggestions(modId: string): Promise<Suggestion[]> {
   return asUser(modId, (tx) => tx<Suggestion[]>`
-    select s.id, s.name, s.starts_at, s.venue, s.category, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details,
+    select s.id, s.name, s.starts_at, s.venue, s.category, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details, s.ticket_format, s.ticket_types,
            s.status, s.moderator_note, p.display_name as suggested_by_name, s.created_at
     from restix.event_suggestions s left join restix.profiles p on p.id = s.suggested_by
     where s.status = 'open' and s.college_id = restix.my_college_id()
@@ -259,15 +270,20 @@ export function slugFor(name: string): string {
 }
 
 /**
- * Publishes a student's event request as it stands: the event goes live (resale allowed, no
- * restrictions) with a "General" ticket type, the request is marked added, and the moderation
- * log records who approved it. Returns the new event's slug.
+ * Publishes a student's event request as it stands: the event goes live straight away (resale
+ * allowed, no restrictions) with the ticket format and levels the student gave, or a single
+ * "General" level when they gave none. The request is marked added and the moderation log
+ * records who approved it. Returns the new event's slug.
  */
 export async function approveSuggestion(modId: string, id: string, note: string | null): Promise<{ ok: true; slug: string } | { ok: false; error: string }> {
   try {
     return await asUser(modId, async (tx) => {
-      const [sg] = await tx<{ collegeId: string; name: string; startsAt: Date | null; happensOn: string | null; venue: string | null; category: string | null; details: string | null; status: string }[]>`
-        select college_id, name, starts_at, to_char(happens_on, 'YYYY-MM-DD') as happens_on, venue, category, details, status
+      const [sg] = await tx<{
+        collegeId: string; name: string; startsAt: Date | null; happensOn: string | null; venue: string | null; category: string | null;
+        details: string | null; status: string; ticketFormat: TicketFormat | null; ticketTypes: string[];
+      }[]>`
+        select college_id, name, starts_at, to_char(happens_on, 'YYYY-MM-DD') as happens_on, venue, category, details, status,
+               ticket_format, ticket_types
         from restix.event_suggestions where id = ${id} for update`;
       if (!sg) return { ok: false as const, error: "Request not found." };
       if (sg.status !== "open") return { ok: false as const, error: "This request was already handled." };
@@ -277,11 +293,14 @@ export async function approveSuggestion(modId: string, id: string, note: string 
       if (startsAt.getTime() <= Date.now()) return { ok: false as const, error: "This event's date has passed. Decline it, or use “Edit first” to fix the date." };
       const slug = slugFor(sg.name);
       const [ev] = await tx<{ id: string }[]>`
-        insert into restix.events (college_id, slug, name, category, venue, description, starts_at, status, transfer_policy, created_by)
+        insert into restix.events (college_id, slug, name, category, venue, description, starts_at, status, transfer_policy, ticket_format, created_by)
         values (${sg.collegeId}, ${slug}, ${sg.name}, ${sg.category ?? "other"}, ${sg.venue}, ${sg.details}, ${startsAt},
-                'scheduled', 'allowed', ${modId})
+                'scheduled', 'allowed', ${sg.ticketFormat}, ${modId})
         returning id`;
-      await tx`insert into restix.ticket_types (event_id, name) values (${ev.id}, 'General')`;
+      const levels = parseLevels(sg.ticketTypes ?? []);
+      for (const [i, name] of (levels.length ? levels : [SINGLE_LEVEL]).entries()) {
+        await tx`insert into restix.ticket_types (event_id, name, sort_order) values (${ev.id}, ${name}, ${i})`;
+      }
       await tx`update restix.event_suggestions
                set status = 'added', event_id = ${ev.id}, moderator_note = ${note}, decided_by = ${modId}, decided_at = now()
                where id = ${id}`;
@@ -307,7 +326,7 @@ export async function linkSuggestion(modId: string, id: string, eventId: string)
 export async function suggestionById(modId: string, id: string): Promise<Suggestion | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const [row] = await asUser(modId, (tx) => tx<Suggestion[]>`
-    select s.id, s.name, s.starts_at, s.venue, s.category, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details,
+    select s.id, s.name, s.starts_at, s.venue, s.category, to_char(s.happens_on, 'YYYY-MM-DD') as happens_on, s.details, s.ticket_format, s.ticket_types,
            s.status, s.moderator_note, null as suggested_by_name, s.created_at
     from restix.event_suggestions s where s.id = ${id}`);
   return row ?? null;

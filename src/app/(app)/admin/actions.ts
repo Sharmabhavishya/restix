@@ -90,6 +90,7 @@ export async function saveEventAction(_prev: ActionState, formData: FormData): P
     endsAt: formData.get("endsAt") || undefined,
     status: formData.get("status"),
     transferPolicy: formData.get("transferPolicy"),
+    ticketFormat: formData.get("ticketFormat") ?? undefined,
     policySource: formData.get("policySource") ?? undefined,
     ticketTypes: formData.get("ticketTypes") ?? undefined,
     reason: formData.get("reason") ?? "",
@@ -115,9 +116,7 @@ export async function saveEventAction(_prev: ActionState, formData: FormData): P
   }
   const requestId = formData.get("requestId");
   if (typeof requestId === "string" && uuid.safeParse(requestId).success) await linkSuggestion(mod.id, requestId, result.id);
-  revalidatePath("/sell");
-  revalidatePath("/events");
-  revalidatePath("/admin/events");
+  revalidatePath("/", "layout");
   redirect(`/admin/events?saved=${encodeURIComponent(parsed.data.name)}`);
 }
 

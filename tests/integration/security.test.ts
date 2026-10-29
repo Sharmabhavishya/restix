@@ -88,7 +88,7 @@ describe("listings", () => {
     const [row] = await asSystem((tx) => tx<{ name: string; slug: string; startsAt: Date }[]>`select name, slug, starts_at from restix.events where id = ${ev.eventId}`);
     const saved = await eventAdmin.saveEvent(mod.id, await college(), {
       name: row.name, slug: row.slug, category: "fest", venue: null, description: null, startsAt: row.startsAt, endsAt: null,
-      status: "scheduled", transferPolicy: "face_value_only", policySource: "Organisers' notice",
+      status: "scheduled", transferPolicy: "face_value_only", policySource: "Organisers' notice", ticketFormat: null,
       ticketTypes: [{ name: "General", faceValuePaise: 50000 }], reason: "Organisers capped resale",
     }, ev.eventId);
     expect(saved, JSON.stringify(saved)).toMatchObject({ ok: true });

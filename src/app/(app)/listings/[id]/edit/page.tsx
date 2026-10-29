@@ -22,6 +22,7 @@ export default async function EditListingPage({ params }: PageProps<"/listings/[
   const formEvents = events.map((e) => ({
     id: e.id, name: e.name, startsAt: e.startsAt.toISOString(), closesAt: eventCloseTime(e).toISOString(), status: e.status,
     transferPolicy: e.transferPolicy, policySource: e.policySource, isFixture: e.isFixture, ticketTypes: e.ticketTypes,
+    ticketFormat: e.ticketFormat,
   }));
 
   return (

@@ -177,3 +177,17 @@ From the 2026-10-29 review, each backed by `tests/integration/security.test.ts`:
 Known and accepted: the `profiles` read policy is not college-scoped (one college today; scope it when
 a second one is added), and a moderator can read `profile_private` rows of their own college at the database
 level (the app only shows the admin the numbers).
+
+## Ticket format and levels (migration 20261029130000)
+
+- `events.ticket_format` (nullable, one of the listing formats): the kind of ticket the whole event
+  uses. Null means "not set / it varies" and each seller picks. The Sell form starts from it; a seller
+  can still choose another format for their own listing (`ticket_listings.format` is unchanged).
+- Levels are the existing `ticket_types` rows (e.g. Normal, Fan pit). An event with one kind of ticket
+  has a single `General` level.
+- `event_suggestions.ticket_format` and `.ticket_types text[]` (at most 12, 800 characters in all): what a
+  student says the event has. `approveSuggestion` publishes the event with that format and those levels
+  (or `General`), live immediately. Students can insert them with their request (table insert grant);
+  they're read only by the requester and moderators of that college (existing policies).
+- Tests: `tests/integration/event-formats.test.ts`.
+

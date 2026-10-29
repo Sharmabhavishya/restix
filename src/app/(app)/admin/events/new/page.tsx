@@ -21,6 +21,9 @@ export default async function NewEventPage({ searchParams }: PageProps<"/admin/e
         venue: request.venue,
         description: request.details,
         startsAt: request.startsAt ? toLocalInput(request.startsAt) : request.happensOn ? `${request.happensOn}T19:00` : "",
+        ticketFormat: request.ticketFormat,
+        // The levels the student named, one per line (the editor's format); none means one kind.
+        ticketTypes: request.ticketTypes.join("\n"),
       }
     : {};
   return (

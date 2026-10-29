@@ -8,6 +8,8 @@ import { Notice } from "@/components/ui/bits";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { CoverPicker } from "./cover-picker";
 import { TicketTypesEditor } from "./ticket-types-editor";
+import { FormatChoice } from "@/components/format-choice";
+import type { TicketFormat } from "@/lib/listing-rules";
 
 export interface EventDefaults {
   eventId?: string;
@@ -22,6 +24,8 @@ export interface EventDefaults {
   transferPolicy?: string;
   policySource?: string | null;
   ticketTypes?: string;
+  /** The kind of ticket the whole event uses; null leaves it to each seller. */
+  ticketFormat?: TicketFormat | null;
   /** The student request this event comes from, marked done when it's saved. */
   requestId?: string;
   /** Where the current cover is served from, when there is one. */
@@ -112,7 +116,17 @@ export function EventForm({ d = {} }: { d?: EventDefaults }) {
         </div>
       </details>
 
-      <TicketTypesEditor initial={v?.ticketTypes ?? d.ticketTypes} error={fe.ticketTypes} />
+      {/* Tickets: what kind they are, then whether the event has levels (e.g. Normal and Fan pit). */}
+      <section aria-labelledby="tickets-heading" className="flex flex-col gap-5 rounded-[10px] border border-border p-4 sm:p-5">
+        <h2 id="tickets-heading" className="text-[17px] font-semibold">Tickets</h2>
+        <FormatChoice
+          legend="What kind of ticket does this event have?"
+          hint="Sellers start from this, so they don't have to pick. Anyone with a different kind can still change it."
+          defaultValue={(v?.ticketFormat as TicketFormat | "" | undefined) ?? d.ticketFormat ?? ""}
+          error={fe.ticketFormat}
+        />
+        <TicketTypesEditor initial={v?.ticketTypes ?? d.ticketTypes} error={fe.ticketTypes} />
+      </section>
       <Field label="Reason for this change" htmlFor="reason" error={fe.reason} hint="Goes in the audit log.">
         <Input id="reason" name="reason" maxLength={1000} defaultValue={v?.reason ?? ""} placeholder={d.eventId ? "e.g. Moved to the main ground" : d.requestId ? "e.g. Student request, checked the poster" : "e.g. Announced on the cultural committee page"} {...describedBy("reason", fe.reason, true)} />
       </Field>
