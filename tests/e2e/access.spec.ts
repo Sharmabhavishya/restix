@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { asFixture, selectByText, signIn, uniqueEmail } from "./helpers";
+import { asFixture, chooseEvent, signIn, uniqueEmail } from "./helpers";
 
 test.describe("who gets in", () => {
   test("rejects other domains and lookalikes, and keeps them out", async ({ page }) => {
@@ -47,7 +47,8 @@ test.describe("rules and states", () => {
   test("only events that allow resale show up, to browse or to sell", async ({ browser }) => {
     const { page, context } = await asFixture(browser, "Rohan M");
     await page.goto("/sell");
-    const options = await page.getByLabel("Event", { exact: true }).locator("option").allTextContents();
+    await page.getByRole("combobox", { name: "Event" }).click();
+    const options = await page.getByRole("option").allTextContents();
     expect(options.some((o) => o.includes("Spring Fest: Night 2"))).toBe(true);
     expect(options.some((o) => o.includes("Interface Design Workshop"))).toBe(false); // prohibited
     expect(options.some((o) => o.includes("Senior Prom"))).toBe(false); // not confirmed yet
@@ -63,7 +64,7 @@ test.describe("rules and states", () => {
   test("events have no price cap unless an admin sets one", async ({ browser }) => {
     const { page, context } = await asFixture(browser, "Rohan M");
     await page.goto("/sell");
-    await selectByText(page, "Event", "Freshers' Party");
+    await chooseEvent(page, "Freshers' Party");
     await page.getByLabel("Price", { exact: true }).fill("650"); // above the ₹500 face value
     await expect(page.getByText(/above face value/i)).toBeVisible(); // a nudge, not a block
     await page.getByRole("button", { name: "Publish listing" }).click();
@@ -205,7 +206,8 @@ test.describe("endpoints", () => {
     }
     // Interactivity proves hydration ran under the policy.
     await page.goto("/sell");
-    await page.getByLabel("Event", { exact: true }).selectOption({ index: 1 });
+    await page.getByRole("combobox", { name: "Event" }).click();
+    await page.getByRole("option").nth(1).click();
     await expect(page.getByRole("status").or(page.getByRole("alert")).first()).toBeVisible();
     expect(violations).toEqual([]);
     await context.close();

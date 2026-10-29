@@ -6,14 +6,19 @@ import { SuggestForm } from "./suggest-form";
 import { EmptyState, PageTitle, Panel, Pill } from "@/components/ui/bits";
 import { EventPoster } from "@/components/event-poster";
 import { MotionRoot } from "@/components/motion-root";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, buttonClass } from "@/components/ui/button";
+import { Input } from "@/components/ui/field";
+import { matchesSearch } from "@/lib/event-search";
 
 export const metadata: Metadata = { title: "Events" };
 
 
-export default async function EventsPage() {
+export default async function EventsPage({ searchParams }: PageProps<"/events">) {
+  const sp = await searchParams;
+  const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 80) : "";
   const viewer = await requireBrowser("/events");
-  const [events, suggestions] = await Promise.all([listUpcomingEvents(viewer.id), mySuggestions(viewer.id)]);
+  const [all, suggestions] = await Promise.all([listUpcomingEvents(viewer.id), mySuggestions(viewer.id)]);
+  const events = all.filter((e) => matchesSearch(e, q));
 
   return (
     <>
@@ -23,8 +28,15 @@ export default async function EventsPage() {
         sub="what's coming up, and what's already listed."
         actions={viewer.role ? <ButtonLink href="/admin/events/new" variant="dark">Add event</ButtonLink> : <ButtonLink href="#suggest" variant="secondary">Add an event</ButtonLink>}
       />
+      {(all.length >= 6 || q) && (
+        <form method="get" role="search" className="mb-5 flex max-w-xl gap-2">
+          <Input name="q" type="search" defaultValue={q} placeholder="Search events or venues" aria-label="Search events" />
+          <button className={buttonClass("dark")}>Search</button>
+        </form>
+      )}
       {events.length === 0 ? (
-        <EmptyState title="no upcoming events yet">Moderators add events as they&apos;re announced. Check back soon.</EmptyState>
+        q ? <EmptyState title="no events match">Nothing matches “{q}”. Missing one? Add it below.</EmptyState>
+        : <EmptyState title="no upcoming events yet">Moderators add events as they&apos;re announced. Check back soon.</EmptyState>
       ) : (
         <ul className="grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
           {events.map((e, i) => (

@@ -48,11 +48,11 @@ export default async function SellingPage({ searchParams }: PageProps<"/selling"
         </EmptyState>
       ) : (
         <>
-          <nav aria-label="Listing status" className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-4 sm:px-0">
+          <nav aria-label="Listing status" className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {GROUPS.map((g) => {
               const selected = g.key === tab;
               return (
-                <CountTile key={g.key} href={`/selling?tab=${g.key}`} label={g.label} count={counts[g.key]} selected={selected} className="min-w-32" />
+                <CountTile key={g.key} href={`/selling?tab=${g.key}`} label={g.label} count={counts[g.key]} selected={selected} className="min-w-0" />
               );
             })}
           </nav>

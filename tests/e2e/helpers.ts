@@ -30,3 +30,11 @@ export async function selectByText(page: Page, label: string, text: string) {
   if (!value) throw new Error(`No option containing "${text}" in ${label}`);
   await select.selectOption(value);
 }
+
+/** Picks an event in the Sell form's search box: types part of its name, then chooses the match. */
+export async function chooseEvent(page: Page, name: string) {
+  const box = page.getByRole("combobox", { name: "Event" });
+  await box.fill(name);
+  await page.getByRole("option").filter({ hasText: name }).first().click();
+  await expect(box).toHaveValue(name);
+}

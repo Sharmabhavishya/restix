@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, Minus, Plus } from "lucide-react";
 import { FORMAT_ICON } from "@/components/format-icon";
+import { EventPicker } from "@/components/event-picker";
 import { initialState } from "@/lib/action-state";
 import {
   FORMAT_HINT, FORMAT_LABEL, FORMATS, HANDOVER_LABEL, handoversFor, defaultHandover,
@@ -127,27 +128,26 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
           error={fe.eventId}
           hint={editing ? undefined : <Link href="/sell?add=1#add-event" className="tap font-medium text-accent-strong underline-offset-2 hover:underline">Can&apos;t find it? Add your event</Link>}
         >
-          <Select
-            id="eventId"
-            name="eventId"
-            required
-            disabled={editing}
-            value={eventId}
-            onChange={(e) => {
-              setEventId(e.target.value);
-              setTicketTypeId(events.find((x) => x.id === e.target.value)?.ticketTypes[0]?.id ?? "");
-            }}
-            {...describedBy("eventId", fe.eventId)}
-          >
-            <option value="" disabled>Choose an event</option>
-            {events.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name} · {formatDateTime(new Date(e.startsAt))}
-                {e.isFixture ? " (sample)" : ""}
-              </option>
-            ))}
-          </Select>
-          {editing && <input type="hidden" name="eventId" value={eventId} />}
+          {editing ? (
+            <>
+              <Select id="eventId" disabled value={eventId}>
+                {events.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </Select>
+              <input type="hidden" name="eventId" value={eventId} />
+            </>
+          ) : (
+            <EventPicker
+              id="eventId"
+              events={events}
+              value={eventId}
+              invalid={Boolean(fe.eventId)}
+              describedBy={fe.eventId ? "eventId-error" : undefined}
+              onChange={(id) => {
+                setEventId(id);
+                setTicketTypeId(events.find((x) => x.id === id)?.ticketTypes[0]?.id ?? "");
+              }}
+            />
+          )}
         </Field>
         {event && (event.wants ?? 0) > 0 && (
           <p className="-mt-2 flex items-center gap-2 rounded-[10px] bg-sticker/30 px-3 py-2 text-[14px] font-medium text-ink">

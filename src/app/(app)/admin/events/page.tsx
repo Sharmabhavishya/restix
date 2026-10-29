@@ -9,15 +9,19 @@ import { formatDateTime } from "@/lib/format";
 import type { TransferPolicy } from "@/lib/listing-rules";
 import { FixtureTag, PolicyPill } from "@/components/listing-bits";
 import { EmptyState, Notice, PageTitle, Panel, Pill } from "@/components/ui/bits";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, buttonClass } from "@/components/ui/button";
+import { Input } from "@/components/ui/field";
+import { matchesSearch } from "@/lib/event-search";
 
 export const metadata: Metadata = { title: "Manage events" };
 
 export default async function AdminEventsPage({ searchParams }: PageProps<"/admin/events">) {
   const sp = await searchParams;
   const mod = await requireModerator();
-  const [events, suggestions, testCount] = await Promise.all([allEvents(mod.id), openSuggestions(mod.id), mod.role === "admin" ? testEventCount(mod.id) : 0]);
-  const held = events.filter((e) => e.transferPolicy === "unknown" && e.status !== "cancelled").length;
+  const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 80) : "";
+  const [everyEvent, suggestions, testCount] = await Promise.all([allEvents(mod.id), openSuggestions(mod.id), mod.role === "admin" ? testEventCount(mod.id) : 0]);
+  const events = everyEvent.filter((e) => matchesSearch(e, q));
+  const held = everyEvent.filter((e) => e.transferPolicy === "unknown" && e.status !== "cancelled").length;
   return (
     <>
       <PageTitle
@@ -49,7 +53,15 @@ export default async function AdminEventsPage({ searchParams }: PageProps<"/admi
           </ul>
         </Panel>
       )}
-      {events.length === 0 ? (
+      {(everyEvent.length >= 8 || q) && (
+        <form method="get" role="search" className="mb-5 flex max-w-xl gap-2">
+          <Input name="q" type="search" defaultValue={q} placeholder="Search events" aria-label="Search events" />
+          <button className={buttonClass("dark")}>Search</button>
+        </form>
+      )}
+      {events.length === 0 && q ? (
+        <EmptyState title="no events match">Nothing matches “{q}”.</EmptyState>
+      ) : events.length === 0 ? (
         <EmptyState title="no events yet" action={<ButtonLink href="/admin/events/new">Add the first one</ButtonLink>} />
       ) : (
         <Panel>

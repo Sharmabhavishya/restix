@@ -1,6 +1,6 @@
 // The master prompt's end-to-end journey, against the production build.
 import { expect, test } from "@playwright/test";
-import { asFixture, selectByText, signIn, uniqueEmail } from "./helpers";
+import { asFixture, chooseEvent, signIn, uniqueEmail } from "./helpers";
 
 /** datetime-local value `days` from now, in IST. */
 function isoLocal(days: number) {
@@ -44,7 +44,7 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
 
   // 4. Create a wristband listing.
   await page.goto("/sell");
-  await selectByText(page, "Event", eventName);
+  await chooseEvent(page, eventName);
   // One ticket type: the form doesn't ask. The quick path is event, kind, price.
   await expect(page.getByLabel("Ticket type")).toHaveCount(0);
   await expect(page.getByRole("radio", { name: /Wristband/ })).toBeChecked();
@@ -61,7 +61,7 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
 
   // Public text can't carry contact details.
   await page.goto("/sell");
-  await selectByText(page, "Event", "Spring Fest: Night 2");
+  await chooseEvent(page, "Spring Fest: Night 2");
   await page.getByLabel("Price", { exact: true }).fill("750");
   await page.getByText("Notes and timing", { exact: true }).click();
   await page.getByLabel("Anything else").fill("call me on 98765 43210");

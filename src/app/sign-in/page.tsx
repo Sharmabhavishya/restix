@@ -101,7 +101,7 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
           )}
 
           <div className="relative overflow-hidden rounded-[32px] bg-accent px-4 py-10 sm:px-8 sm:py-12">
-            <LoopVideo src={CLIPS.blueStage.src} poster={CLIPS.blueStage.poster} className="absolute inset-0" />
+            <LoopVideo priority src={CLIPS.blueStage.src} poster={CLIPS.blueStage.poster} className="absolute inset-0" />
             <span aria-hidden className="absolute inset-0 bg-accent opacity-35 mix-blend-multiply" />
             <div className="pass-wrap relative">
               <span className="sticker absolute -top-4 -right-2 z-10 rounded-full bg-sticker px-3.5 py-1.5 text-sm font-bold whitespace-nowrap text-sticker-ink sm:-right-4">
