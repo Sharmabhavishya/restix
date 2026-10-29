@@ -71,6 +71,14 @@ export function publishDecision(listing: ListingFacts, event: EventFacts, now = 
       if (listing.faceValuePaise != null && listing.askingPricePaise > listing.faceValuePaise) {
         return { ok: false, reason: "This event only allows resale at or below the ticket's face value. Lower your asking price." };
       }
+      // With no face value on record, the seller's own "original price" is the only cap, so a person checks it.
+      if (listing.faceValuePaise == null) {
+        return {
+          ok: true,
+          status: "pending_review",
+          note: "This ticket type has no face value on record, so a moderator will check the price before it goes live.",
+        };
+      }
       return { ok: true, status: "active" };
     case "unknown":
       return {

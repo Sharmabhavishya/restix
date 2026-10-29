@@ -28,6 +28,10 @@ export async function processCover(file: File): Promise<CoverResult<{ cover: Cov
     // limitInputPixels stops decompression bombs; failOn catches truncated or fake files.
     const base = sharp(input, { limitInputPixels: 40_000_000, failOn: "error", animated: false }).rotate();
     const meta = await base.metadata();
+    // The browser-reported type is only a hint; what the bytes really are decides.
+    if (!meta.format || !["jpeg", "png", "webp", "avif", "gif"].includes(meta.format)) {
+      return { ok: false, error: "Use a JPEG, PNG, WebP or AVIF image." };
+    }
     if (!meta.width || !meta.height || Math.min(meta.width, meta.height) < 200) {
       return { ok: false, error: "That image is too small. Use one at least 200px on each side." };
     }
@@ -46,11 +50,11 @@ export async function processCover(file: File): Promise<CoverResult<{ cover: Cov
 export async function setCover(modId: string, eventId: string, cover: Cover): Promise<CoverResult<object>> {
   try {
     await asUser(modId, (tx) => tx`
-      insert into restix.event_covers (event_id, image, width, height, blur, updated_by)
-      values (${eventId}, ${cover.image}, ${cover.width}, ${cover.height}, ${cover.blur}, ${modId})
+      insert into restix.event_covers (event_id, image, width, height, blur, updated_by, version)
+      values (${eventId}, ${cover.image}, ${cover.width}, ${cover.height}, ${cover.blur}, ${modId}, nextval('restix.event_cover_version_seq')::int)
       on conflict (event_id) do update set image = excluded.image, width = excluded.width, height = excluded.height,
         blur = excluded.blur, updated_by = excluded.updated_by, updated_at = now(),
-        version = restix.event_covers.version + 1`);
+        version = excluded.version`);
     return { ok: true };
   } catch (err) {
     if (pgCode(err) === PG.rlsViolation) return { ok: false, error: "You can't change this event's cover." };

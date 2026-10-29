@@ -76,6 +76,22 @@ describe("publishDecision", () => {
     expect(publishDecision(listing({ askingPricePaise: 90_000, originalPricePaise: 90_000, faceValuePaise: 50_000 }), fv, now).ok).toBe(false);
   });
 
+  it("lets people resell above face value on any event that has no cap, with or without a face value on record", () => {
+    const open = event({ transferPolicy: "allowed" });
+    expect(publishDecision(listing({ askingPricePaise: 90_000, originalPricePaise: 50_000, faceValuePaise: 50_000 }), open, now))
+      .toMatchObject({ ok: true, status: "active" });
+    expect(publishDecision(listing({ askingPricePaise: 90_000, originalPricePaise: null, faceValuePaise: null }), open, now))
+      .toMatchObject({ ok: true, status: "active" });
+  });
+
+  it("sends a face-value listing to a moderator when no face value is on record to check against", () => {
+    const fv = event({ transferPolicy: "face_value_only" });
+    expect(publishDecision(listing({ askingPricePaise: 5_000, originalPricePaise: 5_000, faceValuePaise: null }), fv, now))
+      .toMatchObject({ ok: true, status: "pending_review" });
+    expect(publishDecision(listing({ askingPricePaise: 5_000, originalPricePaise: 5_000, faceValuePaise: 5_000 }), fv, now))
+      .toMatchObject({ ok: true, status: "active" });
+  });
+
   it("blocks cancelled, finished or already-started-and-ended events", () => {
     expect(publishDecision(listing(), event({ status: "cancelled" }), now).ok).toBe(false);
     expect(publishDecision(listing(), event({ status: "completed" }), now).ok).toBe(false);

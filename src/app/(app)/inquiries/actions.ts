@@ -5,7 +5,7 @@ import { z } from "zod";
 import { type ActionState } from "@/lib/action-state";
 import { cleanText, offerInput } from "@/lib/validation";
 import { fieldErrors, formValues } from "@/lib/action-state";
-import { getViewer, writeBlockReason } from "@/server/auth/viewer";
+import { getViewer, writeBlockReason, type Viewer } from "@/server/auth/viewer";
 import { closeInquiry, confirmOutcome, respondToInquiry, withdrawInquiry } from "@/server/inquiries";
 import { decideOffer, makeOffer } from "@/server/offers";
 
@@ -33,9 +33,12 @@ export async function respond(_prev: ActionState, formData: FormData): Promise<A
   return { ok: true, message: decision === "accept" ? "Shared. They can reach you now." : "Declined." };
 }
 
+// Restricted accounts may still withdraw, close and record outcomes; nobody else may act.
+const canWindDown = (v: Viewer | null): v is Viewer => v !== null && (v.access === "ok" || v.access === "restricted");
+
 export async function withdraw(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const viewer = await getViewer();
-  if (!viewer) return { error: "Please sign in." };
+  if (!canWindDown(viewer)) return { error: "Please sign in." };
   const inquiryId = String(formData.get("inquiryId") ?? "");
   if (!id.safeParse(inquiryId).success) return { error: "Invalid request." };
   const result = await withdrawInquiry(viewer.id, inquiryId);
@@ -46,7 +49,7 @@ export async function withdraw(_prev: ActionState, formData: FormData): Promise<
 
 export async function close(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const viewer = await getViewer();
-  if (!viewer) return { error: "Please sign in." };
+  if (!canWindDown(viewer)) return { error: "Please sign in." };
   const inquiryId = String(formData.get("inquiryId") ?? "");
   if (!id.safeParse(inquiryId).success) return { error: "Invalid request." };
   const result = await closeInquiry(viewer.id, inquiryId);
@@ -57,9 +60,7 @@ export async function close(_prev: ActionState, formData: FormData): Promise<Act
 
 export async function confirm(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const viewer = await getViewer();
-  if (!viewer || viewer.access === "no_profile" || viewer.access === "domain_not_allowed" || viewer.access === "unverified") {
-    return { error: "Please sign in." };
-  }
+  if (!canWindDown(viewer)) return { error: "Please sign in." };
   const inquiryId = String(formData.get("inquiryId") ?? "");
   const outcome = String(formData.get("outcome") ?? "");
   if (!id.safeParse(inquiryId).success || !["completed", "not_completed", "disputed"].includes(outcome)) return { error: "Choose what happened." };

@@ -1,4 +1,5 @@
 import "server-only";
+import { cleanText, containsContactDetails } from "@/lib/validation";
 import { emailDomain, isAllowedEmail } from "@/lib/email-domain";
 import { asSystem } from "../db";
 import { env } from "../env";
@@ -17,8 +18,9 @@ export type SignInResult =
   | { ok: false; reason: "unverified_email" | "domain_not_allowed" | "college_not_configured" };
 
 function defaultDisplayName(identity: ProviderIdentity): string {
-  const fromName = identity.fullName?.replace(/\s+/g, " ").trim();
-  if (fromName && fromName.length >= 2) return fromName.slice(0, 40);
+  // Strip control, bidi and zero-width characters so a name can't be disguised or reordered.
+  const fromName = cleanText((identity.fullName ?? "").replace(/\p{Cf}/gu, "")).replace(/\s+/g, " ").trim();
+  if (fromName.length >= 2 && !containsContactDetails(fromName)) return fromName.slice(0, 40);
   return identity.email.split("@")[0].replace(/[._-]+/g, " ").slice(0, 40) || "Student";
 }
 

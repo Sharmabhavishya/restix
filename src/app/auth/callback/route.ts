@@ -29,7 +29,9 @@ export async function GET(request: NextRequest) {
   }
 
   const user = data.user;
-  const meta = user.user_metadata ?? {};
+  // user_metadata is editable by the signed-in user themselves, so it is never trusted. What
+  // Google told Supabase lives on the identity record, which only the provider writes.
+  const meta = user.identities?.find((i) => i.provider === "google")?.identity_data ?? {};
   // Only Google identities are accepted, even if another Supabase provider gets enabled.
   const providers: unknown = user.app_metadata?.providers ?? [user.app_metadata?.provider];
   if (!Array.isArray(providers) || !providers.includes("google")) {

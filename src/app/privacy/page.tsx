@@ -126,9 +126,9 @@ export default function PrivacyPage() {
           <strong>No other student sees your email address.</strong>
         </li>
         <li>
-          <strong>The ResTix team</strong> (our admin and moderators) can see account details, including email addresses and
-          WhatsApp numbers, to run the service and keep it safe. The admin can export account details for our records. Every
-          export is logged, and exported details are never sold or used for advertising.
+          <strong>The ResTix team</strong> (our admin and moderators) can see account details such as names and email addresses to run
+          the service and keep it safe. Only the admin can see WhatsApp numbers on accounts and export account details for our
+          records. Every export is logged, and exported details are never sold or used for advertising.
         </li>
         <li>
           Saved listings are visible only to you. &quot;I want a ticket&quot; marks are only ever shown as a count, never with names.
@@ -212,6 +212,11 @@ export default function PrivacyPage() {
           <strong>Delete your account.</strong> From your Account page, type &quot;delete my account&quot;. This permanently removes
           your profile, private details, listings, requests, offers, saved listings and outcomes. Reports you filed stay, without your
           name. Audit log entries stay, with your account unlinked.
+        </li>
+        <li>
+          <strong>Recent handovers are kept for a while.</strong> If you agreed a handover in the last 60 days, or had a listing
+          removed by a moderator in the last 90, the account can&apos;t be deleted yet. Those records stay so the other person can still
+          report a problem. After that, you can delete it.
         </li>
         <li>
           <strong>If there is an open report about your account, or your account is restricted,</strong> it can&apos;t be deleted

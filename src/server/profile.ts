@@ -49,6 +49,20 @@ export async function deleteAccount(viewerId: string): Promise<Result> {
          where r.role = 'admin' and r.user_id <> ${viewerId}
            and p.college_id = (select college_id from restix.profiles where id = ${viewerId})) as sole_admin`);
   if (soleAdmin) return { ok: false, error: "You're the only admin, so this account can't be deleted." };
+  // Recent handovers and removals stay on record for a while, so the other person can still report
+  // and a moderator can still see the history. After that the account can go.
+  const [{ onRecord }] = await asSystem((tx) => tx<{ onRecord: boolean }[]>`
+    select exists (select 1 from restix.inquiries i
+                   where (i.buyer_id = ${viewerId} or i.seller_id = ${viewerId}) and i.status in ('accepted', 'closed')
+                     and i.responded_at > now() - interval '60 days')
+        or exists (select 1 from restix.ticket_listings l
+                   where l.seller_id = ${viewerId} and l.status = 'removed' and l.updated_at > now() - interval '90 days') as on_record`);
+  if (onRecord) {
+    return {
+      ok: false,
+      error: "You agreed a handover in the last 60 days, or had a listing removed in the last 90, so the account can't be deleted yet. Those records stay so the other person can still report a problem. Try again after that.",
+    };
+  }
   if (profile.status !== "active") {
     return {
       ok: false,

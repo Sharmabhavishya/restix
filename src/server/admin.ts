@@ -132,12 +132,14 @@ export interface Account {
 export async function listAccounts(modId: string, opts: { q: string; show: AccountFilter; page: number }): Promise<{ rows: Account[]; total: number }> {
   const pattern = `%${opts.q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
   return asUser(modId, async (tx) => {
+    // Moderators need to identify people, not phone them: numbers are for the admin, whose export is logged.
+    const seeNumbers = await isAdmin(tx, modId);
     const where = tx`where p.college_id = restix.my_college_id()
       ${opts.q ? tx`and (p.display_name ilike ${pattern} or pp.email ilike ${pattern})` : tx``}
       ${opts.show === "team" ? tx`and r.role is not null` : tx``}
       ${opts.show === "flagged" ? tx`and (p.status <> 'active' or exists (select 1 from restix.reports x where x.reported_user_id = p.id))` : tx``}`;
     const rows = await tx<Account[]>`
-      select p.id, p.display_name, pp.email, pp.whatsapp_number, p.status, r.role, p.created_at,
+      select p.id, p.display_name, pp.email, ${seeNumbers ? tx`pp.whatsapp_number` : tx`null::text`} as whatsapp_number, p.status, r.role, p.created_at,
              (select count(*)::int from restix.ticket_listings l where l.seller_id = p.id) as listings,
              (select count(*)::int from restix.ticket_listings l where l.seller_id = p.id and l.status = 'active' and l.expires_at > now()) as live_listings,
              (select count(*)::int from restix.inquiries i where i.buyer_id = p.id) as requests,

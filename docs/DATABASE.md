@@ -155,4 +155,25 @@ audit log, version skipping, cross-college reads, and more).
   random sample events per click, flagged `is_fixture` with slugs starting `test-`, capped at 30.
   Removal only touches those slugs, so the dev seed's sample events are never deleted.
 - Accounts directory and export are scoped to the admin's own college (`my_college_id()`).
-- `deleteAccount` refuses when the person is their college's only admin.
+- `deleteAccount` refuses when the person is their college's only admin, or has an accepted handover in
+  the last 60 days or a moderator-removed listing in the last 90 (so the other side can still report).
+
+## Security hardening (migration 20261029090000)
+
+From the 2026-10-29 review, each backed by `tests/integration/security.test.ts`:
+
+- A seller can't move a `rejected` listing anywhere but `pending_review` (`guard_listing_rejected`).
+- `listings_delete_owner` checks open reports through `listing_has_open_report()` (definer), because a seller
+  can't see other people's reports and the old inline check never matched.
+- New inquiries start empty: `handoff_buyer_whatsapp` nulls `agreed_price_paise`, both WhatsApp numbers and
+  `buyer_seen_at` on insert.
+- `prepare_report` refuses a report with neither a listing nor an account.
+- `moderation_insert` needs `moderates()` for the college of the row's subject, so audit entries can't be
+  written about another college.
+- `hit_rate_limit`, `expire_listings`, `purge_old_data` are not executable by `anon`/`authenticated`.
+- `confirmations_insert` accepts `accepted` requests, or `closed` ones that were answered (`responded_at`).
+- Cover versions come from `restix.event_cover_version_seq`, so a version is never reused.
+
+Known and accepted: the `profiles` read policy is not college-scoped (one college today; scope it when
+a second one is added), and a moderator can read `profile_private` rows of their own college at the database
+level (the app only shows the admin the numbers).

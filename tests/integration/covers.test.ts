@@ -41,11 +41,18 @@ describe("event covers", () => {
     const r = await covers.processCover(await photo(1200, 800));
     if (!r.ok) throw new Error(r.error);
     expect(await covers.setCover(mod.id, eventId, r.cover)).toEqual({ ok: true });
+    const first = (await covers.coverImage(student.id, eventId))!.version;
     expect(await covers.setCover(mod.id, eventId, r.cover)).toEqual({ ok: true });
     const seen = await covers.coverImage(student.id, eventId);
-    expect(seen?.version).toBe(2);
+    // Every replacement gets a strictly higher version, so cached copies can never be mistaken for the new one,
+    // even after the cover is removed and added again.
+    expect(seen!.version).toBeGreaterThan(first);
+    await covers.removeCover(mod.id, eventId);
+    expect(await covers.setCover(mod.id, eventId, r.cover)).toEqual({ ok: true });
+    const again = (await covers.coverImage(student.id, eventId))!.version;
+    expect(again).toBeGreaterThan(seen!.version);
     const listed = (await events.listUpcomingEvents(student.id)).find((e) => e.id === eventId);
-    expect(listed?.coverVersion).toBe(2);
+    expect(listed?.coverVersion).toBe(again);
     expect(listed?.coverBlur).toMatch(/^data:image\/webp/);
 
     // A student can't set one, and another college can't see it.

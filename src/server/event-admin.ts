@@ -100,6 +100,17 @@ export async function saveEvent(modId: string, collegeId: string, input: EventIn
       } else if (input.transferPolicy === "unknown") {
         await tx`update restix.ticket_listings set status = 'pending_review', version = version + 1
                  where event_id = ${id!} and status = 'active'`;
+      } else if (input.transferPolicy === "face_value_only" && eventId && before.transferPolicy !== "face_value_only") {
+        // Newly capped at face value. The database won't hold a listing above the cap, so those go back to the
+        // seller as drafts to reprice; ones with no face value on record to check against go to a moderator.
+        await tx`update restix.ticket_listings l set status = 'draft', published_at = null, version = version + 1,
+                   status_reason = 'The organisers now cap resale at face value. Lower the price to list it again.'
+                 where l.event_id = ${id!} and l.status in ('active', 'paused', 'pending_review')
+                   and (l.original_price_paise is null or l.asking_price_paise > l.original_price_paise
+                        or l.asking_price_paise > coalesce((select t.face_value_paise from restix.ticket_types t where t.id = l.ticket_type_id), 2147483647))`;
+        await tx`update restix.ticket_listings l set status = 'pending_review', version = version + 1
+                 where l.event_id = ${id!} and l.status = 'active'
+                   and (select t.face_value_paise from restix.ticket_types t where t.id = l.ticket_type_id) is null`;
       }
       await tx`insert into restix.moderation_actions (actor_id, action, reason, event_id, metadata)
                values (${modId}, ${eventId ? "update_event" : "create_event"}, ${input.reason}, ${id!},

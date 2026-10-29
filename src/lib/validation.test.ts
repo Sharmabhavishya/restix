@@ -167,6 +167,36 @@ describe("containsContactDetails", () => {
     expect(containsContactDetails("Meet at gate 2 after 6pm")).toBe(false);
     expect(containsContactDetails("2 tickets, row 12")).toBe(false);
   });
+
+  it("sees through the usual ways of hiding a number, email or handle", () => {
+    for (const sneaky of [
+      "98765  43210", "98765.43210", "98765/43210", "(98765)43210", "98765 - 43210",
+      "९८७६५४३२१०", // Devanagari digits
+      "９８７６５４３２１０", // full-width digits
+      "98⁠76543210", "9​8​7​6​5​4​3​2​1​0", // invisible characters
+      "foo at gmail dot com", "foo(at)gmail.com", "foo＠gmail.com",
+      "ig: foo_bar", "insta - foo.bar", "@foo_bar", "snap:foo",
+    ]) {
+      expect(containsContactDetails(sneaky), sneaky).toBe(true);
+    }
+  });
+
+  it("leaves ordinary details alone", () => {
+    for (const fine of [
+      "Meet at the library at 6, bring ID", "Row F, seat 12, 2 tickets for ₹1,500", "Gate 3 near the canteen, Sat 10 Nov",
+      "Night 2 of the fest, 5 pm onwards", "I'm at hostel B, room 204", "Price is firm, sorry",
+    ]) {
+      expect(containsContactDetails(fine), fine).toBe(false);
+    }
+  });
+
+  it("stays fast on hostile input", () => {
+    const t = Date.now();
+    containsContactDetails("1+".repeat(5000));
+    containsContactDetails("9 ".repeat(5000));
+    containsContactDetails("a@".repeat(5000));
+    expect(Date.now() - t).toBeLessThan(500);
+  });
 });
 
 describe("normalizeWhatsapp", () => {

@@ -46,7 +46,8 @@ export async function POST(request: NextRequest) {
   if (!userId && parsed.data.name !== "landing_viewed") return new NextResponse(null, { status: 204 });
 
   // Anonymous ids are client-held, so anonymous traffic is also limited per network address.
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  // x-real-ip is set by the platform (Vercel); a client-supplied x-forwarded-for is only a fallback.
+  const ip = request.headers.get("x-real-ip")?.trim() || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   if (!(await allow("track", userId ?? `ip:${ip}`)) || (anonId && !(await allow("track", anonId)))) {
     return new NextResponse(null, { status: 429 });
   }

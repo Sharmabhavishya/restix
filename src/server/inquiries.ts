@@ -179,11 +179,14 @@ export async function closeInquiry(viewerId: string, inquiryId: string): Promise
 export async function confirmOutcome(viewerId: string, input: { inquiryId: string; outcome: Outcome; note: string | null }): Promise<Result> {
   try {
     const party = await asUser(viewerId, async (tx) => {
-      const [inq] = await tx<{ buyerId: string; sellerId: string; status: InquiryStatus; listingId: string }[]>`
-        select buyer_id, seller_id, status, listing_id from restix.inquiries where id = ${input.inquiryId}`;
+      const [inq] = await tx<{ buyerId: string; sellerId: string; status: InquiryStatus; listingId: string; respondedAt: Date | null }[]>`
+        select buyer_id, seller_id, status, listing_id, responded_at from restix.inquiries where id = ${input.inquiryId}`;
       if (!inq) return null;
       const role = inq.buyerId === viewerId ? "buyer" : inq.sellerId === viewerId ? "seller" : null;
-      if (!role || !["accepted", "closed"].includes(inq.status)) return null;
+      // "closed" only counts if the seller said yes first; a request that was closed unanswered
+      // (listing sold or removed) was never a handover, so it can't add to anyone's track record.
+      const accepted = inq.status === "accepted" || (inq.status === "closed" && inq.respondedAt !== null);
+      if (!role || !accepted) return null;
       await tx`insert into restix.transaction_confirmations (inquiry_id, user_id, party, outcome, note)
                values (${input.inquiryId}, ${viewerId}, ${role}, ${input.outcome}, ${input.note})`;
       return { role, listingId: inq.listingId };

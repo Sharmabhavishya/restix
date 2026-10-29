@@ -91,7 +91,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/user
                       {u.reportsAgainst > 0 && <Pill tone="warning">{u.reportsAgainst} {u.reportsAgainst === 1 ? "report" : "reports"}</Pill>}
                     </div>
                     <p className="mt-1 text-[13px] break-all text-muted">{u.email}</p>
-                    <p className="num mt-0.5 text-[13px] text-muted">{u.whatsappNumber ?? "no WhatsApp number"}</p>
+                    {mod.role === "admin" && <p className="num mt-0.5 text-[13px] text-muted">{u.whatsappNumber ?? "no WhatsApp number"}</p>}
                     <p className="mt-2 text-[13px] text-muted">
                       Joined {formatLongDate(u.createdAt)} · <span className="num">{u.listings}</span> {u.listings === 1 ? "listing" : "listings"}
                       {u.liveListings > 0 && <> (<span className="num">{u.liveListings}</span> live)</>} · <span className="num">{u.requests}</span> {u.requests === 1 ? "request" : "requests"} sent

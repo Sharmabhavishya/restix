@@ -60,5 +60,6 @@ export function devAuthEnabled(): boolean {
   if (e.AUTH_MODE !== "dev") return false;
   if (process.env.VERCEL) return false;
   if (process.env.NODE_ENV === "production" && e.RESTIX_LOCAL_PROD_TEST !== "1") return false;
-  return true;
+  // Belt and braces: it signs anyone in by email, so it never works on a real hostname.
+  return ["localhost", "127.0.0.1", "[::1]"].includes(new URL(e.APP_URL).hostname);
 }

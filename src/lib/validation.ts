@@ -10,13 +10,28 @@ export function cleanText(value: string): string {
   return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F​-‏‪-‮]/g, "").trim();
 }
 
-const PHONE_RE = /(?:\+?\d[\s-]?){10,}/;
+// Ten or more digits of any script, with up to three non-letters (space, dot, slash, bracket...)
+// between each. Each step is one digit then a bounded gap, so it can't backtrack badly.
+const PHONE_RE = /(?:\p{Nd}[^\p{L}\p{Nd}]{0,3}){10,}/u;
 const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
+const SPELLED_EMAIL_RE = /\b\w+\s*[([]at[)\]]\s*\w+|\b\w+\s+at\s+\w+\s+dot\s+\w{2,}/i;
 const HANDLE_RE = /\b(?:wa\.me|whatsapp\.com|t\.me|telegram\.me|instagram\.com|instagr\.am|snapchat\.com)\b/i;
+const AT_HANDLE_RE = /(?:^|[^\p{L}\p{Nd}])@[\p{L}\p{Nd}._]{3,}/u;
+const NAMED_HANDLE_RE = /\b(?:ig|insta(?:gram)?|snap(?:chat)?|whats ?app|wa|telegram|tg)\s*[:@=-]\s*\S{3,}/i;
 
-/** Public listing text must not carry contact details; those are shared privately on accepting an inquiry. */
+/** Folds look-alikes: full-width and styled characters become plain ones; invisible ones go. */
+function fold(text: string): string {
+  return text.normalize("NFKC").replace(/[\p{Cf}\p{Zl}\p{Zp}]/gu, "");
+}
+
+/**
+ * Public listing text must not carry contact details; those are shared privately on accepting an
+ * inquiry. Best effort: it catches the common ways of writing a number, email or handle, including
+ * spaced out, full-width, Devanagari or with invisible characters. Reports and moderators handle the rest.
+ */
 export function containsContactDetails(text: string): boolean {
-  return PHONE_RE.test(text) || EMAIL_RE.test(text) || HANDLE_RE.test(text);
+  const t = fold(text);
+  return PHONE_RE.test(t) || EMAIL_RE.test(t) || SPELLED_EMAIL_RE.test(t) || HANDLE_RE.test(t) || AT_HANDLE_RE.test(t) || NAMED_HANDLE_RE.test(t);
 }
 
 
