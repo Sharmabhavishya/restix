@@ -13,7 +13,8 @@ export function SubmitButton({
   className = "",
   ...props
 }: ComponentProps<"button"> & { pendingLabel?: string; variant?: Parameters<typeof buttonClass>[0]; size?: Parameters<typeof buttonClass>[1] }) {
-  const { pending } = useFormStatus();
+  const { pending, data } = useFormStatus();
+  // With several submit buttons on a form, only the one that was pressed shows the spinner.
   return (
     <button
       type="submit"
@@ -22,7 +23,7 @@ export function SubmitButton({
       aria-disabled={pending || props.disabled}
       className={buttonClass(variant, size, className)}
     >
-      {pending ? (
+      {pending && (!props.name || data?.get(props.name) === props.value) ? (
         <>
           <span className="size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" aria-hidden />
           {pendingLabel ?? "Saving…"}
