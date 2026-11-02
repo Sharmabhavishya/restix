@@ -20,7 +20,7 @@ describe("price reference", () => {
 describe("price tiers", () => {
   const face = { paise: 100000, source: "face" as const };
   it.each([
-    [1000, "steal"],
+    [0, "steal"],
     [70000, "steal"],
     [70001, "good"],
     [90000, "good"],
@@ -34,13 +34,6 @@ describe("price tiers", () => {
     expect(priceTier(asking, face)).toBe(tier);
   });
 
-  it("treats anything under ₹10 as a freebie, not a deal", () => {
-    for (const paise of [0, 100, 999]) {
-      expect(priceTier(paise, face)).toBeNull();
-      expect(savingPercent(paise, face)).toBeNull();
-    }
-  });
-
   it("has no tier without a reference", () => {
     expect(priceTier(5000, null)).toBeNull();
   });
@@ -50,7 +43,7 @@ describe("price tiers", () => {
     expect(savingPercent(99999, face)).toBeNull(); // 0.001% isn't a saving worth showing
     expect(savingPercent(100000, face)).toBeNull();
     expect(savingPercent(150000, face)).toBeNull();
-    expect(savingPercent(0, face)).toBeNull(); // free is a freebie, not "100% off"
+    expect(savingPercent(0, face)).toBe(100);
   });
 
   it("only alerts for good deals and steals", () => {

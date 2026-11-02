@@ -13,8 +13,6 @@ export interface PriceRef {
 }
 
 export const MIN_MARKET_SAMPLE = 3;
-/** Under ₹10 is a freebie, not a deal: no tier, so it can't top the "steal" lists or headlines. */
-export const MIN_DEAL_PAISE = 1000;
 
 export function priceRef(input: {
   faceValuePaise: number | null;
@@ -34,7 +32,7 @@ export function priceRef(input: {
  *   high   up to 20% over       steep more than 20% over
  */
 export function priceTier(askingPaise: number, ref: PriceRef | null): PriceTier | null {
-  if (!ref || askingPaise < MIN_DEAL_PAISE) return null;
+  if (!ref) return null;
   const ratio = askingPaise / ref.paise;
   if (ratio <= 0.7) return "steal";
   if (ratio <= 0.9) return "good";
@@ -45,7 +43,7 @@ export function priceTier(askingPaise: number, ref: PriceRef | null): PriceTier 
 
 /** Whole-percent saving against the reference, when there is one (never negative or zero). */
 export function savingPercent(askingPaise: number, ref: PriceRef | null): number | null {
-  if (!ref || askingPaise < MIN_DEAL_PAISE || askingPaise >= ref.paise) return null;
+  if (!ref || askingPaise >= ref.paise) return null;
   return Math.floor(((ref.paise - askingPaise) / ref.paise) * 100) || null;
 }
 
