@@ -179,10 +179,6 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
-input, textarea, select, button {
-  font: inherit;
-}
-
 /* Native date-time pickers pick up the accent through accent-color. */
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   opacity: 0.6;

@@ -123,6 +123,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
       <TrackView name="landing_viewed" />
       <MotionRoot />
       <PublicHeader />
+      <main id="main">
 
       {sp.notice === "deleted" && (
         <div className="mx-auto max-w-[1200px] px-4 sm:px-6"><Notice tone="success">Your account and its data were deleted. Take care.</Notice></div>
@@ -409,6 +410,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
         </div>
       </section>
 
+      </main>
       <SiteFooter year={new Date().getFullYear()} />
     </div>
   );

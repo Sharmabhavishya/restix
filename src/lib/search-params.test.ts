@@ -33,8 +33,8 @@ describe("parseFilters", () => {
     expect(activeFilterCount(f)).toBe(1);
   });
 
-  it("ignores a max below the min and caps long queries", () => {
-    expect(parseFilters({ min: "500", max: "100" }).maxPaise).toBeUndefined();
+  it("swaps a reversed price range and caps long queries", () => {
+    expect(parseFilters({ min: "500", max: "100" })).toMatchObject({ minPaise: 10000, maxPaise: 50000 });
     expect(parseFilters({ q: "x".repeat(200) }).q).toHaveLength(80);
   });
 

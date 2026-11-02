@@ -54,3 +54,6 @@ next-env.d.ts
 
 # originals dropped in by the owner; optimised copies go to src/assets/photos
 /photos-incoming/
+
+# scratch scripts from simulated-user test runs
+/.sim/

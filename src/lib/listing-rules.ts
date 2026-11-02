@@ -175,7 +175,7 @@ export function handoversFor(format: TicketFormat): HandoverMethod[] {
 
 /** The handover a quick listing gets when the seller doesn't pick one. */
 export function defaultHandover(format: TicketFormat): HandoverMethod {
-  return handoversFor(format)[0];
+  return format === "other" ? "either" : handoversFor(format)[0]; // "other" could be anything: leave it open
 }
 
 /** Old saved searches and links still say "digital"; that meant a QR e-ticket. */

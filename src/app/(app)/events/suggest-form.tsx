@@ -1,14 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { initialState } from "@/lib/action-state";
 import { decide, suggest } from "./actions";
 import Link from "next/link";
-import { Field, Input, Select, Textarea, describedBy } from "@/components/ui/field";
+import { Field, Input, Textarea, describedBy } from "@/components/ui/field";
 import { buttonClass } from "@/components/ui/button";
 
-const KINDS = [["", "Choose one"], ["fest", "Fest"], ["concert", "Concert"], ["party", "Party"], ["prom", "Prom"], ["workshop", "Workshop"], ["sports", "Sports"], ["other", "Something else"]] as const;
 import { Notice } from "@/components/ui/bits";
+import { DateTimeQuick, KindPicker, VenueChips } from "@/components/event-fields";
+import { useFormFeedback } from "@/lib/use-form-feedback";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { FormatChoice } from "@/components/format-choice";
 import { LEVEL_PRESETS } from "@/lib/ticket-levels";
@@ -17,25 +18,23 @@ import type { TicketFormat } from "@/lib/listing-rules";
 export function SuggestForm() {
   const [state, action] = useActionState(suggest, initialState);
   const fe = state.fieldErrors ?? {};
+  const [startsAt, setStartsAt] = useState(state.values?.startsAt ?? "");
+  const [category, setCategory] = useState(state.values?.category ?? "");
+  const [venue, setVenue] = useState(state.values?.venue ?? "");
+  const { ref, rev } = useFormFeedback(state);
+  const ticked = new Set((state.values?.ticketTypes ?? "").split("\n").filter(Boolean));
   if (state.ok) return <Notice tone="success">{state.message}</Notice>;
   return (
-    <form action={action} className="flex flex-col gap-4" noValidate>
+    <form ref={ref} action={action} className="flex flex-col gap-5" noValidate>
       {state.error && <Notice tone="error">{state.error}</Notice>}
       <Field label="Event name" htmlFor="sg-name" error={fe.name}>
         <Input id="sg-name" name="name" maxLength={120} defaultValue={state.values?.name ?? ""} {...describedBy("sg-name", fe.name)} />
       </Field>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="When it starts" htmlFor="sg-starts" error={fe.startsAt} hint="India time.">
-          <Input id="sg-starts" name="startsAt" type="datetime-local" defaultValue={state.values?.startsAt ?? ""} {...describedBy("sg-starts", fe.startsAt, true)} />
-        </Field>
-        <Field label="Kind of event" htmlFor="sg-kind" optional>
-          <Select id="sg-kind" name="category" defaultValue={state.values?.category ?? ""}>
-            {KINDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </Select>
-        </Field>
-      </div>
+      <KindPicker key={`kind-${rev}`} value={category} onChange={setCategory} optional />
+      <DateTimeQuick id="sg-starts" name="startsAt" label="When it starts" value={startsAt} onChange={setStartsAt} error={fe.startsAt} hint="India time." />
       <Field label="Where" htmlFor="sg-venue" optional error={fe.venue}>
-        <Input id="sg-venue" name="venue" maxLength={120} defaultValue={state.values?.venue ?? ""} placeholder="Venue or campus" />
+        <Input id="sg-venue" name="venue" maxLength={120} value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="Venue or campus" />
+        <VenueChips value={venue} onPick={setVenue} />
       </Field>
       <FormatChoice
         legend="What kind of ticket is it?"
@@ -45,13 +44,13 @@ export function SuggestForm() {
       <fieldset>
         <legend className="mb-1 text-sm font-medium">Ticket levels <span className="font-normal text-muted">(optional)</span></legend>
         <p className="mb-2.5 text-[13px] text-muted">Tick the ones this event has. Leave them all if everyone gets the same ticket.</p>
-        <div className="flex flex-wrap gap-1.5">
+        <div key={`levels-${rev}`} className="flex flex-wrap gap-1.5">
           {LEVEL_PRESETS.map((level) => (
             <label
               key={level}
               className="inline-flex h-9 cursor-pointer items-center rounded-full border border-border bg-surface px-3.5 text-[14px] font-medium transition-[border-color,background-color] hover:border-control-hover has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent"
             >
-              <input type="checkbox" name="ticketTypes" value={level} className="sr-only" />
+              <input type="checkbox" name="ticketTypes" value={level} defaultChecked={ticked.has(level)} className="sr-only" />
               {level}
             </label>
           ))}

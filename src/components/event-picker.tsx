@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import { controlClass } from "./ui/field";
@@ -35,6 +35,12 @@ export function EventPicker({
   const [open, setOpen] = useState(false);
   const [cursor, setCursor] = useState(0);
   const box = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLUListElement>(null);
+
+  // Opening the list on a phone can put it below the keyboard or the fold: bring it into view.
+  useEffect(() => {
+    if (open) list.current?.scrollIntoView({ block: "nearest" });
+  }, [open, query]);
 
   const when = (e: PickableEvent) => formatDateTime(new Date(e.startsAt));
   const shown = typing ? query : chosen?.name ?? "";
@@ -95,6 +101,7 @@ export function EventPicker({
         placeholder="Search events"
         value={shown}
         onFocus={(e) => { setOpen(true); setCursor(0); if (chosen) e.currentTarget.select(); }}
+        onClick={() => setOpen(true)}
         onChange={(e) => { setTyping(true); setQuery(e.target.value); setOpen(true); setCursor(0); }}
         onKeyDown={onKey}
         className={`${controlClass} h-11 pr-10 pl-9 sm:h-10`}
@@ -102,6 +109,7 @@ export function EventPicker({
       <ChevronsUpDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted" aria-hidden />
       {open && (
         <ul
+          ref={list}
           id={listId}
           role="listbox"
           aria-label="Events"

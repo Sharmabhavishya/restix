@@ -63,7 +63,7 @@ describe("seller track record", () => {
     const stats = await listings.sellerStats(viewer.id, seller.id);
     expect(stats.handovers).toBe(1); // the seller's own word isn't enough
     expect(stats.replies).toBe(2);
-    expect(stats.medianReplyMinutes).toBe(0);
+    expect(stats.medianReplyMinutes).toBeNull(); // too few answers to call it typical
   });
 
   it("says nothing about sellers from another college, or brand-new ones", async () => {
@@ -83,7 +83,11 @@ describe("price drops", () => {
 
   it("remembers the highest recent price through a series of cuts, and forgets it on a rise", async () => {
     const seller = await makeUser();
-    const { listingId } = await makeListing(seller.id); // ₹500
+    const { listingId } = await makeListing(seller.id); // ₹500, live for two days by now (a fresh price doesn't count as a "was" price)
+    await asSystem(async (tx) => {
+      await tx`set local session_replication_role = replica`; // triggers off for this transaction only
+      await tx`update restix.ticket_listings set price_set_at = now() - interval '2 days' where id = ${listingId}`;
+    });
     expect(await drop(seller.id, listingId)).toBeNull();
     await setPrice(seller.id, listingId, 45000);
     expect(await drop(seller.id, listingId)).toBe(50000);

@@ -110,10 +110,14 @@ export async function inbox(viewerId: string): Promise<InquiryRow[]> {
 
 /** The viewer's own open inquiry on a listing, if any (to show "you've asked" on the listing page). */
 export async function myInquiryFor(viewerId: string, listingId: string) {
-  const [row] = await asUser(viewerId, (tx) => tx<{ id: string; status: InquiryStatus; sellerContactShared: string | null }[]>`
-    select id, status, seller_contact_shared from restix.inquiries
-    where listing_id = ${listingId} and buyer_id = ${viewerId}
-    order by created_at desc limit 1`);
+  const [row] = await asUser(viewerId, (tx) => tx<{
+    id: string; status: InquiryStatus; sellerContactShared: string | null; quantityRequested: number; fresh: boolean; offerPaise: number | null;
+  }[]>`
+    select i.id, i.status, i.seller_contact_shared, i.quantity_requested, (i.created_at > now() - interval '90 seconds') as fresh,
+           (select o.amount_paise from restix.offers o where o.inquiry_id = i.id and o.from_user = ${viewerId} order by o.created_at desc limit 1) as offer_paise
+    from restix.inquiries i
+    where i.listing_id = ${listingId} and i.buyer_id = ${viewerId}
+    order by i.created_at desc limit 1`);
   return row ?? null;
 }
 
@@ -124,8 +128,11 @@ export async function respondToInquiry(
   if (!(await allow("respond", viewerId))) return { ok: false, error: "Too many responses in a short time. Wait a few minutes." };
   try {
     const result = await asUser(viewerId, async (tx): Promise<Result & { listingId?: string }> => {
-      const [inq] = await tx<{ status: InquiryStatus; sellerId: string; listingId: string; whatsapp: string | null }[]>`
-        select i.status, i.seller_id, i.listing_id,
+      const [inq] = await tx<{ status: InquiryStatus; sellerId: string; listingId: string; whatsapp: string | null; wanted: number; stock: number; promised: number }[]>`
+        select i.status, i.seller_id, i.listing_id, i.quantity_requested as wanted,
+               (select l.quantity from restix.ticket_listings l where l.id = i.listing_id) as stock,
+               (select coalesce(sum(a.quantity_requested), 0)::int from restix.inquiries a
+                 where a.listing_id = i.listing_id and a.status = 'accepted' and a.id <> i.id) as promised,
                (select whatsapp_number from restix.profile_private where user_id = ${viewerId}) as whatsapp
         from restix.inquiries i
         where i.id = ${input.inquiryId} for update of i`;
@@ -139,6 +146,15 @@ export async function respondToInquiry(
       if (input.shareWhatsapp && !inq.whatsapp) {
         return { ok: false, error: "Add your WhatsApp number on your account page first, or write how to reach you instead." };
       }
+      if (inq.promised + inq.wanted > inq.stock) {
+        const left = Math.max(0, inq.stock - inq.promised);
+        return {
+          ok: false,
+          error: left === 0
+            ? `You've already said yes to all ${inq.stock} of your tickets. Decline this one, or mark the listing sold.`
+            : `You only have ${left} ticket${left === 1 ? "" : "s"} left to promise and this request is for ${inq.wanted}. Decline it and ask them to request ${left}.`,
+        };
+      }
       // The number is stored on its own; the chat link and its opening message are built when shown.
       const whatsapp = input.shareWhatsapp ? inq.whatsapp : null;
       if (!whatsapp && !input.note) return { ok: false, error: "Share your WhatsApp or write how the buyer can reach you." };
@@ -149,6 +165,8 @@ export async function respondToInquiry(
       // the offer trigger records it as the agreed price. (The form says so before the tap.)
       await tx`update restix.offers set status = 'accepted'
                where inquiry_id = ${input.inquiryId} and status = 'open' and from_user <> ${viewerId}`;
+      await tx`update restix.offers set status = 'withdrawn'
+               where inquiry_id = ${input.inquiryId} and status = 'open' and from_user = ${viewerId}`;
       return { ok: true, listingId: inq.listingId };
     });
     if (result.ok && input.decision === "accept") {
@@ -179,13 +197,15 @@ export async function closeInquiry(viewerId: string, inquiryId: string): Promise
 export async function confirmOutcome(viewerId: string, input: { inquiryId: string; outcome: Outcome; note: string | null }): Promise<Result> {
   try {
     const party = await asUser(viewerId, async (tx) => {
-      const [inq] = await tx<{ buyerId: string; sellerId: string; status: InquiryStatus; listingId: string; respondedAt: Date | null }[]>`
-        select buyer_id, seller_id, status, listing_id, responded_at from restix.inquiries where id = ${input.inquiryId}`;
+      const [inq] = await tx<{ buyerId: string; sellerId: string; status: InquiryStatus; listingId: string; shared: boolean }[]>`
+        select buyer_id, seller_id, status, listing_id,
+               (seller_whatsapp is not null or seller_contact_shared is not null) as shared
+        from restix.inquiries where id = ${input.inquiryId}`;
       if (!inq) return null;
       const role = inq.buyerId === viewerId ? "buyer" : inq.sellerId === viewerId ? "seller" : null;
       // "closed" only counts if the seller said yes first; a request that was closed unanswered
       // (listing sold or removed) was never a handover, so it can't add to anyone's track record.
-      const accepted = inq.status === "accepted" || (inq.status === "closed" && inq.respondedAt !== null);
+      const accepted = inq.status === "accepted" || (inq.status === "closed" && inq.shared);
       if (!role || !accepted) return null;
       await tx`insert into restix.transaction_confirmations (inquiry_id, user_id, party, outcome, note)
                values (${input.inquiryId}, ${viewerId}, ${role}, ${input.outcome}, ${input.note})`;

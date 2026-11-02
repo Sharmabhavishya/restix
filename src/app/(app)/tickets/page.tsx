@@ -180,7 +180,7 @@ function Chip({ href, on, tone, children }: { href: string; on: boolean; tone?: 
     <Link
       href={href}
       aria-current={on ? "true" : undefined}
-      className={`inline-flex h-9 flex-none items-center gap-1.5 rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-[background-color,border-color,transform] duration-150 active:scale-95 ${
+      className={`inline-flex h-11 flex-none items-center sm:h-9 gap-1.5 rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-[background-color,border-color,transform] duration-150 active:scale-95 ${
         on ? onClass : "border-border bg-surface text-ink hover:border-control-hover"
       }`}
     >

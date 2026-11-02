@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { initialState } from "@/lib/action-state";
+import { useFormFeedback } from "@/lib/use-form-feedback";
 import { REPORT_REASONS, type ReportReason } from "@/lib/report-reasons";
 import { sellerActionsFor, type ListingStatus, type SellerAction } from "@/lib/listing-rules";
 import { contactSeller, listingAction, reportListing } from "../actions";
@@ -28,6 +29,7 @@ export function ContactForm({
   savedWhatsapp: string | null;
 }) {
   const [state, action] = useActionState(contactSeller, initialState);
+  const { ref: formRef, rev } = useFormFeedback(state);
   const fe = state.fieldErrors ?? {};
   const [share, setShare] = useState(state.values ? state.values.shareWhatsapp === "on" : true);
   const [qty, setQty] = useState(() => Math.min(maxQuantity, Math.max(1, Number(state.values?.quantity ?? 1) || 1)));
@@ -38,7 +40,7 @@ export function ContactForm({
   const dealOn = each < askingPricePaise;
   const toDeal = bulkMinQuantity !== null && bulkPricePaise !== null && qty < bulkMinQuantity && bulkMinQuantity <= maxQuantity ? bulkMinQuantity - qty : 0;
   return (
-    <form action={action} className="flex flex-col gap-4" noValidate>
+    <form ref={formRef} action={action} className="flex flex-col gap-4" noValidate>
       <input type="hidden" name="listingId" value={listingId} />
       <input type="hidden" name="quantity" value={qty} />
       {state.error && <Notice tone="error">{state.error}</Notice>}
@@ -68,7 +70,7 @@ export function ContactForm({
       {/* Private until accepted: the core promise, said where the decision is made. */}
       <div className="rounded-[10px] border border-border px-3 py-3">
         <label className="flex cursor-pointer items-start gap-3">
-          <input type="checkbox" name="shareWhatsapp" checked={share} onChange={(e) => setShare(e.target.checked)} className="mt-0.5 size-[18px] shrink-0 accent-accent" />
+          <input key={`wa-${rev}`} type="checkbox" name="shareWhatsapp" checked={share} onChange={(e) => setShare(e.target.checked)} className="mt-0.5 size-[18px] shrink-0 accent-accent" />
           <span className="text-sm leading-snug">
             <span className="font-medium">Let {sellerName.split(/\s+/)[0]} WhatsApp me if they say yes</span>
             <span className="mt-0.5 flex items-center gap-1 text-[13px] text-muted">
@@ -86,7 +88,7 @@ export function ContactForm({
       </div>
 
       {negotiable && (
-        <details className="group" open={Boolean(fe.offer) || undefined}>
+        <details className="group" open={Boolean(fe.offer || state.values?.offer) || undefined}>
           <summary className="tap cursor-pointer list-none text-[14px] font-medium text-accent-strong underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
             Don&apos;t like the price? Make an offer
           </summary>
@@ -156,9 +158,12 @@ const ACTION_LABEL: Partial<Record<SellerAction, string>> = {
   delete: "Delete",
 };
 
+const UNDOABLE_NO = new Set<SellerAction>(["mark_sold", "mark_unavailable"]);
+
 export function OwnerActions({ listingId, version, status }: { listingId: string; version: number; status: ListingStatus }) {
   const [state, action] = useActionState(listingAction, initialState);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirming, setConfirming] = useState<SellerAction | null>(null);
   const actions = sellerActionsFor(status).filter((a) => a !== "edit");
   if (actions.length === 0) return null;
   return (
@@ -170,11 +175,31 @@ export function OwnerActions({ listingId, version, status }: { listingId: string
         <input type="hidden" name="version" value={version} />
         {actions
           .filter((a) => a !== "delete")
-          .map((a) => (
-            <SubmitButton key={a} name="action" value={a} variant={a === (actions.includes("resume") ? "resume" : actions.includes("publish") ? "publish" : "mark_sold") ? "primary" : "secondary"} pendingLabel="Saving…">
-              {ACTION_LABEL[a]}
-            </SubmitButton>
-          ))}
+          .map((a) => {
+            const primary = a === (actions.includes("resume") ? "resume" : actions.includes("publish") ? "publish" : "mark_sold");
+            // Marking sold or taking down can't be undone, so the first tap only asks.
+            if (UNDOABLE_NO.has(a)) {
+              return confirming === a ? (
+                <SubmitButton key={a} name="action" value={a} variant="danger" pendingLabel="Saving…">
+                  Yes, {ACTION_LABEL[a]!.toLowerCase()}
+                </SubmitButton>
+              ) : (
+                <button key={a} type="button" onClick={() => setConfirming(a)} className={buttonClass(primary ? "primary" : "secondary")}>
+                  {ACTION_LABEL[a]}
+                </button>
+              );
+            }
+            return (
+              <SubmitButton key={a} name="action" value={a} variant={primary ? "primary" : "secondary"} pendingLabel="Saving…">
+                {ACTION_LABEL[a]}
+              </SubmitButton>
+            );
+          })}
+        {confirming && (
+          <button type="button" onClick={() => setConfirming(null)} className={buttonClass("ghost")}>
+            Not yet
+          </button>
+        )}
         {actions.includes("delete") &&
           (confirmDelete ? (
             <SubmitButton name="action" value="delete" variant="danger" pendingLabel="Deleting…">

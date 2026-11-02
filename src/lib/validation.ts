@@ -16,6 +16,14 @@ const PHONE_RE = /(?:\p{Nd}[^\p{L}\p{Nd}]{0,3}){10,}/u;
 const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
 const SPELLED_EMAIL_RE = /\b\w+\s*[([]at[)\]]\s*\w+|\b\w+\s+at\s+\w+\s+dot\s+\w{2,}/i;
 const HANDLE_RE = /\b(?:wa\.me|whatsapp\.com|t\.me|telegram\.me|instagram\.com|instagr\.am|snapchat\.com)\b/i;
+// Digits spelled out (English and Hinglish), seven or more in a row.
+const SPELLED_DIGITS_RE = /(?:\b(?:zero|oh|one|two|three|four|five|six|seven|eight|nine|ek|do|teen|char|paanch|panch|chhe|saat|aath|nau)\b[^\p{L}\p{Nd}]{0,3}){7,}/iu;
+// "dm me", "text me", "hit me up", "contact me": the conversation belongs in ResTix until a seller accepts.
+const ASK_ME_RE = /\b(?:dm|pm|text|call|ping|msg|message|whats ?app|insta(?:gram)?|snap(?:chat)?|telegram|tg)\s+(?:me|us)\b|\bhit me up\b|\b(?:contact|reach)\s+me\b/i;
+// A platform name followed by a handle ("insta diya_s1"), a Discord tag, any link, or a UPI id (name@bank, no dot).
+const PLATFORM_HANDLE_RE = /\b(?:ig|insta(?:gram)?|snap(?:chat)?|telegram|tg|discord)\b\s+\S{3,}|\b\w+#\d{4}\b/i;
+const LINK_RE = /\bhttps?:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|in|me|ly|ee|io|app|co|link|gl|org|net)\//i;
+const UPI_RE = /[\w.-]{2,}@[a-z]{2,}\b/i;
 const AT_HANDLE_RE = /(?:^|[^\p{L}\p{Nd}])@[\p{L}\p{Nd}._]{3,}/u;
 const NAMED_HANDLE_RE = /\b(?:ig|insta(?:gram)?|snap(?:chat)?|whats ?app|wa|telegram|tg)\s*[:@=-]\s*\S{3,}/i;
 
@@ -31,7 +39,10 @@ function fold(text: string): string {
  */
 export function containsContactDetails(text: string): boolean {
   const t = fold(text);
-  return PHONE_RE.test(t) || EMAIL_RE.test(t) || SPELLED_EMAIL_RE.test(t) || HANDLE_RE.test(t) || AT_HANDLE_RE.test(t) || NAMED_HANDLE_RE.test(t);
+  return (
+    PHONE_RE.test(t) || EMAIL_RE.test(t) || SPELLED_EMAIL_RE.test(t) || HANDLE_RE.test(t) || AT_HANDLE_RE.test(t) || NAMED_HANDLE_RE.test(t) ||
+    SPELLED_DIGITS_RE.test(t) || ASK_ME_RE.test(t) || PLATFORM_HANDLE_RE.test(t) || LINK_RE.test(t) || UPI_RE.test(t)
+  );
 }
 
 
@@ -45,7 +56,7 @@ const optionalText = (max: number) =>
 
 const publicText = (max: number) =>
   optionalText(max).refine((v) => v === null || !containsContactDetails(v), {
-    message: "Keep phone numbers, emails and social handles out of public text. You can share them privately when you accept an inquiry.",
+    message: "Keep phone numbers, emails, links, payment IDs and social handles out of public text (a long string of digits looks like a number too). You can share contact details privately when you accept a request.",
   });
 
 // HTML checkboxes submit "on" when ticked and nothing otherwise.
@@ -156,7 +167,11 @@ const offerAmount = (required: boolean) =>
         return null;
       }
       const paise = parseRupees(v);
-      if (paise === null || paise < 100) {
+      if (paise !== null && paise < 100) {
+        ctx.addIssue({ code: "custom", message: "Offers start at ₹1." });
+        return z.NEVER;
+      }
+      if (paise === null) {
         ctx.addIssue({ code: "custom", message: "Enter your offer in rupees, like 750." });
         return z.NEVER;
       }
@@ -208,7 +223,7 @@ export const reportInput = z
 /** Accepts +<country><number> or a 10-digit Indian mobile number; returns E.164 or null. */
 export function normalizeWhatsapp(input: string): string | null {
   const digits = input.replace(/[\s()-]/g, "");
-  if (/^[6-9]\d{9}$/.test(digits)) return `+91${digits}`;
+  if (/^0?[6-9]\d{9}$/.test(digits)) return `+91${digits.slice(-10)}`;
   if (/^\+[1-9]\d{7,14}$/.test(digits)) return digits;
   return null;
 }

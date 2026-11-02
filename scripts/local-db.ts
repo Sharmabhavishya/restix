@@ -30,7 +30,7 @@ export async function startLocalDb(opts: { dataDir?: string; port?: number; seed
   const db = await PGlite.create(opts.dataDir);
   await db.exec(await readFile(SHIM, "utf8"));
   const port = opts.port ?? (await freePort());
-  const server = new PGLiteSocketServer({ db, port, host: "127.0.0.1", maxConnections: 20 });
+  const server = new PGLiteSocketServer({ db, port, host: "127.0.0.1", maxConnections: 200 }); // every test file keeps a few idle connections; 20 ran out at about 30 files
   await server.start();
   const url = `postgres://postgres:postgres@127.0.0.1:${port}/postgres`;
   await migrate(url, log);

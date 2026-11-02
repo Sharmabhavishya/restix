@@ -90,19 +90,38 @@ const OUTCOMES = [
 
 export function OutcomeForm({ inquiryId }: { inquiryId: string }) {
   const [state, action] = useActionState(confirm, initialState);
+  const [asking, setAsking] = useState<(typeof OUTCOMES)[number] | null>(null);
   if (state.ok) return <Notice tone="success">{state.message}</Notice>;
   return (
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="inquiryId" value={inquiryId} />
       <p className="text-sm font-medium">How did it go?</p>
       {state.error && <Notice tone="error">{state.error}</Notice>}
-      <div className="flex flex-wrap gap-2">
-        {OUTCOMES.map(([value, label]) => (
-          <SubmitButton key={value} name="outcome" value={value} variant="secondary" size="sm" pendingLabel="Saving…">
-            {label}
-          </SubmitButton>
-        ))}
-      </div>
+      {asking ? (
+        <div className="flex flex-col gap-2 rounded-[10px] bg-raised p-3">
+          <p className="text-sm">Record this as &ldquo;{asking[1]}&rdquo;? You can&apos;t change it afterwards.</p>
+          <div className="flex flex-wrap gap-2">
+            <SubmitButton name="outcome" value={asking[0]} variant={asking[0] === "disputed" ? "danger" : "secondary"} size="sm" pendingLabel="Saving…">
+              Yes, record it
+            </SubmitButton>
+            <button type="button" onClick={() => setAsking(null)} className={buttonClass("ghost", "sm")}>Go back</button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {OUTCOMES.map((o) =>
+            o[0] === "completed" ? (
+              <SubmitButton key={o[0]} name="outcome" value={o[0]} variant="secondary" size="sm" pendingLabel="Saving…">
+                {o[1]}
+              </SubmitButton>
+            ) : (
+              <button key={o[0]} type="button" onClick={() => setAsking(o)} className={buttonClass("secondary", "sm")}>
+                {o[1]}
+              </button>
+            ),
+          )}
+        </div>
+      )}
       <p className="text-[12px] text-muted">Private. Only counted in anonymous totals. If you got scammed, also report the listing or user.</p>
     </form>
   );

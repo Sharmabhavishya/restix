@@ -282,6 +282,20 @@ export async function moderateUser(modId: string, input: { userId: string; actio
       await tx`update restix.ticket_listings set status = 'paused', status_reason = 'Paused while the seller account is restricted', version = version + 1
                where seller_id = ${input.userId} and status = 'active'`;
     }
+    if (next === "active" && u.status === "restricted") {
+      // Listings paused only because of the restriction come back, if their event is still open. If one
+      // can't (its event changed rules meanwhile) it stays paused and the reinstatement still goes through.
+      await tx`savepoint resume_listings`;
+      try {
+        await tx`update restix.ticket_listings l set status = 'active', status_reason = null, version = version + 1
+                 where l.seller_id = ${input.userId} and l.status = 'paused'
+                   and l.status_reason = 'Paused while the seller account is restricted' and l.expires_at > now()
+                   and exists (select 1 from restix.events e where e.id = l.event_id and e.status in ('scheduled', 'postponed')
+                               and coalesce(e.ends_at, e.starts_at) > now())`;
+      } catch {
+        await tx`rollback to savepoint resume_listings`;
+      }
+    }
     if (next === "suspended") {
       // A suspended seller's live listings come down while the decision stands.
       await tx`update restix.ticket_listings set status = 'removed', status_reason = 'Seller account suspended', version = version + 1
@@ -326,6 +340,10 @@ export async function updateReport(modId: string, input: { reportId: string; sta
 export async function submitAppeal(viewerId: string, input: { message: string; listingId?: string | null }): Promise<Result> {
   if (!(await allow("report", `appeal:${viewerId}`))) return { ok: false, error: "You've sent several appeals today. Please wait for a reply." };
   try {
+    const [{ canAppeal }] = await asUser(viewerId, (tx) => tx<{ canAppeal: boolean }[]>`
+      select (p.status <> 'active') or exists (select 1 from restix.ticket_listings l where l.seller_id = p.id and l.status in ('removed', 'rejected')) as can_appeal
+      from restix.profiles p where p.id = ${viewerId}`);
+    if (!canAppeal) return { ok: false, error: "There's nothing to appeal right now. If a moderator restricts your account or takes a listing down, you can appeal here." };
     await asUser(viewerId, (tx) => tx`
       insert into restix.appeals (user_id, moderation_action_id, listing_id, message)
       values (${viewerId}, restix.my_latest_moderation_action(), ${input.listingId ?? null}, ${input.message})`);

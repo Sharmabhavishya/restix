@@ -21,6 +21,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { privateProfile } from "@/server/profile";
 import { TrackView } from "@/components/track";
 import { ShareButton } from "@/components/share-button";
+import { RequestSent } from "@/components/request-sent";
+import { StickyRequest } from "@/components/sticky-request";
 
 export const metadata: Metadata = { title: "Listing" };
 
@@ -84,7 +86,13 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
         )}
       </div>
 
-      {saved && mine && <Notice tone="success" className="mb-5">{saved}</Notice>}
+      {saved && mine && (
+        <Notice tone="success" className="mb-5" title={saved}>
+          <Link href={`/sell?from=${listing.id}`} className="font-medium underline">List another like this</Link>
+          {" · "}
+          <Link href="/selling" className="font-medium underline">See all my listings</Link>
+        </Notice>
+      )}
 
       {/* The object header is the ticket itself: body, perforation, stub. */}
       {listing.eventCoverVersion ? (
@@ -126,7 +134,7 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
         </div>
       </header>
 
-      {status === "active" && deal.alert && (
+      {status === "active" && deal.alert && !mine && (
         <div className="deal-banner mb-6 flex items-center gap-3 rounded-[12px] bg-buy px-4 py-3 text-white">
           {deal.tier === "steal" ? <Flame className="size-5 flex-none" aria-hidden /> : <Sparkles className="size-5 flex-none" aria-hidden />}
           <p className="text-[15px]">
@@ -143,12 +151,17 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
             <KeyValue
               items={[
                 { label: "How", value: HANDOVER_LABEL[listing.handoverMethod] },
-                { label: "Where", value: listing.meetupArea ?? <span className="text-muted">Agree with the seller</span> },
+                { label: "Where", value: listing.meetupArea ?? <span className="text-muted">{mine ? "You agree it with each buyer" : "Agree with the seller"}</span> },
                 { label: "Listing closes", value: <span title={formatLongDate(listing.expiresAt)}>{formatDateTime(listing.expiresAt)}</span> },
                 { label: "Listed", value: relativeTime(listing.publishedAt ?? listing.createdAt) },
               ]}
             />
-            {listing.handoverNotes && <p className="mt-4 text-[15px] leading-relaxed whitespace-pre-line">{listing.handoverNotes}</p>}
+            {listing.handoverNotes && (
+              <div className="mt-4">
+                <p className="text-[13px] text-muted">About the handover</p>
+                <p className="mt-0.5 text-[15px] leading-relaxed whitespace-pre-line">{listing.handoverNotes}</p>
+              </div>
+            )}
             {listing.sellerNotes && (
               <div className="mt-4 border-t border-rule pt-4">
                 <h3 className="mb-1 text-sm font-medium text-muted">From the seller</h3>
@@ -200,22 +213,34 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
                   {sellerCan("edit", status) && (
                     <ButtonLink href={`/listings/${listing.id}/edit`} variant="secondary">Edit details</ButtonLink>
                   )}
+                  {(status === "sold" || status === "unavailable" || status === "expired") && (
+                    <ButtonLink href={`/sell?from=${listing.id}`} variant="primary">List it again</ButtonLink>
+                  )}
                   <OwnerActions listingId={listing.id} version={listing.version} status={status} />
                   <p className="flex gap-2 text-[13px] text-muted">
                     <Lock className="mt-0.5 size-4 flex-none" aria-hidden />
                     Your number stays private. A buyer only gets your WhatsApp after you accept their request.
                   </p>
                 </div>
-              ) : inquiry && (inquiry.status === "pending" || inquiry.status === "accepted") ? (
-                <Notice tone={inquiry.status === "accepted" ? "success" : "info"} title={inquiry.status === "accepted" ? "The seller said yes" : "Request sent"}>
-                  {inquiry.status === "accepted" ? "Their contact details are in " : "Waiting for the seller. Check "}
-                  <Link href="/inquiries" className="font-medium underline">Inquiries</Link>.
+              ) : inquiry && inquiry.status === "pending" ? (
+                <RequestSent
+                  quantity={inquiry.quantityRequested}
+                  offerPaise={inquiry.offerPaise}
+                  askingPricePaise={listing.askingPricePaise}
+                  eventSlug={listing.eventSlug}
+                  eventName={listing.eventName}
+                  fresh={inquiry.fresh}
+                />
+              ) : inquiry && inquiry.status === "accepted" ? (
+                <Notice tone="success" title="The seller said yes">
+                  Their contact details are in <Link href="/inquiries" className="font-medium underline">Inquiries</Link>.
                 </Notice>
               ) : status !== "active" ? (
                 <p className="text-sm text-muted">This listing is {STATUS_LABEL[status].toLowerCase()}, so you can&apos;t contact the seller about it.</p>
               ) : viewer.access !== "ok" ? (
                 <Notice tone="warning">Your account can&apos;t contact sellers right now. See your account page.</Notice>
               ) : (
+                <div id="request" className="scroll-mt-20">
                 <ContactForm
                   listingId={listing.id}
                   maxQuantity={listing.quantity}
@@ -226,6 +251,8 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
                   bulkPricePaise={listing.bulkPricePaise}
                   savedWhatsapp={priv?.whatsappNumber ?? null}
                 />
+                <StickyRequest target="request" price={formatPaise(listing.askingPricePaise)} unit={listing.quantity > 1 ? "per ticket" : "asking price"} />
+                </div>
               )}
             </div>
           </Panel>

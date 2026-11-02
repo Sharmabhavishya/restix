@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { cleanText } from "@/lib/validation";
+import { cleanText, containsContactDetails } from "@/lib/validation";
 import { parseRupees } from "@/lib/money";
 import { fromLocalInput } from "@/lib/format";
 import { asUser, pgCode, PG } from "./db";
@@ -17,7 +17,7 @@ export const EVENT_CATEGORIES = { fest: "Fest", concert: "Concert", party: "Part
 export const eventInput = z
   .object({
     name: z.string().transform(cleanText).pipe(z.string().min(2, "Name the event.").max(120)),
-    slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]{2,80}$/, "Use lowercase letters, numbers and hyphens."),
+    slug: z.string().trim().toLowerCase().min(1, "Give it a web address, like spring-fest-night-2.").regex(/^[a-z0-9-]{2,80}$/, "Use lowercase letters, numbers and hyphens."),
     category: z.enum(Object.keys(EVENT_CATEGORIES) as [keyof typeof EVENT_CATEGORIES, ...(keyof typeof EVENT_CATEGORIES)[]]),
     venue: z.string().transform(cleanText).pipe(z.string().max(120)).optional().transform((v) => v || null),
     description: z.string().transform(cleanText).pipe(z.string().max(2000)).optional().transform((v) => v || null),
@@ -166,8 +166,11 @@ export async function allEvents(modId: string) {
 // Event suggestions from students
 // ---------------------------------------------------------------------------
 
+const noContact = (v: string | null) => v === null || !containsContactDetails(v);
+const NOPE_MSG = "Keep phone numbers, emails, links and handles out of an event request.";
+
 export const suggestionInput = z.object({
-  name: z.string().transform(cleanText).pipe(z.string().min(2, "Name the event.").max(120)),
+  name: z.string().transform(cleanText).pipe(z.string().min(2, "Name the event.").max(120)).refine(noContact, NOPE_MSG),
   startsAt: z
     .string()
     .optional()
@@ -184,12 +187,12 @@ export const suggestionInput = z.object({
       }
       return d;
     }),
-  venue: z.string().transform(cleanText).pipe(z.string().max(120)).optional().transform((v) => v || null),
+  venue: z.string().transform(cleanText).pipe(z.string().max(120)).optional().transform((v) => v || null).refine(noContact, NOPE_MSG),
   category: z
     .string()
     .optional()
     .transform((v) => (v && v in EVENT_CATEGORIES ? (v as keyof typeof EVENT_CATEGORIES) : null)),
-  details: z.string().transform(cleanText).pipe(z.string().max(1000)).optional().transform((v) => v || null),
+  details: z.string().transform(cleanText).pipe(z.string().max(1000)).optional().transform((v) => v || null).refine(noContact, NOPE_MSG),
   // What kind of ticket the event has, and its levels (e.g. Normal, Fan pit). Both optional.
   ticketFormat: z.preprocess((v) => v || null, z.enum(FORMATS as [TicketFormat, ...TicketFormat[]]).nullable()),
   ticketTypes: z.array(z.string()).optional().transform((v) => parseLevels(v ?? [])),

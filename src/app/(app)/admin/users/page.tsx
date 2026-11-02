@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Download } from "lucide-react";
 import { requireModerator } from "@/server/auth/viewer";
 import { ACCOUNTS_PER_PAGE, listAccounts, type AccountFilter } from "@/server/admin";
@@ -42,6 +43,8 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/user
     const qs = p.toString();
     return `/admin/users${qs ? `?${qs}` : ""}`;
   };
+
+  if (rows.length === 0 && pageNo > 1) redirect(href({ page: pages })); // a page past the end shows the last one
 
   return (
     <>

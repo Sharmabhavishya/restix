@@ -76,7 +76,7 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   await page.getByText("Notes and timing", { exact: true }).click();
   await page.getByLabel("Anything else").fill("call me on 98765 43210");
   await page.getByRole("button", { name: "Publish listing" }).click();
-  await expect(page.getByText(/Keep phone numbers, emails and social handles out/)).toBeVisible();
+  await expect(page.getByText(/Keep phone numbers, emails, links, payment IDs and social handles out/)).toBeVisible();
 
   // 5-6. Another eligible student finds it and contacts the seller.
   const buyer = await asFixture(browser, "Rohan M");
@@ -87,6 +87,7 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   await expect(buyer.page.getByText(sellerEmail)).toHaveCount(0); // email never shown
   await buyer.page.getByText("Add a note", { exact: true }).click();
   await buyer.page.getByLabel(/Message to Tara S/).fill("Hey! Can we meet at the library at 6?");
+  await buyer.page.getByLabel(/Let Tara WhatsApp me/).uncheck(); // this buyer has no number saved
   await buyer.page.getByRole("button", { name: "Request this ticket" }).click();
   await expect(buyer.page.getByText("Request sent")).toBeVisible();
 
@@ -105,6 +106,7 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   // 7. The seller marks it sold; it leaves search.
   await page.goto(listingUrl);
   await page.getByRole("button", { name: "Mark sold" }).click();
+  await page.getByRole("button", { name: "Yes, mark sold" }).click(); // marking sold asks first
   await expect(page.getByText("Marked sold")).toBeVisible();
   await buyer.page.goto(`/tickets?q=${encodeURIComponent(eventName)}`);
   await expect(buyer.page.locator(`a[href="${new URL(listingUrl).pathname}"]`)).toHaveCount(0);

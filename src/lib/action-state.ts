@@ -23,6 +23,9 @@ export function fieldErrors(error: z.ZodError): Record<string, string> {
 
 export function formValues(formData: FormData): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const [k, v] of formData.entries()) if (typeof v === "string" && !k.startsWith("$")) out[k] = v;
+  for (const [k, v] of formData.entries()) {
+    if (typeof v !== "string" || k.startsWith("$")) continue;
+    out[k] = k in out ? `${out[k]}\n${v}` : v; // a key sent several times (ticked chips) keeps every value
+  }
   return out;
 }

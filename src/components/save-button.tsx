@@ -32,7 +32,7 @@ export function SaveButton({ listingId, saved, label = false }: { listingId: str
         onClick={toggle}
         aria-pressed={optimistic}
         aria-label={optimistic ? "Saved. Remove from saved" : "Save this listing"}
-        className={`save-heart group/save inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border px-2.5 text-sm font-medium transition-colors duration-150 ${
+        className={`save-heart group/save inline-flex h-11 min-w-11 items-center sm:h-10 sm:min-w-10 justify-center gap-1.5 rounded-full border px-2.5 text-sm font-medium transition-colors duration-150 ${
           optimistic ? "border-accent-track bg-accent-soft text-accent-strong" : "border-border bg-surface text-muted hover:border-control-hover hover:text-ink"
         }`}
       >

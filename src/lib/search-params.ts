@@ -53,8 +53,8 @@ export function parseFilters(sp: RawParams): ParsedFilters {
     event: event && /^[a-z0-9-]{2,80}$/.test(event) ? event : undefined,
     category: category && (CATEGORIES as readonly string[]).includes(category) ? category : undefined,
     format: parseFormat(format),
-    minPaise,
-    maxPaise: maxPaise !== undefined && minPaise !== undefined && maxPaise < minPaise ? undefined : maxPaise,
+    minPaise: minPaise !== undefined && maxPaise !== undefined && maxPaise < minPaise ? maxPaise : minPaise,
+    maxPaise: maxPaise !== undefined && minPaise !== undefined && maxPaise < minPaise ? minPaise : maxPaise,
     from: fromDate,
     // "to" is inclusive of that whole day.
     to: toDate ? new Date(toDate.getTime() + 86_400_000) : undefined,

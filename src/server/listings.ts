@@ -142,12 +142,17 @@ function likePattern(q: string): string {
   return `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 }
 
+/** The words of a search, at most five: "spring wristband" finds Spring Fest wristbands. */
+function words(q: string): string[] {
+  return q.split(/\s+/).filter(Boolean).slice(0, 5);
+}
+
 /** The WHERE clause for browsing: available, in the viewer's college, plus the chosen filters. */
 function filterSql(tx: Tx, f: SearchFilters, includeFormat = true) {
   return tx`
     ${available(tx)}
     and e.college_id = restix.my_college_id()
-    ${f.q ? tx`and (e.name ilike ${likePattern(f.q)} or t.name ilike ${likePattern(f.q)} or e.venue ilike ${likePattern(f.q)})` : tx``}
+    ${words(f.q ?? "").length ? tx`and (e.name || ' ' || t.name || ' ' || coalesce(e.venue, '')) ilike all (${words(f.q ?? "").map(likePattern)}::text[])` : tx``}
     ${f.event ? tx`and e.slug = ${f.event}` : tx``}
     ${f.category ? tx`and e.category = ${f.category}` : tx``}
     ${includeFormat && f.format ? tx`and l.format = ${f.format}` : tx``}
@@ -163,7 +168,7 @@ function filterSql(tx: Tx, f: SearchFilters, includeFormat = true) {
 /** Available listings for the viewer's college, filtered and paged. RLS scopes the rows. */
 export async function searchListings(viewerId: string, f: SearchFilters): Promise<{ items: ListingCard[]; total: number; page: number; pages: number }> {
   await maybeExpire();
-  const page = Math.max(1, Math.min(f.page ?? 1, 500));
+  const requested = Math.max(1, Math.min(f.page ?? 1, 500));
   return asUser(viewerId, async (tx) => {
     const where = filterSql(tx, f);
     const order = {
@@ -174,11 +179,13 @@ export async function searchListings(viewerId: string, f: SearchFilters): Promis
     }[f.sort ?? "newest"];
     // Counting only needs the going rate when filtering by it.
     const [{ total }] = await tx<{ total: number }[]>`select count(*)::int as total from ${CARD_FROM(tx)} ${f.deals ? MARKET_JOIN(tx) : tx``} where ${where}`;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const page = Math.min(requested, pages);
     const items = await tx<ListingCard[]>`
       select ${CARD_COLUMNS(tx)}, ${MARKET_COLUMNS(tx)} from ${CARD_FROM(tx)} ${MARKET_JOIN(tx)} where ${where}
       order by ${order}, l.id
       limit ${PAGE_SIZE} offset ${(page - 1) * PAGE_SIZE}`;
-    return { items, total, page, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
+    return { items, total, page, pages };
   });
 }
 
@@ -398,7 +405,7 @@ export async function sellerAction(viewerId: string, id: string, expectedVersion
 
       // Closing a listing closes its open conversations so buyers aren't left waiting.
       if (next === "sold" || next === "unavailable") {
-        await tx`update restix.inquiries set status = 'closed', responded_at = coalesce(responded_at, now())
+        await tx`update restix.inquiries set status = 'closed'
                  where listing_id = ${id} and status = 'pending'`;
       }
       const message = next === "pending_review" ? "Sent to moderators for a quick policy check." : undefined;
@@ -445,7 +452,7 @@ export async function sellerStats(viewerId: string, sellerId: string): Promise<S
   const [row] = await asUser(viewerId, (tx) => tx<{ handovers: number | null; replies: number | null; medianReplyMinutes: number | null }[]>`
     select handovers, replies, median_reply_minutes from restix.seller_stats(${sellerId})`);
   const replies = row?.replies ?? 0;
-  return { handovers: row?.handovers ?? 0, replies, medianReplyMinutes: replies >= 2 ? row?.medianReplyMinutes ?? null : null };
+  return { handovers: row?.handovers ?? 0, replies, medianReplyMinutes: replies >= 5 ? row?.medianReplyMinutes ?? null : null };
 }
 
 /** Other live listings for the same event, cheapest first, for "more from this event". */

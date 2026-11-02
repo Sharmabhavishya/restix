@@ -90,6 +90,7 @@ export async function offersWaiting(viewerId: string): Promise<number> {
     select count(*)::int as n
     from restix.offers o join restix.inquiries i on i.id = o.inquiry_id
     where o.status = 'open' and o.from_user <> ${viewerId}
-      and ${viewerId} in (i.buyer_id, i.seller_id) and i.status in ('pending', 'accepted')`);
+      and ${viewerId} in (i.buyer_id, i.seller_id) and i.status in ('pending', 'accepted')
+      and not (i.status = 'pending' and i.seller_id = ${viewerId})`); // a seller's new request already counts, offer and all
   return row.n;
 }

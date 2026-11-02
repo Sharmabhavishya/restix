@@ -6,6 +6,7 @@ import { ChevronDown, Minus, Plus } from "lucide-react";
 import { FORMAT_ICON } from "@/components/format-icon";
 import { EventPicker } from "@/components/event-picker";
 import { initialState } from "@/lib/action-state";
+import { useFormFeedback } from "@/lib/use-form-feedback";
 import {
   FORMAT_HINT, FORMAT_LABEL, FORMATS, HANDOVER_LABEL, handoversFor, defaultHandover,
   type HandoverMethod, type TicketFormat, type TransferPolicy,
@@ -63,6 +64,7 @@ export interface ListingDefaults {
  */
 export function ListingForm({ events, defaults = {}, editing = false }: { events: FormEvent[]; defaults?: ListingDefaults; editing?: boolean }) {
   const [state, action] = useActionState(saveListing, initialState);
+  const { ref: formRef, rev } = useFormFeedback(state);
   const v = state.values;
   const fe = state.fieldErrors ?? {};
   const [eventId, setEventId] = useState(v?.eventId ?? defaults.eventId ?? "");
@@ -95,7 +97,7 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
   const opened = (keys: string[], hasDefault = false) => keys.some((k) => fe[k]) || hasDefault || undefined;
 
   return (
-    <form action={action} className="flex flex-col gap-8" noValidate>
+    <form ref={formRef} action={action} className="flex flex-col gap-8" noValidate>
       {/* Live preview: the exact card people will see, changing shape with the kind of ticket. */}
       <section aria-label="Preview" className="z-10 -mx-1 flex flex-col gap-2 rounded-[var(--radius-card)] bg-surface/95 px-1 pt-3 pb-3 backdrop-blur-sm md:sticky md:top-4">
         <p className="text-[13px] text-muted">{event ? "preview · this is how it shows up" : "preview · pick an event to see yours"}</p>
@@ -164,7 +166,7 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
         )}
         {blocked && <Notice tone="error" title="Can't list for this event">Tickets for this event can&apos;t be resold right now.</Notice>}
         {event && event.ticketTypes.length > 1 ? (
-          <fieldset>
+          <fieldset key={`level-${rev}`}>
             <legend className="mb-1.5 text-sm font-medium">Which level?</legend>
             <div className="flex flex-wrap gap-2">
               {event.ticketTypes.map((t) => {
@@ -207,7 +209,7 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
             </button>
           </div>
         ) : (
-        <fieldset>
+        <fieldset key={`format-${rev}`}>
           <legend className="sr-only">Kind of ticket</legend>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {FORMATS.map((f) => {
@@ -299,7 +301,7 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
         <p className="text-[13px] font-medium text-muted">More options <span className="font-normal">· all optional</span></p>
 
         <More title="Offers and deals" sub={dealSummary(negotiable, bulkMinN, bulkPricePaise)} open={opened(["bulkMinQuantity", "bulkPrice", "originalPrice"], Boolean(defaults.bulkMinQuantity))}>
-          <Checkbox id="priceNegotiable" name="priceNegotiable" label="Open to offers" hint="On by default. Buyers can suggest a price; you take it, counter or pass. Untick for a fixed price." checked={negotiable} onChange={(e) => setNegotiable(e.target.checked)} />
+          <Checkbox key={`neg-${rev}`} id="priceNegotiable" name="priceNegotiable" label="Open to offers" hint="On by default. Buyers can suggest a price; you take it, counter or pass. Untick for a fixed price." checked={negotiable} onChange={(e) => setNegotiable(e.target.checked)} />
           <fieldset className="flex flex-col gap-2">
             <legend className="text-sm font-medium">Multi-ticket deal</legend>
             <p className="text-[13px] text-muted">

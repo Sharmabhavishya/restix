@@ -54,6 +54,7 @@ export async function deleteAccount(viewerId: string): Promise<Result> {
   const [{ onRecord }] = await asSystem((tx) => tx<{ onRecord: boolean }[]>`
     select exists (select 1 from restix.inquiries i
                    where (i.buyer_id = ${viewerId} or i.seller_id = ${viewerId}) and i.status in ('accepted', 'closed')
+                     and (i.seller_whatsapp is not null or i.seller_contact_shared is not null)
                      and i.responded_at > now() - interval '60 days')
         or exists (select 1 from restix.ticket_listings l
                    where l.seller_id = ${viewerId} and l.status = 'removed' and l.updated_at > now() - interval '90 days') as on_record`);

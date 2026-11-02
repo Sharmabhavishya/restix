@@ -26,7 +26,7 @@ describe("bargaining", () => {
     expect(c.sent).toEqual({ ok: true });
     expect((await openOffer(c.seller.id, c.inquiryId))?.amountPaise).toBe(35000);
 
-    expect(await offers.offersWaiting(c.seller.id)).toBe(1);
+    expect(await offers.offersWaiting(c.seller.id)).toBe(0); // a new request already counts as waiting, offer and all
     expect(await offers.offersWaiting(c.buyer.id)).toBe(0);
 
     // The seller counters; the buyer's offer is retired, and only one stays open.
@@ -58,13 +58,48 @@ describe("bargaining", () => {
     expect(await openOffer(c.buyer.id, c.inquiryId)).toBeUndefined();
   });
 
-  it("accepting leaves the seller's own open counter open", async () => {
+  it("accepting withdraws the seller's own open counter: the price is settled in the chat", async () => {
     const c = await conversation({ offerPaise: 35000 });
     await offers.makeOffer(c.seller.id, { inquiryId: c.inquiryId, amountPaise: 45000 });
     await inquiries.respondToInquiry(c.seller.id, { inquiryId: c.inquiryId, decision: "accept", shareWhatsapp: false, note: "DM me" });
     const [buyerView] = await inquiries.inbox(c.buyer.id);
     expect(buyerView.agreedPricePaise).toBeNull();
-    expect((await openOffer(c.buyer.id, c.inquiryId))?.amountPaise).toBe(45000);
+    expect(await openOffer(c.buyer.id, c.inquiryId)).toBeUndefined();
+  });
+
+  it("won't promise more tickets than the listing has", async () => {
+    const seller = await makeUser();
+    const { listingId } = await makeListing(seller.id, { negotiable: true });
+    await asSystem((tx) => tx`update restix.ticket_listings set quantity = 2, version = version + 1 where id = ${listingId}`);
+    const asked: string[] = [];
+    for (const qty of [1, 2, 1]) {
+      const buyer = await makeUser();
+      expect(await inquiries.sendInquiry(buyer.id, { listingId, quantity: qty, message: MSG })).toEqual({ ok: true });
+      asked.push(buyer.id);
+    }
+    const inbox = await inquiries.inbox(seller.id);
+    const idFor = (qty: number, nth = 0) => inbox.filter((r) => r.quantityRequested === qty)[nth].id;
+    const yes = (id: string) => inquiries.respondToInquiry(seller.id, { inquiryId: id, decision: "accept", shareWhatsapp: false, note: "Library steps" });
+    expect(await yes(idFor(1))).toEqual({ ok: true }); // 1 of 2 promised
+    expect(await yes(idFor(2))).toMatchObject({ ok: false, error: expect.stringContaining("1 ticket left") }); // 2 more won't fit
+    expect(await yes(idFor(1, 1))).toEqual({ ok: true }); // the last one fits
+  });
+
+  it("an unanswered request closed by the sale can't record outcomes", async () => {
+    const c = await conversation();
+    // The seller sells the listing to someone else: the pending request is closed, never accepted.
+    await asSystem((tx) => tx`update restix.inquiries set status = 'closed' where id = ${c.inquiryId}`);
+    expect(await inquiries.confirmOutcome(c.buyer.id, { inquiryId: c.inquiryId, outcome: "not_completed", note: null })).toMatchObject({ ok: false });
+  });
+
+  it("finds listings by several words, in any order", async () => {
+    const seller = await makeUser();
+    await makeListing(seller.id);
+    const viewer = await makeUser();
+    const found = async (q: string) => (await listings.searchListings(viewer.id, { q, sort: "newest", page: 1 } as never)).total;
+    expect(await found("test event")).toBeGreaterThan(0);
+    expect(await found("event test")).toBeGreaterThan(0);
+    expect(await found("test banana")).toBe(0);
   });
 
   it("keeps fixed-price listings fixed unless the seller opens the bargaining", async () => {

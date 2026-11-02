@@ -9,6 +9,7 @@ import type { SellerAction } from "@/lib/listing-rules";
 import { getViewer, writeBlockReason } from "@/server/auth/viewer";
 import { createListing, sellerAction, updateListing } from "@/server/listings";
 import { sendInquiry } from "@/server/inquiries";
+import { privateProfile } from "@/server/profile";
 import { submitReport } from "@/server/moderation";
 import { setSaved } from "@/server/saved";
 
@@ -109,6 +110,9 @@ export async function contactSeller(_prev: ActionState, formData: FormData): Pro
   });
   if (!parsed.success) return { error: "Check the highlighted fields.", fieldErrors: fieldErrors(parsed.error), values: formValues(formData) };
   const { offer, ...rest } = parsed.data;
+  if (rest.shareWhatsapp && !rest.whatsapp && !(await privateProfile(viewer!.id))?.whatsappNumber) {
+    return { error: "Add your number, or untick the WhatsApp box.", fieldErrors: { whatsapp: "Add your WhatsApp number, or untick the box above to send without it." }, values: formValues(formData) };
+  }
   const result = await sendInquiry(viewer!.id, { ...rest, offerPaise: offer });
   if (!result.ok) return { error: result.error, values: formValues(formData) };
   revalidatePath(`/listings/${parsed.data.listingId}`);

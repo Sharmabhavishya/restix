@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Scratch scripts from simulated-user test runs (not part of the app).
+    ".sim/**",
+    "demo-screenshots/**",
   ]),
 ]);
 

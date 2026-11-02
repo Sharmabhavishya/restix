@@ -129,6 +129,7 @@ test.describe("rules and states", () => {
     await page.getByRole("button", { name: "Pause" }).click();
     await expect(page.getByText(/Paused/).first()).toBeVisible();
     await stale.getByRole("button", { name: "Mark sold" }).click();
+    await stale.getByRole("button", { name: "Yes, mark sold" }).click(); // marking sold asks first
     await expect(stale.getByText(/changed since you opened it/)).toBeVisible();
     await page.getByRole("button", { name: "Resume" }).click();
     await context.close();

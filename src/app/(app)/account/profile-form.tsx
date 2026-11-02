@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { initialState } from "@/lib/action-state";
+import { useFormFeedback } from "@/lib/use-form-feedback";
 import { saveProfile } from "./actions";
 import { Checkbox, Field, describedBy } from "@/components/ui/field";
 import { Notice } from "@/components/ui/bits";
@@ -21,10 +22,11 @@ export function ProfileForm({
   next?: string;
 }) {
   const [state, action] = useActionState(saveProfile, initialState);
+  const { ref: formRef } = useFormFeedback(state);
   const v = state.values;
   const fe = state.fieldErrors ?? {};
   return (
-    <form action={action} className="flex flex-col gap-5" noValidate>
+    <form ref={formRef} action={action} className="flex flex-col gap-5" noValidate>
       {onboarding && <input type="hidden" name="onboarding" value="1" />}
       {next && <input type="hidden" name="next" value={next} />}
       {state.error && <Notice tone="error">{state.error}</Notice>}
@@ -51,6 +53,7 @@ export function ProfileForm({
           <Checkbox
             id="rules"
             name="rules"
+            defaultChecked={v?.rules === "on"}
             label="I'll only list tickets I own and am allowed to resell"
             hint="ResTix doesn't handle payments or guarantee tickets. Check the ticket before paying."
           />

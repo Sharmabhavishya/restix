@@ -67,7 +67,7 @@ describe("listingInput", () => {
     ["qr", "digital_transfer"],
     ["email", "digital_transfer"],
     ["app", "digital_transfer"],
-    ["other", "digital_transfer"],
+    ["other", "either"],
   ])("picks a sensible handover for a %s when none is given", (format, handover) => {
     const r = listingInput.safeParse({ ...base, format, handoverMethod: undefined });
     expect(r.success && r.data.handoverMethod).toBe(handover);
@@ -176,6 +176,10 @@ describe("containsContactDetails", () => {
       "98⁠76543210", "9​8​7​6​5​4​3​2​1​0", // invisible characters
       "foo at gmail dot com", "foo(at)gmail.com", "foo＠gmail.com",
       "ig: foo_bar", "insta - foo.bar", "@foo_bar", "snap:foo",
+      "nine eight seven six five four three two one zero", "ek do teen char paanch chhe saat aath",
+      "dm me", "whatsapp me please", "hit me up on insta", "call me after 6", "contact me for the ticket",
+      "insta diya_s1", "ig diya_snu", "diya#1234", "fb.com/diya", "linktr.ee/diya", "bit.ly/3abc", "https://x.co/a", "www.site.com",
+      "pay diya@okaxis", "send to raj@ybl",
     ]) {
       expect(containsContactDetails(sneaky), sneaky).toBe(true);
     }
@@ -185,6 +189,8 @@ describe("containsContactDetails", () => {
     for (const fine of [
       "Meet at the library at 6, bring ID", "Row F, seat 12, 2 tickets for ₹1,500", "Gate 3 near the canteen, Sat 10 Nov",
       "Night 2 of the fest, 5 pm onwards", "I'm at hostel B, room 204", "Price is firm, sorry",
+      "Two tickets, one for me and one for a friend, row F", "Message the organisers if the gate is shut", "Bring your college ID, doors at 6",
+      "Paid ₹1,500 for two, selling both at cost",
     ]) {
       expect(containsContactDetails(fine), fine).toBe(false);
     }

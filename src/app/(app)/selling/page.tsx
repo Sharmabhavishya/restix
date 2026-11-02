@@ -11,7 +11,7 @@ import { CountTile } from "@/components/ui/count-tile";
 export const metadata: Metadata = { title: "My listings" };
 
 const GROUPS: { key: string; label: string; statuses: ListingStatus[] }[] = [
-  { key: "live", label: "Live", statuses: ["active", "paused"] },
+  { key: "live", label: "Live or paused", statuses: ["active", "paused"] },
   { key: "waiting", label: "Drafts & review", statuses: ["draft", "pending_review"] },
   { key: "closed", label: "Sold & closed", statuses: ["sold", "unavailable", "expired"] },
   { key: "problems", label: "Taken down", statuses: ["removed", "rejected"] },

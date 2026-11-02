@@ -111,7 +111,9 @@ function InquiryCard({ row: r, hasWhatsapp, viewerName, offers }: { row: Inquiry
   const theirFirst = r.counterpartName.split(/\s+/)[0];
   const [label, tone] = STATUS[r.status];
   const style = bandStyle(r.eventId) as React.CSSProperties;
-  const showOutcome = (r.status === "accepted" || r.status === "closed") && r.respondedAt && !r.myOutcome;
+  const sellerSaidYes = Boolean(r.sellerWhatsapp || r.sellerContactShared);
+  const showOutcome = (r.status === "accepted" || r.status === "closed") && sellerSaidYes && !r.myOutcome;
+  const shownOffers = live ? offers : offers.map((o) => (o.status === "open" ? { ...o, status: "withdrawn" as const } : o));
   return (
     <Panel as="article" className="overflow-hidden">
       <div style={style} className="flex flex-wrap items-center justify-between gap-3 bg-[var(--band)] px-5 py-3">
@@ -142,7 +144,7 @@ function InquiryCard({ row: r, hasWhatsapp, viewerName, offers }: { row: Inquiry
 
         <Bargain
           inquiryId={r.id}
-          offers={offers}
+          offers={shownOffers}
           otherName={r.counterpartName.split(/\s+/)[0]}
           agreedPricePaise={r.agreedPricePaise}
           canOffer={canOffer}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireBrowser, writeBlockReason } from "@/server/auth/viewer";
 import { listableEvents } from "@/server/events";
+import { getListing } from "@/server/listings";
 import { eventCloseTime } from "@/lib/listing-rules";
 import { ListingForm, type FormEvent } from "../listings/listing-form";
 import { EmptyState, Notice, PageTitle, Panel } from "@/components/ui/bits";
@@ -28,6 +29,16 @@ export default async function SellPage({ searchParams }: PageProps<"/sell">) {
     wants: e.wantCount ?? 0,
   }));
   const preselect = typeof sp.event === "string" ? events.find((e) => e.slug === sp.event)?.id : undefined;
+  // "List it again" / "List another like this": the form starts from one of the seller's own listings.
+  const from = typeof sp.from === "string" && /^[0-9a-f-]{36}$/i.test(sp.from) ? await getListing(viewer.id, sp.from) : null;
+  const copy = from && from.sellerId === viewer.id && events.some((e) => e.id === from.eventId)
+    ? {
+        eventId: from.eventId, ticketTypeId: from.ticketTypeId, format: from.format, quantity: from.quantity,
+        askingPricePaise: from.askingPricePaise, originalPricePaise: from.originalPricePaise, priceNegotiable: from.priceNegotiable,
+        handoverMethod: from.handoverMethod, meetupArea: from.meetupArea, handoverNotes: from.handoverNotes, sellerNotes: from.sellerNotes,
+        bulkMinQuantity: from.bulkMinQuantity, bulkPricePaise: from.bulkPricePaise,
+      }
+    : null;
 
   return (
     <>
@@ -41,7 +52,7 @@ export default async function SellPage({ searchParams }: PageProps<"/sell">) {
               Add yours below. Once an admin approves it, you can list your ticket.
             </EmptyState>
           ) : (
-            <ListingForm events={formEvents} defaults={{ eventId: preselect }} />
+            <ListingForm events={formEvents} defaults={copy ?? { eventId: preselect }} />
           )}
         </Panel>
         {!blocked && (

@@ -138,7 +138,10 @@ audit log, version skipping, cross-college reads, and more).
 - `ticket_listings.previous_price_paise` / `price_dropped_at`: set only by the
   `listings_price_drop` trigger when the asking price goes down (keeping the highest price of
   the past week through a series of cuts), cleared when it goes up, never set on insert. No
-  column grant, so clients can't fake a drop. Cards show it for 7 days.
+  column grant, so clients can't fake a drop. Cards show it for 7 days. `price_set_at` records
+  when the price last changed (same trigger, same no-grant rule). The old price only counts as the
+  "was" price once it had been the asking price for a day, so raising a price and dropping it back
+  an hour later shows no markdown.
 
 ## Admin powers (migration 20261028120000)
 
@@ -171,7 +174,7 @@ From the 2026-10-29 review, each backed by `tests/integration/security.test.ts`:
 - `moderation_insert` needs `moderates()` for the college of the row's subject, so audit entries can't be
   written about another college.
 - `hit_rate_limit`, `expire_listings`, `purge_old_data` are not executable by `anon`/`authenticated`.
-- `confirmations_insert` accepts `accepted` requests, or `closed` ones that were answered (`responded_at`).
+- `confirmations_insert` accepts `accepted` requests, or `closed` ones where the seller said yes (contact shared). A request closed unanswered by a sale or removal was never a handover.
 - Cover versions come from `restix.event_cover_version_seq`, so a version is never reused.
 
 Known and accepted: the `profiles` read policy is not college-scoped (one college today; scope it when
