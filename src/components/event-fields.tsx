@@ -7,7 +7,7 @@ import { toLocalInput } from "@/lib/format";
 import { QUICK_TIMES, joinLocal, plusHours, quickDays, splitLocal, tillLate } from "@/lib/quick-dates";
 
 const chip =
-  "inline-flex h-9 cursor-pointer items-center rounded-full border border-border bg-surface px-3.5 text-[14px] font-medium transition-[border-color,background-color,transform] " +
+  "inline-flex h-10 cursor-pointer sm:h-9 items-center rounded-full border border-border bg-surface px-3.5 text-[14px] font-medium transition-[border-color,background-color,transform] " +
   "hover:border-control-hover active:scale-[0.97] aria-pressed:border-accent aria-pressed:bg-accent-soft aria-pressed:text-accent-ink " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
@@ -39,10 +39,11 @@ export function DateTimeQuick({
 }) {
   const { ymd, time } = splitLocal(value);
   const isEnd = startValue !== undefined;
+  const inPast = !isEnd && Boolean(value) && value < toLocalInput(new Date());
   const beforeStart = isEnd && Boolean(value) && Boolean(startValue) && value <= startValue!;
 
   return (
-    <Field label={label} htmlFor={id} optional={optional} error={error ?? (beforeStart ? "That's before it starts." : undefined)} hint={hint}>
+    <Field label={label} htmlFor={id} optional={optional} error={error ?? (beforeStart ? "That's before it starts." : undefined)} hint={inPast ? <span className="font-medium text-notice-ink">That date has already passed. Is that right?</span> : hint}>
       <Input id={id} name={name} type="datetime-local" value={value} onChange={(e) => onChange(e.target.value)} {...describedBy(id, error ?? (beforeStart ? "x" : undefined), Boolean(hint))} />
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Quick picks">
         {isEnd ? (

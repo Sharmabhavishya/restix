@@ -8,7 +8,7 @@ export async function PublicHeader() {
   const signedIn = viewer && (viewer.access === "ok" || viewer.access === "restricted");
   return (
     <header className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between px-4 sm:px-6">
-      <Link href="/" className="pt-1">
+      <Link href="/" className="tap -mx-2 px-2 pt-1">
         <Wordmark className="text-[26px]" />
       </Link>
       <nav aria-label="Site" className="flex items-center gap-1 sm:gap-2">

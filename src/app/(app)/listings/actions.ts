@@ -7,7 +7,7 @@ import { fieldErrors, formValues, type ActionState } from "@/lib/action-state";
 import { inquiryInput, listingInput, reportInput } from "@/lib/validation";
 import type { SellerAction } from "@/lib/listing-rules";
 import { getViewer, writeBlockReason } from "@/server/auth/viewer";
-import { createListing, sellerAction, updateListing } from "@/server/listings";
+import { createListing, marketHint, sellerAction, updateListing, type MarketHint } from "@/server/listings";
 import { sendInquiry } from "@/server/inquiries";
 import { privateProfile } from "@/server/profile";
 import { submitReport } from "@/server/moderation";
@@ -136,6 +136,13 @@ export async function reportListing(_prev: ActionState, formData: FormData): Pro
 }
 
 /** Saves or unsaves a listing. Called from the heart button; the result drives its state. */
+/** What others are asking for the same ticket type, shown under the price field. */
+export async function marketHintAction(eventId: string, ticketTypeId: string): Promise<MarketHint | null> {
+  const viewer = await getViewer();
+  if (!viewer || viewer.access !== "ok" || !z.uuid().safeParse(eventId).success || !z.uuid().safeParse(ticketTypeId).success) return null;
+  return marketHint(viewer.id, eventId, ticketTypeId);
+}
+
 export async function toggleSaved(listingId: string, save: boolean): Promise<{ ok: boolean; saved?: boolean; error?: string }> {
   const viewer = await getViewer();
   const blocked = writeBlockReason(viewer);

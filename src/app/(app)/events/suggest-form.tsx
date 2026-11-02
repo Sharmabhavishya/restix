@@ -48,7 +48,7 @@ export function SuggestForm() {
           {LEVEL_PRESETS.map((level) => (
             <label
               key={level}
-              className="inline-flex h-9 cursor-pointer items-center rounded-full border border-border bg-surface px-3.5 text-[14px] font-medium transition-[border-color,background-color] hover:border-control-hover has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent"
+              className="inline-flex h-10 cursor-pointer items-center sm:h-9 rounded-full border border-border bg-surface px-3.5 text-[14px] font-medium transition-[border-color,background-color] hover:border-control-hover has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-ink has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent"
             >
               <input type="checkbox" name="ticketTypes" value={level} defaultChecked={ticked.has(level)} className="sr-only" />
               {level}

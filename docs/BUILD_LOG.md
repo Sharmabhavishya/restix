@@ -218,3 +218,32 @@ ResTix). Update after every milestone; newest log entries last.
 - **WhatsApp numbers:** fields show a fixed +91; numbers from abroad still work with their own +code.
 - Tests added: `tests/integration/signals.test.ts`; e2e updates in `journey.spec.ts` and
   `bargain.spec.ts`.
+
+## Pre-launch pass (3 November 2026)
+
+Five simulated roles (new and power sellers, buyers and hagglers, moderators, an admin, a
+scammer, phone-first and keyboard-only users) used the production build; about 30 problems were
+found and fixed. Highlights:
+
+- **Rules and safety:** broader contact-detail detection (spelled-out digits, handles, links, UPI
+  ids) with ReDoS tests; a seller can't accept more tickets than the listing has; a request closed
+  unanswered by a sale can't record a handover; "was ₹X" markdowns only count a price that was
+  live for a day (`price_set_at`, migration `20261103090000`); reinstating a student resumes
+  their paused listings; appeals need something to appeal.
+- **Forms:** event forms have one-tap day, time, end-time, kind and venue pickers
+  (`src/components/event-fields.tsx`, `src/lib/quick-dates.ts`), a live check of the web address,
+  and a warning for past dates. After a failed submit the first problem is scrolled to and focused
+  (`useFormFeedback`) and ticked options are restored. The Sell form saves a draft on the device,
+  offers it back, and shows what others ask for the same ticket (`marketHint`, two or more needed).
+- **Moments:** request-sent confetti and next steps, a sticky "Request" bar on phones, relist and
+  "list another like this", confirm before marking sold, an in-app alert on Events when a wanted
+  event has tickets.
+- **Sharing and install:** `/e/<slug>` is a public page for one upcoming real event (no sellers,
+  no listings, never a sample event, not indexed) with its own preview image; Share buttons use it.
+  A web manifest and icons let students add ResTix to the home screen.
+- **Admin:** reports on one listing or account show as one row with a count.
+- **Touch:** every control on phones measures 40px or more (logo link, small buttons, chips).
+- Free (₹0) tickets are deliberate and stay "Steal"-tagged; "from ₹0" is allowed.
+- Not built, on purpose: auto-hold after N reports (three accounts could take a rival's listing
+  down) and push or email alerts (no messaging provider is set up).
+- Test-only: the dev sign-in limit is 120 per 10 minutes so the full e2e run doesn't trip it.

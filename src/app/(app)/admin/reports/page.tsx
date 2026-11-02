@@ -21,6 +21,14 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
   const mod = await requireModerator();
   const tab = TABS.find((t) => t.key === sp.status)?.key ?? "active";
   const [rows, counts] = await Promise.all([reportQueue(mod.id, tab), queueCounts(mod.id)]);
+  // Several reports on one listing or account show as one row: the most urgent first, the rest counted.
+  const seen = new Map<string, number>();
+  const shown = rows.filter((r) => {
+    if (tab !== "active") return true;
+    const key = r.listingId ?? r.reportedUserId ?? r.id;
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+    return seen.get(key) === 1;
+  });
   const oldest = tab === "active" && rows.length ? rows.reduce((a, b) => (a.createdAt < b.createdAt ? a : b)) : null;
 
   return (
@@ -77,7 +85,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
       ) : (
         <Panel>
           <ul className="divide-y divide-rule">
-            {rows.map((r) => {
+            {shown.map((r) => {
               const snap = r.targetSnapshot as Record<string, string | number | undefined>;
               return (
                 <li key={r.id}>
@@ -95,7 +103,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
                       </p>
                     </div>
                     <div className="flex flex-none items-center gap-3 text-[13px] text-muted sm:justify-end">
-                      {r.reportsOnTarget > 1 && <span className="font-medium text-negative">{r.reportsOnTarget} open reports</span>}
+                      {r.reportsOnTarget > 1 && <span className="font-medium text-negative">{r.reportsOnTarget} open reports on this</span>}
                       <span>{relativeTime(r.createdAt)}</span>
                     </div>
                   </Link>

@@ -102,3 +102,16 @@ describe("event requests, appeals and paging", () => {
     expect(r.page).toBe(r.pages);
   });
 });
+
+describe("price guidance on the Sell form", () => {
+  it("shows what others ask once there are two to compare, never counting your own", async () => {
+    const [a, b, me] = [await makeUser(), await makeUser(), await makeUser()];
+    const first = await makeListing(a.id); // ₹500
+    expect(await listings.marketHint(me.id, first.eventId, first.ticketTypeId)).toBeNull(); // one is not a market
+    const second = await makeListing(b.id, { eventId: first.eventId, ticketTypeId: first.ticketTypeId });
+    await setPrice(second.listingId, 70_000);
+    expect(await listings.marketHint(me.id, first.eventId, first.ticketTypeId)).toEqual({ count: 2, minPaise: 50_000, medianPaise: 60_000, maxPaise: 70_000 });
+    // Their own listings don't count towards their own guidance.
+    expect(await listings.marketHint(a.id, first.eventId, first.ticketTypeId)).toBeNull();
+  });
+});

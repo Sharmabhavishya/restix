@@ -127,7 +127,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/admin"
         <Panel className="p-5">
           <div className="flex items-baseline justify-between">
             <h2 className="text-[15px] font-semibold">Newest students</h2>
-            <Link href="/admin/users" className="text-[13px] underline">All {n.users}</Link>
+            <Link href="/admin/users" className="tap -mx-2 px-2 text-[13px] underline">All {n.users}</Link>
           </div>
           <ul className="mt-3 flex flex-col divide-y divide-rule">
             {d.newest.map((u) => (
@@ -145,7 +145,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/admin"
         <Panel className="p-5">
           <div className="flex items-baseline justify-between">
             <h2 className="text-[15px] font-semibold">Latest moderation</h2>
-            <Link href="/admin/audit" className="text-[13px] underline">All</Link>
+            <Link href="/admin/audit" className="tap -mx-2 px-2 text-[13px] underline">All</Link>
           </div>
           {audit.length === 0 ? (
             <p className="mt-3 text-[13px] text-muted">No actions yet.</p>

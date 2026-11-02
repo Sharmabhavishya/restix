@@ -121,7 +121,7 @@ export function MobileBar({ groups, footer, scope }: { groups: NavGroup[]; foote
   return (
     <div className="md:hidden">
       <div className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-border bg-ground px-4">
-        <Link href="/tickets" className="pt-1">
+        <Link href="/tickets" className="tap -mx-2 px-2 pt-1">
           <Wordmark className="text-[22px]" />
         </Link>
         <button

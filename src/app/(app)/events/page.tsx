@@ -3,7 +3,8 @@ import { requireBrowser } from "@/server/auth/viewer";
 import { listUpcomingEvents } from "@/server/events";
 import { mySuggestions } from "@/server/event-admin";
 import { SuggestForm } from "./suggest-form";
-import { EmptyState, PageTitle, Panel, Pill } from "@/components/ui/bits";
+import Link from "next/link";
+import { EmptyState, Notice, PageTitle, Panel, Pill } from "@/components/ui/bits";
 import { EventPoster } from "@/components/event-poster";
 import { MotionRoot } from "@/components/motion-root";
 import { ButtonLink, buttonClass } from "@/components/ui/button";
@@ -19,6 +20,8 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
   const viewer = await requireBrowser("/events");
   const [all, suggestions] = await Promise.all([listUpcomingEvents(viewer.id), mySuggestions(viewer.id)]);
   const events = all.filter((e) => matchesSearch(e, q));
+  // Events you said you wanted tickets for that now have some: the alert, in the app.
+  const nowUp = all.filter((e) => e.iWant && e.availableTickets > 0);
 
   return (
     <>
@@ -28,6 +31,16 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
         sub="what's coming up, and what's already listed."
         actions={viewer.role ? <ButtonLink href="/admin/events/new" variant="dark">Add event</ButtonLink> : <ButtonLink href="#suggest" variant="secondary">Add an event</ButtonLink>}
       />
+      {nowUp.length > 0 && !q && (
+        <Notice tone="success" title="Tickets are up for events you wanted" className="mb-5">
+          {nowUp.map((e, i) => (
+            <span key={e.id}>
+              {i > 0 && " · "}
+              <Link href={`/events/${e.slug}`} className="font-medium underline">{e.name}</Link> ({e.availableTickets})
+            </span>
+          ))}
+        </Notice>
+      )}
       {(all.length >= 6 || q) && (
         <form method="get" role="search" className="mb-5 flex max-w-xl gap-2">
           <Input name="q" type="search" defaultValue={q} placeholder="Search events or venues" aria-label="Search events" />

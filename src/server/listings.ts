@@ -447,6 +447,25 @@ async function maybeExpire(): Promise<void> {
   }
 }
 
+export interface MarketHint {
+  count: number;
+  minPaise: number;
+  medianPaise: number;
+  maxPaise: number;
+}
+
+/** What other students are asking for the same ticket type, for the price hint on the Sell form. Aggregates only; null with fewer than 2 others. */
+export async function marketHint(viewerId: string, eventId: string, ticketTypeId: string): Promise<MarketHint | null> {
+  const [row] = await asUser(viewerId, (tx) => tx<{ n: number; lo: number | null; mid: number | null; hi: number | null }[]>`
+    select count(*)::int as n, min(asking_price_paise)::int as lo,
+           percentile_cont(0.5) within group (order by asking_price_paise)::int as mid, max(asking_price_paise)::int as hi
+    from restix.ticket_listings
+    where event_id = ${eventId} and ticket_type_id = ${ticketTypeId} and seller_id <> ${viewerId}
+      and status = 'active' and expires_at > now()`);
+  if (!row || row.n < 2 || row.lo === null || row.mid === null || row.hi === null) return null;
+  return { count: row.n, minPaise: row.lo, medianPaise: row.mid, maxPaise: row.hi };
+}
+
 /** A seller's track record, as aggregates only (see restix.seller_stats). */
 export async function sellerStats(viewerId: string, sellerId: string): Promise<SellerStats> {
   const [row] = await asUser(viewerId, (tx) => tx<{ handovers: number | null; replies: number | null; medianReplyMinutes: number | null }[]>`

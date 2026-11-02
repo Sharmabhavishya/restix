@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, Minus, Plus } from "lucide-react";
 import { FORMAT_ICON } from "@/components/format-icon";
 import { EventPicker } from "@/components/event-picker";
 import { initialState } from "@/lib/action-state";
 import { useFormFeedback } from "@/lib/use-form-feedback";
+import { saveSellDraft, useSellDraft } from "@/lib/use-sell-draft";
 import {
   FORMAT_HINT, FORMAT_LABEL, FORMATS, HANDOVER_LABEL, handoversFor, defaultHandover,
   type HandoverMethod, type TicketFormat, type TransferPolicy,
@@ -14,10 +15,12 @@ import {
 import { dealFor, TIER_LABEL } from "@/lib/deal";
 import { formatPaise, paiseToInput, parseRupees } from "@/lib/money";
 import { formatDateTime, toLocalInput } from "@/lib/format";
-import { saveListing } from "./actions";
+import { marketHintAction, saveListing } from "./actions";
+import type { MarketHint } from "@/server/listings";
 import { Field, Input, Select, Textarea, Checkbox, describedBy } from "@/components/ui/field";
 import { Notice } from "@/components/ui/bits";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { buttonClass } from "@/components/ui/button";
 import { PRICE_TONE, TicketCard } from "@/components/ticket-card";
 
 
@@ -82,6 +85,44 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
   const [bulkPrice, setBulkPrice] = useState(v?.bulkPrice ?? paiseToInput(defaults.bulkPricePaise ?? null));
   const [meetup, setMeetup] = useState(v?.meetupArea ?? defaults.meetupArea ?? "");
 
+  // What others are asking for this ticket type, once there are at least two to compare with.
+  const [market, setMarket] = useState<{ key: string; hint: MarketHint | null } | null>(null);
+  useEffect(() => {
+    if (!eventId || !ticketTypeId) return;
+    let stale = false;
+    const key = `${eventId}:${ticketTypeId}`;
+    const t = window.setTimeout(async () => {
+      const hint = await marketHintAction(eventId, ticketTypeId).catch(() => null);
+      if (!stale) setMarket({ key, hint });
+    }, 300);
+    return () => { stale = true; window.clearTimeout(t); };
+  }, [eventId, ticketTypeId]);
+  const marketNow = market?.key === `${eventId}:${ticketTypeId}` ? market.hint : null;
+
+  // A new listing keeps its quick answers on this device, and offers them back after a closed tab.
+  const savedDraft = useSellDraft();
+  const [draftHandled, setDraftHandled] = useState(false);
+  const draftsOn = !editing && !defaults.listingId && !defaults.eventId;
+  // Offered only while the form is still untouched; once someone starts a new one, that replaces the old draft.
+  const offerDraft = draftsOn && !draftHandled && !eventId && !price && savedDraft !== null && events.some((e) => e.id === savedDraft.eventId);
+  useEffect(() => {
+    if (!draftsOn || offerDraft || (!eventId && !price)) return;
+    saveSellDraft({ eventId, ticketTypeId, format, quantity, price, meetup, negotiable });
+  }, [draftsOn, offerDraft, eventId, ticketTypeId, format, quantity, price, meetup, negotiable, state]);
+  function restoreDraft() {
+    if (!savedDraft) return;
+    const ev = events.find((e) => e.id === savedDraft.eventId);
+    if (!ev) return;
+    setEventId(ev.id);
+    setTicketTypeId(ev.ticketTypes.some((t) => t.id === savedDraft.ticketTypeId) ? savedDraft.ticketTypeId : ev.ticketTypes[0]?.id ?? "");
+    if (FORMATS.includes(savedDraft.format as TicketFormat)) setFormat(savedDraft.format as TicketFormat);
+    setQuantity(clampQty(savedDraft.quantity));
+    setPrice(savedDraft.price);
+    setMeetup(savedDraft.meetup);
+    setNegotiable(savedDraft.negotiable);
+    setDraftHandled(true);
+  }
+
   const pricePaise = parseRupees(price);
   const bulkPricePaise = parseRupees(bulkPrice);
   // A deal threshold above the quantity (after lowering it) no longer applies.
@@ -97,7 +138,16 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
   const opened = (keys: string[], hasDefault = false) => keys.some((k) => fe[k]) || hasDefault || undefined;
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-8" noValidate>
+    <form ref={formRef} action={action} onSubmit={() => saveSellDraft(null)} className="flex flex-col gap-8" noValidate>
+      {offerDraft && (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] border border-border bg-raised px-4 py-3 text-sm">
+          <span>You started a listing here before. Pick up where you left off?</span>
+          <span className="flex gap-2">
+            <button type="button" onClick={restoreDraft} className={buttonClass("dark", "sm")}>Continue it</button>
+            <button type="button" onClick={() => { saveSellDraft(null); setDraftHandled(true); }} className={buttonClass("ghost", "sm")}>Start fresh</button>
+          </span>
+        </div>
+      )}
       {/* Live preview: the exact card people will see, changing shape with the kind of ticket. */}
       <section aria-label="Preview" className="z-10 -mx-1 flex flex-col gap-2 rounded-[var(--radius-card)] bg-surface/95 px-1 pt-3 pb-3 backdrop-blur-sm md:sticky md:top-4">
         <p className="text-[13px] text-muted">{event ? "preview · this is how it shows up" : "preview · pick an event to see yours"}</p>
@@ -271,7 +321,7 @@ export function ListingForm({ events, defaults = {}, editing = false }: { events
             label={quantity > 1 ? "Price per ticket" : "Price"}
             htmlFor="askingPrice"
             error={fe.askingPrice}
-            hint={<PriceHint tier={deal?.tier ?? null} saving={deal?.saving ?? null} face={faceValue} capped={capped} />}
+            hint={<><PriceHint tier={deal?.tier ?? null} saving={deal?.saving ?? null} face={faceValue} capped={capped} />{marketNow && <span className="mt-1 block">Others are asking {formatPaise(marketNow.minPaise)} to {formatPaise(marketNow.maxPaise)} ({marketNow.count} live, typically {formatPaise(marketNow.medianPaise)}).</span>}</>}
           >
             <div className="relative">
               <span aria-hidden className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[17px] font-semibold text-muted">₹</span>

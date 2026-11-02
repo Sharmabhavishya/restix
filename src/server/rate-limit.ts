@@ -12,7 +12,7 @@ export const LIMITS = {
   offer: { limit: 40, windowSeconds: 3600 },
   save: { limit: 120, windowSeconds: 3600 },
   track: { limit: 120, windowSeconds: 3600 },
-  devSignIn: { limit: 30, windowSeconds: 600 },
+  devSignIn: { limit: 120, windowSeconds: 600 },
   profile: { limit: 20, windowSeconds: 3600 },
   moderation: { limit: 300, windowSeconds: 3600 },
 } as const;
