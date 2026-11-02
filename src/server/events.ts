@@ -56,7 +56,7 @@ export async function listUpcomingEvents(viewerId: string, opts: { includePast?:
            e.policy_source, e.is_fixture, c.version as cover_version, c.blur as cover_blur,
            count(l.id)::int as available_listings,
            coalesce(sum(l.quantity), 0)::int as available_tickets,
-           min(l.asking_price_paise)::int as lowest_price_paise
+           coalesce(min(l.asking_price_paise) filter (where l.asking_price_paise >= 1000), min(l.asking_price_paise))::int as lowest_price_paise
     from restix.events e
     left join restix.event_covers c on c.event_id = e.id
     left join restix.ticket_listings l on l.event_id = e.id and ${available(tx)}
@@ -93,7 +93,7 @@ export async function publicUpcomingEvents(collegeSlug?: string): Promise<{ coll
              e.policy_source, e.is_fixture, null::int as cover_version, null as cover_blur,
              count(l.id)::int as available_listings,
              coalesce(sum(l.quantity), 0)::int as available_tickets,
-             min(l.asking_price_paise)::int as lowest_price_paise
+             coalesce(min(l.asking_price_paise) filter (where l.asking_price_paise >= 1000), min(l.asking_price_paise))::int as lowest_price_paise
       from restix.events e
       left join restix.ticket_listings l on l.event_id = e.id and ${available(tx)}
       where e.college_id = ${college.id} and coalesce(e.ends_at, e.starts_at) > now()
@@ -114,7 +114,7 @@ export async function getEventBySlug(viewerId: string, slug: string): Promise<Ev
              (select blur from restix.event_covers c where c.event_id = e.id) as cover_blur,
              (select count(*)::int from restix.ticket_listings l where l.event_id = e.id and ${available(tx)}) as available_listings,
              (select coalesce(sum(l.quantity), 0)::int from restix.ticket_listings l where l.event_id = e.id and ${available(tx)}) as available_tickets,
-             (select min(l.asking_price_paise)::int from restix.ticket_listings l where l.event_id = e.id and ${available(tx)}) as lowest_price_paise
+             (select coalesce(min(l.asking_price_paise) filter (where l.asking_price_paise >= 1000), min(l.asking_price_paise))::int from restix.ticket_listings l where l.event_id = e.id and ${available(tx)}) as lowest_price_paise
       from restix.events e
       where e.college_id = restix.my_college_id() and e.slug = ${slug}`;
     if (!event) return null;
