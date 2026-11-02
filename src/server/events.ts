@@ -105,6 +105,31 @@ export async function publicUpcomingEvents(collegeSlug?: string): Promise<{ coll
   });
 }
 
+/**
+ * One upcoming event for its public share page and link-preview card: the event's own details and
+ * how many tickets are up, with no listing, seller or student data. Sample events are never shown.
+ * Runs with system privileges (like the landing page), so it selects only these aggregate columns.
+ */
+export async function publicEventBySlug(slug: string): Promise<EventSummary | null> {
+  if (!/^[a-z0-9-]{2,80}$/.test(slug)) return null;
+  return asSystem(async (tx) => {
+    const [event] = await tx<EventSummary[]>`
+      select e.id, e.slug, e.name, e.category, e.venue, e.starts_at, e.ends_at, e.status, e.transfer_policy,
+             e.policy_source, e.is_fixture, null::int as cover_version, null as cover_blur,
+             count(l.id)::int as available_listings,
+             coalesce(sum(l.quantity), 0)::int as available_tickets,
+             min(l.asking_price_paise)::int as lowest_price_paise
+      from restix.events e
+      left join restix.ticket_listings l on l.event_id = e.id and ${available(tx)}
+      where e.slug = ${slug} and not e.is_fixture and coalesce(e.ends_at, e.starts_at) > now()
+        and e.status <> 'cancelled' and ${resaleOk(tx)}
+      group by e.id
+      order by e.starts_at
+      limit 1`;
+    return event ?? null;
+  });
+}
+
 export async function getEventBySlug(viewerId: string, slug: string): Promise<EventDetail | null> {
   return asUser(viewerId, async (tx) => {
     const [event] = await tx<EventDetail[]>`

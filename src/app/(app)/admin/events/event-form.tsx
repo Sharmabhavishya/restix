@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { initialState } from "@/lib/action-state";
-import { saveEventAction } from "../actions";
+import { checkSlugAction, saveEventAction } from "../actions";
 import { Field, Input, Select, Textarea, describedBy } from "@/components/ui/field";
 import { Notice } from "@/components/ui/bits";
 import { DateTimeQuick, KindPicker, VenueChips } from "@/components/event-fields";
@@ -58,6 +58,17 @@ export function EventForm({ d = {} }: { d?: EventDefaults }) {
   const [startsAt, setStartsAt] = useState(v?.startsAt ?? d.startsAt ?? "");
   const [endsAt, setEndsAt] = useState(v?.endsAt ?? d.endsAt ?? "");
   const { ref, rev } = useFormFeedback(state);
+  const [slugCheck, setSlugCheck] = useState<{ slug: string; taken: boolean } | null>(null);
+  useEffect(() => {
+    if (!/^[a-z0-9-]{2,80}$/.test(slug)) return;
+    let stale = false;
+    const t = window.setTimeout(async () => {
+      const r = await checkSlugAction(slug, d.eventId ?? null).catch(() => null);
+      if (!stale && r) setSlugCheck({ slug, taken: r.taken });
+    }, 400);
+    return () => { stale = true; window.clearTimeout(t); };
+  }, [slug, d.eventId]);
+  const slugNote = slugCheck?.slug === slug ? (slugCheck.taken ? "Already used by another event. Change it." : "Free to use.") : null;
 
   return (
     <form ref={ref} action={action} className="flex flex-col gap-6" noValidate>
@@ -77,7 +88,7 @@ export function EventForm({ d = {} }: { d?: EventDefaults }) {
           <Input id="venue" name="venue" maxLength={120} value={venue} onChange={(e) => setVenue(e.target.value)} />
           <VenueChips value={venue} onPick={setVenue} />
         </Field>
-        <Field label="URL slug" htmlFor="slug" error={fe.slug} hint={`/events/${slug || "…"}`}>
+        <Field label="URL slug" htmlFor="slug" error={fe.slug} hint={<>/events/{slug || "…"}{slugNote && <span className={`ml-2 font-medium ${slugCheck?.taken ? "text-negative" : "text-positive"}`}>{slugNote}</span>}</>}>
           <Input id="slug" name="slug" value={slug} maxLength={80} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} {...describedBy("slug", fe.slug, true)} />
         </Field>
         <Field label="Status" htmlFor="status" error={fe.status}>

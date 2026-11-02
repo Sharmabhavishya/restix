@@ -29,8 +29,19 @@ test("list a wristband, get contacted, sell, report, moderate, measure", async (
   await expect(mod.page.getByLabel("Level 1 name")).toHaveCount(0);
   await mod.page.getByLabel(/^Face value/).fill("600");
   await mod.page.getByLabel("Reason for this change").fill("E2E test event");
+  await expect(mod.page.getByText("Free to use.")).toBeVisible(); // live check on the web address
   await mod.page.getByRole("button", { name: "Create event" }).click();
   await expect(mod.page.getByText(`Saved “${eventName}”.`)).toBeVisible();
+
+  // A shared event link works for someone who isn't signed in: the event and a card, no sellers.
+  const slug = eventName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  await page.goto(`/e/${slug}`);
+  await expect(page.getByRole("heading", { name: eventName })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in with your college email" }).first()).toBeVisible();
+  const card = await page.locator('meta[property="og:image"]').getAttribute("content");
+  const cardRes = await page.request.get(new URL(card!).pathname);
+  expect(cardRes.status()).toBe(200);
+  expect(cardRes.headers()["content-type"]).toContain("image/png");
 
   // 1-2. A new student signs in with an allowed, verified email and gets the name from their account.
   const sellerEmail = uniqueEmail("e2e.seller");

@@ -237,6 +237,17 @@ test.describe("endpoints", () => {
     expect(img.headers()["content-type"]).toContain("image/png");
   });
 
+  test("the app can be added to a home screen, and sample events have no public share page", async ({ request }) => {
+    const manifest = await (await request.get("/manifest.webmanifest")).json();
+    expect(manifest).toMatchObject({ name: "ResTix", display: "standalone", start_url: "/tickets" });
+    for (const icon of manifest.icons.filter((i: { type: string }) => i.type === "image/png")) {
+      const res = await request.get(icon.src);
+      expect(res.status()).toBe(200);
+      expect(res.headers()["content-type"]).toContain("image/png");
+    }
+    expect((await request.get("/e/not-a-real-event")).status()).toBe(404);
+  });
+
   test("public pages are indexable, private ones are not", async ({ page, request }) => {
     const robots = await (await request.get("/robots.txt")).text();
     expect(robots).toContain("Disallow: /admin");

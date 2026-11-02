@@ -36,7 +36,7 @@ export default async function EventPage({ params }: PageProps<"/events/[slug]">)
         <nav aria-label="Breadcrumb" className="[&_a]:tap text-sm text-muted">
           <Link href="/events" className="hover:text-ink">Events</Link>
         </nav>
-        <ShareButton path={`/events/${event.slug}`} title={`${event.name} on ResTix`} text={`Tickets for ${event.name} on ResTix. Student sign-in needed.`} />
+        <ShareButton path={`/e/${event.slug}`} title={`${event.name} on ResTix`} text={`Tickets for ${event.name} on ResTix. Sign in with your college email to see them.`} />
       </div>
       <div className="mb-6">
         <EventPoster event={event} size="hero">

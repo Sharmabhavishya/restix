@@ -12,7 +12,7 @@ import {
   decideAppeal, moderateListing, moderateUser, setRole, updateReport,
   type ListingModAction, type UserModAction,
 } from "@/server/moderation";
-import { eventInput, saveEvent, linkSuggestion } from "@/server/event-admin";
+import { eventInput, saveEvent, linkSuggestion, slugTaken } from "@/server/event-admin";
 import { createTestEvents, deleteEvent, removeTestEvents } from "@/server/admin";
 
 const uuid = z.uuid();
@@ -75,6 +75,13 @@ export async function moderate(_prev: ActionState, formData: FormData): Promise<
   if (!result.ok) return { error: result.error ?? "That didn't work.", values: formValues(formData) };
   revalidatePath("/admin", "layout");
   return { ok: true, message: result.message ?? "Done. Logged in the audit trail." };
+}
+
+/** Is this web address already used by another event? Asked while a moderator types it. */
+export async function checkSlugAction(slug: string, eventId: string | null): Promise<{ taken: boolean } | null> {
+  const mod = await moderator();
+  if (!mod || !/^[a-z0-9-]{2,80}$/.test(slug) || (eventId !== null && !uuid.safeParse(eventId).success)) return null;
+  return { taken: await slugTaken(mod.id, slug, eventId) };
 }
 
 export async function saveEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

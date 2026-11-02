@@ -262,6 +262,13 @@ export async function decideSuggestion(
   }
 }
 
+/** Whether another event in the moderator's college already uses this slug (for the live hint on the event form). */
+export async function slugTaken(modId: string, slug: string, exceptEventId: string | null): Promise<boolean> {
+  const rows = await asUser(modId, (tx) => tx`
+    select 1 from restix.events where slug = ${slug} and id is distinct from ${exceptEventId}::uuid limit 1`);
+  return rows.length > 0;
+}
+
 /** The calendar date in India for a moment, as YYYY-MM-DD. */
 function istDate(d: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(d);

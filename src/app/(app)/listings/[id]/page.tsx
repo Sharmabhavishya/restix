@@ -78,9 +78,9 @@ export default async function ListingPage({ params, searchParams }: PageProps<"/
           <div className="flex flex-none items-center gap-2">
           {!mine && <SaveButton listingId={listing.id} saved={Boolean(listing.saved)} label />}
           <ShareButton
-            path={`/listings/${listing.id}`}
+            path={`/e/${listing.eventSlug}`}
             title={`${listing.eventName} on ResTix`}
-            text={`${listing.ticketTypeName} for ${listing.eventName}, ${formatPaise(listing.askingPricePaise)}${listing.quantity > 1 ? " each" : ""}. Student sign-in needed to see it.`}
+            text={`${listing.ticketTypeName} for ${listing.eventName}, ${formatPaise(listing.askingPricePaise)}${listing.quantity > 1 ? " each" : ""}. Sign in with your college email to see it.`}
           />
           </div>
         )}
